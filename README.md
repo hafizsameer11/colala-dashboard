@@ -1,5 +1,8 @@
 # React + TypeScript + Vite
 
+# Figma File Link
+https://www.figma.com/design/EGmRGChTitTFO3Q5gyWnKN/Colala-Admin-Dashboard?node-id=31-15743&t=SzBA2TOz1qlJvqz1-0
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
