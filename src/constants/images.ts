@@ -21,6 +21,20 @@ const images = {
   referralmgt: "/assets/sidebar/referral-mgt.svg",
   notifications: "/assets/sidebar/notifications.svg",
   logout : "/assets/sidebar/logout.svg",
+  dropdown: "/assets/layout/dropdown.svg",
+  analyticsIcon: "/assets/layout/analytics.svg",
+  money: "/assets/layout/money.svg",
+  sasha: "/assets/layout/sasha.png",
+  eye: "/assets/layout/eye.svg",
+  bella: "/assets/layout/bella.png",
+  jennifer: "/assets/layout/jennifer.png",
+  carter: "/assets/layout/carter.png",
+  chris: "/assets/layout/chris.png",
+  daisy: "/assets/layout/daisy.png",
+  emma: "/assets/layout/emma.png",
+  ethens: "/assets/layout/ethens.png",
+  tom: "/assets/layout/tom.png",
+  MagnifyingGlass: "/assets/layout/MagnifyingGlass.svg",
 };
 
 export default images;

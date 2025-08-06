@@ -11,8 +11,9 @@ const Layout: React.FC = () => {
     <div className="flex bg-theme-light">
       {/* Sidebar */}
       <div
-        className={`fixed lg:static top-0 left-0 z-20 transition-transform transform ${mobileOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 lg:w-fit`}
+        className={`fixed lg:static top-0 left-0 z-20 transition-transform transform ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 lg:w-fit`}
       >
         <Sidebar setMobileOpen={setMobileOpen} />
       </div>
@@ -26,8 +27,6 @@ const Layout: React.FC = () => {
               px-4 md:px-8 py-2
              border-[#093826]
              bg-white
-             shadow-sm 
-             shadow-gray-300
               "
           >
             <div className="flex items-center gap-2">
