@@ -35,6 +35,11 @@ const images = {
   ethens: "/assets/layout/ethens.png",
   tom: "/assets/layout/tom.png",
   MagnifyingGlass: "/assets/layout/MagnifyingGlass.svg",
+  dots: "/assets/layout/dots.svg",
+  block: "/assets/layout/block.svg",
+  ban: "/assets/layout/ban.svg",
+  close: "/assets/layout/close.svg",
+  img: "/assets/layout/img.svg",
 };
 
 export default images;
