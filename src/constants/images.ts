@@ -40,6 +40,12 @@ const images = {
   ban: "/assets/layout/ban.svg",
   close: "/assets/layout/close.svg",
   img: "/assets/layout/img.svg",
+  edit: "/assets/layout/edit.svg",
+  bell: "/assets/layout/bell.svg",
+  dot: "/assets/layout/dot.svg",
+  cycle: "/assets/layout/cycle.svg",
+  cart: "/assets/layout/cart.svg",
+  tick: "/assets/layout/tick.svg"
 };
 
 export default images;

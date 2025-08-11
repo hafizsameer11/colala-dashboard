@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 import images from "../constants/images";
+import React, { useState } from "react";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface AddUserModalProps {
 const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<"profile" | "address">("profile");
   const [showPassword, setShowPassword] = useState(false);
+  const [showAddAddressForm, setShowAddAddressForm] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -19,12 +20,39 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     password: "",
   });
 
+  // Address form state
+  const [addressData, setAddressData] = useState({
+    phoneNumber: "",
+    state: "",
+    localGovernment: "",
+    fullAddress: "",
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleAddressInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setAddressData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAddressSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Address submitted:", addressData);
+    // Add your address submission logic here
+    setShowAddAddressForm(false); // Hide form after submission
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -245,11 +273,288 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
               </div>
             )}
             {activeTab === "address" && (
-              <div className="mt-5" >
-                {/* Saved Address tab content goes here */}
-                <div className="flex items-center justify-center" >
-                    <p className="font-bold text-2xl" >No Saved Addresses</p>
-                </div>
+              <div className="mt-5">
+                {!showAddAddressForm ? (
+                  // Show existing addresses
+                  <>
+                    <div className="bg-white border border-[#CDCDCD] rounded-2xl p-4">
+                      {/* Address Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            Address 1
+                          </h3>
+                          <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
+                            Default Address
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
+                            Edit
+                          </button>
+                          <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Address Details */}
+                      <div className="space-y-3">
+                        {/* Phone Number */}
+                        <div>
+                          <label className="text-gray-500 text-sm block mb-1">
+                            Phone number
+                          </label>
+                          <p className="text-gray-800 font-medium">
+                            070312345678
+                          </p>
+                        </div>
+
+                        {/* State and Local Government */}
+                        <div className="flex flex-row gap-10">
+                          <div>
+                            <label className="text-gray-500 text-sm block mb-1">
+                              State
+                            </label>
+                            <p className="text-gray-800 font-medium">Lagos</p>
+                          </div>
+                          <div>
+                            <label className="text-gray-500 text-sm block mb-1">
+                              Local Government
+                            </label>
+                            <p className="text-gray-800 font-medium">Ikeja</p>
+                          </div>
+                        </div>
+
+                        {/* Full Address */}
+                        <div>
+                          <label className="text-gray-500 text-sm block mb-1">
+                            Full Address
+                          </label>
+                          <p className="text-gray-800 font-medium">
+                            No 2, acbssseddf street, Ikeja
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-[#CDCDCD] rounded-2xl p-4 mt-5">
+                      {/* Address Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            Address 1
+                          </h3>
+                          <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
+                            Default Address
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
+                            Edit
+                          </button>
+                          <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Address Details */}
+                      <div className="space-y-3">
+                        {/* Phone Number */}
+                        <div>
+                          <label className="text-gray-500 text-sm block mb-1">
+                            Phone number
+                          </label>
+                          <p className="text-gray-800 font-medium">
+                            070312345678
+                          </p>
+                        </div>
+
+                        {/* State and Local Government */}
+                        <div className="flex flex-row gap-10">
+                          <div>
+                            <label className="text-gray-500 text-sm block mb-1">
+                              State
+                            </label>
+                            <p className="text-gray-800 font-medium">Lagos</p>
+                          </div>
+                          <div>
+                            <label className="text-gray-500 text-sm block mb-1">
+                              Local Government
+                            </label>
+                            <p className="text-gray-800 font-medium">Ikeja</p>
+                          </div>
+                        </div>
+
+                        {/* Full Address */}
+                        <div>
+                          <label className="text-gray-500 text-sm block mb-1">
+                            Full Address
+                          </label>
+                          <p className="text-gray-800 font-medium">
+                            No 2, acbssseddf street, Ikeja
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <button
+                        onClick={() => setShowAddAddressForm(true)}
+                        className="w-full bg-[#E53E3E] text-white py-3 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer"
+                      >
+                        Add New Address
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // Show add address form
+                  <div className="bg-white">
+                    <form onSubmit={handleAddressSubmit} className="space-y-4">
+                      {/* Phone Number */}
+                      <div>
+                        <label
+                          htmlFor="addressPhoneNumber"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          id="addressPhoneNumber"
+                          name="phoneNumber"
+                          value={addressData.phoneNumber}
+                          onChange={handleAddressInputChange}
+                          placeholder="Enter phone number"
+                          className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
+                          required
+                        />
+                      </div>
+
+                      {/* State */}
+                      <div>
+                        <label
+                          htmlFor="state"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          State
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="state"
+                            name="state"
+                            value={addressData.state}
+                            onChange={handleAddressInputChange}
+                            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow appearance-none bg-white"
+                            required
+                          >
+                            <option value="">Select State</option>
+                            <option value="Lagos">Lagos</option>
+                            <option value="Abuja">Abuja</option>
+                            <option value="Kano">Kano</option>
+                            {/* Add more states as needed */}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg
+                              className="w-4 h-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Local Government */}
+                      <div>
+                        <label
+                          htmlFor="localGovernment"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Local Government
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="localGovernment"
+                            name="localGovernment"
+                            value={addressData.localGovernment}
+                            onChange={handleAddressInputChange}
+                            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow appearance-none bg-white"
+                            required
+                          >
+                            <option value="">Select LGA</option>
+                            <option value="Ikeja">Ikeja</option>
+                            <option value="Victoria Island">
+                              Victoria Island
+                            </option>
+                            <option value="Lekki">Lekki</option>
+                            {/* Add more LGAs as needed */}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg
+                              className="w-4 h-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Full Address */}
+                      <div>
+                        <label
+                          htmlFor="fullAddress"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Full Address
+                        </label>
+                        <textarea
+                          id="fullAddress"
+                          name="fullAddress"
+                          value={addressData.fullAddress}
+                          onChange={handleAddressInputChange}
+                          placeholder="Enter full address"
+                          rows={4}
+                          className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow resize-none"
+                          required
+                        />
+                      </div>
+
+                      {/* Buttons */}
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddAddressForm(false)}
+                          className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-300 focus:outline-none transition-colors font-normal cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 bg-[#E53E3E] text-white py-3 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer"
+                        >
+                          Save Address
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             )}
           </div>

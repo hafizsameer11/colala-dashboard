@@ -1,8 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
 import Layout from "./layout/Layout";
-import Dashboard from "./pages/dashboard/dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import Customer_mgt from "./pages/buyers_Mgt/customer_mgt/customer_mgt";
+import CustomerDetails from "./pages/buyers_Mgt/customer_mgt/customerDetails";
 import OrdersMgtbuyers from "./pages/buyers_Mgt/ordersMgt/ordersMgt";
 import Transactionsbuyers from "./pages/buyers_Mgt/Transactions/Transactions";
 import Stores_mgt from "./pages/sellers_Mgt/stores/stores_mgt";
@@ -22,13 +23,14 @@ import Support from "./pages/general/support/support";
 import RatingsReviews from "./pages/general/ratingsReviews/ratingsReviews";
 import ReferralMgt from "./pages/general/referralMgt/referralMgt";
 import Notifications from "./pages/general/notifications/notifications";
-import Settings from "./pages/general/settings/settings";
+import Settings from "./pages/general/settings/Settings";
 
 function App() {
   const routes = [
     { path: "/", element: <Dashboard /> },
     { path: "/dashboard", element: <Dashboard /> },
     { path: "/customer-mgt", element: <Customer_mgt /> },
+    { path: "/customer-details/:userId", element: <CustomerDetails /> },
     { path: "/orders-mgt-buyers", element: <OrdersMgtbuyers /> },
     { path: "/transactions-buyers", element: <Transactionsbuyers /> },
     { path: "/stores-mgt", element: <Stores_mgt /> },

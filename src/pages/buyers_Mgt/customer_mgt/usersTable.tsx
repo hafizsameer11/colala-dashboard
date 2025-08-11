@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import images from "../../../constants/images";
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
@@ -82,6 +83,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const navigate = useNavigate();
 
   const users: User[] = [
     {
@@ -160,6 +162,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
     }
   };
 
+  const handleCustomerDetails = (user: User) => {
+    navigate(`/customer-details/${user.id}`, { state: user });
+  };
+
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
@@ -211,7 +217,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 <td className="p-3">{user.phoneNumber}</td>
                 <td className="p-3 font-bold">{user.walletBalance}</td>
                 <td className="p-3 space-x-1">
-                  <button className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer">
+                  <button
+                    onClick={() => handleCustomerDetails(user)}
+                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
+                  >
                     Customer Details
                   </button>
                   <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
