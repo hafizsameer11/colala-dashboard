@@ -45,7 +45,13 @@ const images = {
   dot: "/assets/layout/dot.svg",
   cycle: "/assets/layout/cycle.svg",
   cart: "/assets/layout/cart.svg",
-  tick: "/assets/layout/tick.svg"
+  tick: "/assets/layout/tick.svg",
+  iphone: "/assets/layout/iphone.png",
+  ivideo: "/assets/layout/ivideo.png",
+  video: "/assets/layout/video.svg",
+  i1: "/assets/layout/i1.png",
+  i2: "/assets/layout/i2.png",
+  i3: "/assets/layout/i3.png",
 };
 
 export default images;

@@ -1,6 +1,7 @@
 import images from "../constants/images";
 import React, { useState } from "react";
 
+
 // StatusDropdown component
 const StatusDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,60 +70,12 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<
     "track order" | "full order details"
   >("track order");
-  //   const [showPassword, setShowPassword] = useState(false);
-  //   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
-
-  //   // Form state
-  //   const [formData, setFormData] = useState({
-  //     username: "",
-  //     fullName: "",
-  //     email: "",
-  //     phoneNumber: "",
-  //     password: "",
-  //   });
-
-  //   // Address form state
-  //   const [addressData, setAddressData] = useState({
-  //     phoneNumber: "",
-  //     state: "",
-  //     localGovernment: "",
-  //     fullAddress: "",
-  //   });
-
-  //   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //     const { name, value } = e.target;
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       [name]: value,
-  //     }));
-  //   };
-
-  //   const handleAddressInputChange = (
-  //     e: React.ChangeEvent<
-  //       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-  //     >
-  //   ) => {
-  //     const { name, value } = e.target;
-  //     setAddressData((prev) => ({
-  //       ...prev,
-  //       [name]: value,
-  //     }));
-  //   };
-
-  //   const handleAddressSubmit = (e: React.FormEvent) => {
-  //     e.preventDefault();
-  //     console.log("Address submitted:", addressData);
-  //     // Add your address submission logic here
-  //     setShowAddAddressForm(false); // Hide form after submission
-  //   };
-
-  //   const handleSubmit = (e: React.FormEvent) => {
-  //     e.preventDefault();
-  //     console.log("Form submitted:", formData);
-  //     // Add your form submission logic here
-  //     // You can call an API, validate the data, etc.
-  //     onClose(); // Close modal after submission
-  //   };
+  // Sub-view flag: when true, we're inside Product Details while keeping the tab as Full Order Details
+  const [isProductDetails, setIsProductDetails] = useState(false);
+  // Product details inner tabs
+  const [productTab, setProductTab] = useState<
+    "overview" | "description" | "reviews"
+  >("overview");
 
   if (!isOpen) return null;
 
@@ -130,14 +83,44 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">
       <div className="bg-white w-[500px] relative h-full overflow-y-auto">
         {/* Header */}
-        <div className="border-b border-[#787878] p-3 sticky top-0 bg-white z-10">
-          <button
-            onClick={onClose}
-            className="absolute flex items-center right-3 cursor-pointer"
-          >
-            <img src={images.close} alt="Close" />
-          </button>
-          <h2 className="text-xl font-semibold">Order Details</h2>
+        <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {isProductDetails && (
+                <button
+                  onClick={() => {
+                    setIsProductDetails(false);
+                    setProductTab("overview");
+                  }}
+                  className="p-2 -ml-2 rounded-md cursor-pointer"
+                  aria-label="Back"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+              )}
+              <h2 className="text-xl font-semibold">
+                {isProductDetails ? "Product details" : "Order Details"}
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+              aria-label="Close"
+            >
+              <img src={images.close} alt="Close" />
+            </button>
+          </div>
         </div>
 
         <div className="p-5">
@@ -155,7 +138,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
                 Track Order
               </button>
               <button
-                onClick={() => setActiveTab("full order details")}
+                onClick={() => {
+                  setActiveTab("full order details");
+                  setIsProductDetails(false);
+                }}
                 className={`px-6 py-2 rounded-lg font-medium cursor-pointer ${
                   activeTab === "full order details"
                     ? "bg-red-500 text-white"
@@ -293,8 +279,283 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
             )}
-            {activeTab === "full order details" && (
-              <div className="mt-5">hi</div>
+            {activeTab === "full order details" && !isProductDetails && (
+              <div className="mt-5">
+                <div className="flex flex-row ">
+                  <div>
+                    <picture>
+                      <img
+                        className="w-35 h-35 rounded-l-2xl"
+                        src={images.iphone}
+                        alt=""
+                      />
+                    </picture>
+                  </div>
+                  <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
+                    <span className="text-black text-[17px]">
+                      Iphone 16 pro max - Black
+                    </span>
+                    <span className="text-[#E53E3E] font-bold text-[17px]">
+                      N2,500,000
+                    </span>
+                    <div className="flex flex-row justify-between items-center mt-3">
+                      <div>
+                        <span className="text-[#E53E3E] font-bold text-[17px]">
+                          Qty :1
+                        </span>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => {
+                            setActiveTab("full order details");
+                            setIsProductDetails(true);
+                            setProductTab("overview");
+                          }}
+                          className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
+                        >
+                          Product Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-row mt-3">
+                  <div>
+                    <picture>
+                      <img
+                        className="w-35 h-35 rounded-l-2xl"
+                        src={images.iphone}
+                        alt=""
+                      />
+                    </picture>
+                  </div>
+                  <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
+                    <span className="text-black text-[17px]">
+                      Iphone 16 pro max - Black
+                    </span>
+                    <span className="text-[#E53E3E] font-bold text-[17px]">
+                      N2,500,000
+                    </span>
+                    <div className="flex flex-row justify-between items-center mt-3">
+                      <div>
+                        <span className="text-[#E53E3E] font-bold text-[17px]">
+                          Qty :1
+                        </span>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => {
+                            setActiveTab("full order details");
+                            setIsProductDetails(true);
+                            setProductTab("overview");
+                          }}
+                          className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
+                        >
+                          Product Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full mt-3">
+                  <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+                    Order Details
+                  </div>
+                  <div className="border border-[#CDCDCD] rounded-b-2xl">
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
+                      <span className="text-[#00000080]">Order ID</span>
+                      <span>ORD-1234DFEKFK</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
+                      <span className="text-[#00000080]">Store Name</span>
+                      <span>Sasha Stores</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
+                      <span className="text-[#00000080]">No of items</span>
+                      <span>2</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-10 p-2">
+                      <span className="text-[#00000080]">Discount Code</span>
+                      <span>NEW123</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-12 p-2">
+                      <span className="text-[#00000080]">Loyalty Points</span>
+                      <span>200</span>
+                    </div>
+                    <div className="flex flex-row gap-28 p-2">
+                      <span className="text-[#00000080]">Date</span>
+                      <span>July 19,2025 - 07:22AM</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full mt-3">
+                  <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+                    Delivery Details
+                  </div>
+                  <div className="border border-[#CDCDCD] rounded-b-2xl">
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2">
+                      <span className="text-[#00000080]">Phone Number</span>
+                      <span>0701234567</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-27 p-2">
+                      <span className="text-[#00000080]">State</span>
+                      <span>Lagos</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
+                      <span className="text-[#00000080]">LGA</span>
+                      <span>Ikeja</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
+                      <span className="text-[#00000080]">Address</span>
+                      <span>No 2, abcd street, ikeja</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full mt-3">
+                  <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+                    Price Details
+                  </div>
+                  <div className="border border-[#CDCDCD] rounded-b-2xl">
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-17 p-2">
+                      <span className="text-[#00000080]">Items Cost</span>
+                      <span className="font-bold">N2,500,000</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-3 p-2">
+                      <span className="text-[#00000080]">Coupon Discount</span>
+                      <span className="font-bold">-N5,000</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-7 p-2">
+                      <span className="text-[#00000080]">Points Discount</span>
+                      <span className="font-bold">-N5,000</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
+                      <span className="text-[#00000080]">Delivery Fee</span>
+                      <span className="font-bold">N10,000</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
+                      <span className="text-[#00000080]">Total</span>
+                      <span className="font-bold">N2,500,000</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    className="flex-1 bg-[#E53E3E] text-white py-3 px-4 rounded-lg hover:bg-red-600 focus:outline-none transition-colors font-normal cursor-pointer"
+                  >
+                    View Chat
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#ffffff] text-[#00000080] py-3 px-4 rounded-lg border border-[#989898] focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer"
+                  >
+                    Delete Order
+                  </button>
+                </div>
+              </div>
+            )}
+            {activeTab === "full order details" && isProductDetails && (
+              <div className="mt-5">
+                <div className="relative rounded-2xl overflow-hidden">
+                  <img
+                    src={images.ivideo}
+                    alt="Product video thumbnail"
+                    className="w-full h-auto object-cover rounded-2xl"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                    aria-label="Play product video"
+                  >
+                    <span className="bg-[#000000CC] rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
+                      <img className="w-8 h-8" src={images.video} alt="Play" />
+                    </span>
+                  </button>
+                </div>
+                <div className="flex flex-row mt-5 gap-3">
+                  <div>
+                    <img src={images.i1} alt="" />
+                  </div>
+                  <div>
+                    <img src={images.i2} alt="" />
+                  </div>
+                  <div>
+                    <img src={images.i3} alt="" />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setProductTab("overview")}
+                    className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${
+                      productTab === "overview"
+                        ? "bg-[#E53E3E] text-white"
+                        : "bg-white text-[#00000080]"
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductTab("description")}
+                    className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${
+                      productTab === "description"
+                        ? "bg-[#E53E3E] text-white"
+                        : "bg-white text-[#00000080]"
+                    }`}
+                  >
+                    Description
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductTab("reviews")}
+                    className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${
+                      productTab === "reviews"
+                        ? "bg-[#E53E3E] text-white"
+                        : "bg-white text-[#00000080]"
+                    }`}
+                  >
+                    Reviews
+                  </button>
+                </div>
+
+                {/* Tab panels */}
+                <div className="mt-5">
+                  {productTab === "overview" && (
+                    <div className="">
+                    </div>
+                  )}
+                  {productTab === "description" && (
+                    <div className="text-sm text-[#000000CC] space-y-2">
+                      <p>
+                        Crafted with aerospace‑grade materials for durability
+                        and style. Long‑lasting battery life with fast charging
+                        support.
+                      </p>
+                      <p>Includes: Phone, USB‑C cable, documentation.</p>
+                    </div>
+                  )}
+                  {productTab === "reviews" && (
+                    <div className="text-sm text-[#000000CC] space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="font-semibold">Sasha</div>
+                        <div>
+                          Excellent device, camera is amazing and battery lasts
+                          all day.
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="font-semibold">Ethan</div>
+                        <div>Worth the upgrade. Screen is super smooth.</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
