@@ -52,6 +52,22 @@ const images = {
   i1: "/assets/layout/i1.png",
   i2: "/assets/layout/i2.png",
   i3: "/assets/layout/i3.png",
+  start1: "/assets/layout/start1.svg",
+  cart1: "/assets/layout/cart1.svg",
+  whatsapp: "/assets/layout/whatsapp.svg",
+  chat: "/assets/layout/chat.svg",
+  call: "/assets/layout/call.svg",
+  cover: "/assets/layout/cover.png",
+  icon: "/assets/layout/icon.png",
+  location: "/assets/layout/location.svg",
+  whatsapp1: "/assets/layout/whatsapp1.svg",
+  insta: "/assets/layout/insta.svg",
+  x: "/assets/layout/x.svg",
+  facebook: "/assets/layout/facebook.svg",
+  shop: "/assets/layout/shop.svg",
+  category: "/assets/layout/category.svg",
+  star2: "/assets/layout/star2.svg",
+  i10: "/assets/layout/i10.png"
 };
 
 export default images;
