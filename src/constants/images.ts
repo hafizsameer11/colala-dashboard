@@ -67,7 +67,12 @@ const images = {
   shop: "/assets/layout/shop.svg",
   category: "/assets/layout/category.svg",
   star2: "/assets/layout/star2.svg",
-  i10: "/assets/layout/i10.png"
+  i10: "/assets/layout/i10.png",
+  tick1: "/assets/layout/tick1.svg",
+  plus: "/assets/layout/plus.svg",
+  minus: "/assets/layout/minus.svg",
+  edit1: "/assets/layout/edit1.svg",
+  delete1: "/assets/layout/delete1.svg",
 };
 
 export default images;
