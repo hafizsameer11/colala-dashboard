@@ -70,7 +70,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+              className="p-2 rounded-md  cursor-pointer"
               aria-label="Close"
             >
               <img src={images.close} alt="Close" />
