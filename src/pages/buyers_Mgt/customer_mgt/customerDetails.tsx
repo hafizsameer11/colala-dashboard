@@ -3,6 +3,9 @@ import { useParams, useLocation } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import Activity from "./activity";
 import Orders from "./orders";
+import Chats from "./chats";
+import Transaction from "./transaction";
+import SocialFeed from "./socialFeed";
 
 const CustomerDetails: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -50,23 +53,11 @@ const CustomerDetails: React.FC = () => {
       case "Orders":
         return <Orders />;
       case "Chats":
-        return (
-          <div className="p-5 bg-white rounded-xl">
-            Customer support and chat logs.
-          </div>
-        );
+        return <Chats />;
       case "Transactions":
-        return (
-          <div className="p-5 bg-white rounded-xl">
-            All wallet transactions and payment data.
-          </div>
-        );
+        return <Transaction />;
       case "Social Feed":
-        return (
-          <div className="p-5 bg-white rounded-xl">
-            Social activity, posts, and comments.
-          </div>
-        );
+        return <SocialFeed />;
       default:
         return null;
     }

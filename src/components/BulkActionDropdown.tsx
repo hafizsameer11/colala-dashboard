@@ -39,14 +39,14 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       </button>
 
       {isBulkDropdownOpen && (
-        <div className="absolute z-10 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg">
+        <div className="absolute z-10 mt-2 w-44 bg-white border border-gray-200 rounded-2xl shadow-lg">
           {bulkActions.map((action) => (
             <button
               key={action}
               onClick={() => handleBulkOptionSelect(action)}
               className={`block w-full text-left px-4 py-2 text-sm ${
                 action === "Delete" ? "text-[#FF0000]" : "text-black"
-              } cursor-pointer font-medium`}
+              } cursor-pointer `}
             >
               {action}
             </button>

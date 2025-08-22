@@ -73,6 +73,8 @@ const images = {
   minus: "/assets/layout/minus.svg",
   edit1: "/assets/layout/edit1.svg",
   delete1: "/assets/layout/delete1.svg",
+  shoppingcart: "/assets/layout/shoppingcart.svg",
+  transaction1: "/assets/layout/transaction.svg",
 };
 
 export default images;
