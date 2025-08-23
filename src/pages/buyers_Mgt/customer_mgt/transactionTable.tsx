@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import TransactionsModel from "../../../components/transactionsModel";
 
 interface Transaction {
   id: string;
@@ -20,66 +21,74 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTransactionTable, setSelectedTransactionTable] =
+    useState<Transaction | null>(null);
 
   // Sample data based on the image
   const transactions: Transaction[] = [
     {
-    id: "1",
-    reference: "zxcvbnmkljhgfdsA",
-    amount: "₦1,000",
-    type: "Deposit",
-    date: "18-07-2025/11:30AM",
-    status: "Successful",
-  },
-  {
-    id: "2",
-    reference: "poiuytrewqasdfgh",
-    amount: "₦12,750",
-    type: "Deposit",
-    date: "18-07-2025/09:05AM",
-    status: "Pending",
-  },
-  {
-    id: "3",
-    reference: "mnbvcxzlkjhgfdrp",
-    amount: "₦50,000",
-    type: "Deposit",
-    date: "17-07-2025/01:45PM",
-    status: "Successful",
-  },
-  {
-    id: "4",
-    reference: "asdfghzxcvbnqwe",
-    amount: "₦5,500",
-    type: "Deposit",
-    date: "19-07-2025/02:15PM",
-    status: "Failed",
-  },
-  {
-    id: "5",
-    reference: "qwaszxedcrfvtgby",
-    amount: "₦20,000",
-    type: "Deposit",
-    date: "20-07-2025/07:58PM",
-    status: "Successful",
-  },
-  {
-    id: "6",
-    reference: "qwertyuiopasdfgh",
-    amount: "₦2,500",
-    type: "Deposit",
-    date: "16-07-2025/08:22PM",
-    status: "Failed",
-  },
-  {
-    id: "7",
-    reference: "jhgfdsapoiuytrew",
-    amount: "₦10,000",
-    type: "Deposit",
-    date: "17-07-2025/10:00AM",
-    status: "Successful",
-  },
+      id: "1",
+      reference: "zxcvbnmkljhgfdsA",
+      amount: "₦1,000",
+      type: "Deposit",
+      date: "18-07-2025/11:30AM",
+      status: "Successful",
+    },
+    {
+      id: "2",
+      reference: "poiuytrewqasdfgh",
+      amount: "₦12,750",
+      type: "Deposit",
+      date: "18-07-2025/09:05AM",
+      status: "Pending",
+    },
+    {
+      id: "3",
+      reference: "mnbvcxzlkjhgfdrp",
+      amount: "₦50,000",
+      type: "Deposit",
+      date: "17-07-2025/01:45PM",
+      status: "Successful",
+    },
+    {
+      id: "4",
+      reference: "asdfghzxcvbnqwe",
+      amount: "₦5,500",
+      type: "Deposit",
+      date: "19-07-2025/02:15PM",
+      status: "Failed",
+    },
+    {
+      id: "5",
+      reference: "qwaszxedcrfvtgby",
+      amount: "₦20,000",
+      type: "Deposit",
+      date: "20-07-2025/07:58PM",
+      status: "Successful",
+    },
+    {
+      id: "6",
+      reference: "qwertyuiopasdfgh",
+      amount: "₦2,500",
+      type: "Deposit",
+      date: "16-07-2025/08:22PM",
+      status: "Failed",
+    },
+    {
+      id: "7",
+      reference: "jhgfdsapoiuytrew",
+      amount: "₦10,000",
+      type: "Deposit",
+      date: "17-07-2025/10:00AM",
+      status: "Successful",
+    },
   ];
+
+  const handleShowDetails = (transaction: Transaction) => {
+    setSelectedTransactionTable(transaction);
+    setShowModal(true);
+  };
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -90,7 +99,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     setSelectAll(!selectAll);
 
     if (onRowSelect) {
-      onRowSelect(selectAll ? [] : transactions.map((transaction) => transaction.id));
+      onRowSelect(
+        selectAll ? [] : transactions.map((transaction) => transaction.id)
+      );
     }
   };
 
@@ -140,17 +151,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                 />
               </th>
-              <th className="text-left p-3 font-normal text-[14px]">
-                TX id
-              </th>
+              <th className="text-left p-3 font-normal text-[14px]">TX id</th>
               <th className="text-center p-3 font-normal text-[14px]">
-              Amount
+                Amount
               </th>
+              <th className="text-center p-3 font-normal text-[14px]">Type</th>
               <th className="text-center p-3 font-normal text-[14px]">
-                Type
+                Tx Date
               </th>
-              <th className="text-center p-3 font-normal text-[14px]">Tx Date</th>
-          
+
               <th className="text-center p-3 font-normal text-[14px]">
                 Status
               </th>
@@ -195,7 +204,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </span>
                 </td>
                 <td className="p-4 text-center">
-                  <button className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer">
+                  <button
+                    onClick={() => handleShowDetails(transaction)}
+                    className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
+                  >
                     View Details
                   </button>
                 </td>
@@ -204,6 +216,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           </tbody>
         </table>
       </div>
+      <TransactionsModel
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        transaction={selectedTransactionTable}
+      />
     </div>
   );
 };

@@ -75,6 +75,9 @@ const images = {
   delete1: "/assets/layout/delete1.svg",
   shoppingcart: "/assets/layout/shoppingcart.svg",
   transaction1: "/assets/layout/transaction.svg",
+  tick2: "/assets/layout/tick2.svg",
+  error: "/assets/layout/error.svg",
+  redx: "/assets/layout/redx.svg",
 };
 
 export default images;

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+// import TransactionsModel from "../../../components/transactionsModel";
+import SocialFeedModel from "../../../components/socialFeedModal";
 
 interface SocialFeed {
   id: string;
@@ -19,59 +21,67 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedSocialFeed, setSelectedSocialFeed] =
+    useState<SocialFeed | null>(null);
 
   // Sample data based on the image
   const socialFeeds: SocialFeed[] = [
-      {
-    id: "1",
-    storeName: "Sasha Stores",
-    type: "Post Like",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
-  {
-    id: "2",
-    storeName: "Sasha Stores",
-    type: "Post Comment",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
-  {
-    id: "3",
-    storeName: "Sasha Stores",
-    type: "Post Saved",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
-  {
-    id: "4",
-    storeName: "Sasha Stores",
-    type: "Post Like",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
-  {
-    id: "5",
-    storeName: "Sasha Stores",
-    type: "Post Like",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
-  {
-    id: "6",
-    storeName: "Sasha Stores",
-    type: "Post Like",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
-  {
-    id: "7",
-    storeName: "Sasha Stores",
-    type: "Post Like",
-    post: "This is nice......",
-    date: "18-07-2025/11:30AM",
-  },
+    {
+      id: "1",
+      storeName: "Sasha Stores",
+      type: "Post Like",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
+    {
+      id: "2",
+      storeName: "Sasha Stores",
+      type: "Post Comment",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
+    {
+      id: "3",
+      storeName: "Sasha Stores",
+      type: "Post Saved",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
+    {
+      id: "4",
+      storeName: "Sasha Stores",
+      type: "Post Like",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
+    {
+      id: "5",
+      storeName: "Sasha Stores",
+      type: "Post Like",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
+    {
+      id: "6",
+      storeName: "Sasha Stores",
+      type: "Post Like",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
+    {
+      id: "7",
+      storeName: "Sasha Stores",
+      type: "Post Like",
+      post: "This is nice......",
+      date: "18-07-2025/11:30AM",
+    },
   ];
+
+  const handleShowDetails = (socialFeed: SocialFeed) => {
+    setSelectedSocialFeed(socialFeed);
+    setShowModal(true);
+  };
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -82,7 +92,9 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
     setSelectAll(!selectAll);
 
     if (onRowSelect) {
-      onRowSelect(selectAll ? [] : socialFeeds.map((socialFeed) => socialFeed.id));
+      onRowSelect(
+        selectAll ? [] : socialFeeds.map((socialFeed) => socialFeed.id)
+      );
     }
   };
 
@@ -122,14 +134,14 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
               <th className="text-left p-3 font-semibold text-[14px]">
                 Store Name
               </th>
-              <th className="text-left p-3 font-semibold text-[14px]">
-              Type
+              <th className="text-left p-3 font-semibold text-[14px]">Type</th>
+              <th className="text-left p-3 font-semibold text-[14px]">Post</th>
+              <th className="text-center p-3 font-semibold text-[14px]">
+                Date
               </th>
-              <th className="text-left p-3 font-semibold text-[14px]">
-             Post
+              <th className="text-center p-3 font-semibold text-[14px]">
+                Other
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">Date</th>
-              <th className="text-center p-3 font-semibold text-[14px]">Other</th>
             </tr>
           </thead>
           <tbody>
@@ -161,7 +173,10 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
                   {socialFeed.date}
                 </td>
                 <td className="p-4 text-center">
-                  <button className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer">
+                  <button
+                    onClick={() => handleShowDetails(socialFeed)}
+                    className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
+                  >
                     View Details
                   </button>
                 </td>
@@ -170,6 +185,11 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      <SocialFeedModel
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
     </div>
   );
 };
