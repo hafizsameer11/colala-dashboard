@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import OrderDetails from "../../../components/orderDetails";
+import OrderDetails from "../Modals/orderDetails";
 
 interface Order {
   id: string;
@@ -101,7 +101,6 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     },
   ];
   const [showModal, setShowModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Filter orders based on active tab
   const filteredOrders =
@@ -133,8 +132,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     if (onRowSelect) onRowSelect(newSelection);
   };
 
-  const handleShowDetails = (order: Order) => {
-    setSelectedOrder(order);
+  const handleShowDetails = () => {
     setShowModal(true);
   };
 
@@ -192,7 +190,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                 </td>
                 <td className="p-3 space-x-2">
                   <button
-                    onClick={() => handleShowDetails(order)}
+                    onClick={() => handleShowDetails()}
                     className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
                   >
                     Details

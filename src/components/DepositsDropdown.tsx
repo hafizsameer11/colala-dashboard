@@ -9,7 +9,8 @@ const DepositDropdown: React.FC<DepositDropdownProps> = ({
   onActionSelect,
 }) => {
   const [isDepositDropdownOpen, setIsDepositDropdownOpen] = useState(false);
-  const [selectedDepositAction, setSelectedDepositAction] = useState("Deposit Action");
+  const [selectedDepositAction, setSelectedDepositAction] =
+    useState("Deposit Action");
 
   const depositActions = ["All", "Deposits", "Withdrawals", "Payments"];
 
@@ -32,17 +33,17 @@ const DepositDropdown: React.FC<DepositDropdownProps> = ({
 
   return (
     <div className="relative inline-block text-left">
-     <div className="flex flex-row  justify-center items-center px-2.5 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer" >
-         <button
-        onClick={handleDepositDropdownToggle}
-        className="cursor-pointer"
-      >
-        {selectedDepositAction}
-      </button>
-      <div>
-        <img className="ml-5" src={images.dropdown} alt="" />
+      <div className="flex flex-row  justify-center items-center px-2.5 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer">
+        <button
+          onClick={handleDepositDropdownToggle}
+          className="cursor-pointer"
+        >
+          {selectedDepositAction}
+        </button>
+        <div>
+          <img className="ml-5" src={images.dropdown} alt="" />
+        </div>
       </div>
-     </div>
 
       {isDepositDropdownOpen && (
         <div className="absolute z-10 mt-2 w-44 bg-white border border-gray-200 rounded-2xl shadow-lg">

@@ -39,7 +39,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       </button>
 
       {isBulkDropdownOpen && (
-        <div className="absolute z-10 mt-2 w-44 bg-white border border-gray-200 rounded-2xl shadow-lg">
+        <div className="absolute z-10 mt-2 w-38 bg-white border border-gray-200 font-semibold rounded-2xl shadow-lg">
           {bulkActions.map((action) => (
             <button
               key={action}

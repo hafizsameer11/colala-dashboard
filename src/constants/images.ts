@@ -78,6 +78,13 @@ const images = {
   tick2: "/assets/layout/tick2.svg",
   error: "/assets/layout/error.svg",
   redx: "/assets/layout/redx.svg",
+  iphone14: "/assets/layout/iphone14.png",
+  heart: "/assets/layout/heart.svg",
+  comment: "/assets/layout/comment.svg",
+  share: "/assets/layout/share.svg",
+  adam: "/assets/layout/adam.png",
+  cam: "/assets/layout/cam.svg",
+  rightarrow: "/assets/layout/rightarrow.svg",
 };
 
 export default images;

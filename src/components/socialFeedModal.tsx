@@ -1,12 +1,104 @@
+import React, { useState } from "react";
 import images from "../constants/images";
+
+interface Reply {
+  id: string;
+  text: string;
+  author: string;
+  replyTo: string;
+  timestamp: string;
+}
 
 interface SocialFeedModelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const SocialFeedModel: React.FC<SocialFeedModelProps> = ({ isOpen, onClose }) => {
+const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  // State to track which reply inputs are open
+  const [openReplies, setOpenReplies] = useState<Set<string>>(new Set());
+  const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
+
+  // State to store actual replies for each comment
+  const [replies, setReplies] = useState<{ [commentId: string]: Reply[] }>({
+    comment1: [
+      {
+        id: "reply1",
+        text: "We do deliver nationwide.",
+        author: "Sasha Stores",
+        replyTo: "Adam Chris",
+        timestamp: "1 min",
+      },
+    ],
+    comment2: [],
+    comment3: [],
+  });
+
   if (!isOpen) return null;
+
+  // Toggle reply input visibility
+  const toggleReply = (commentId: string) => {
+    setOpenReplies((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle reply text change
+  const handleReplyTextChange = (commentId: string, text: string) => {
+    setReplyTexts((prev) => ({
+      ...prev,
+      [commentId]: text,
+    }));
+  };
+
+  // Handle reply submission
+  const handleReplySubmit = (commentId: string) => {
+    const replyText = replyTexts[commentId];
+    if (!replyText || replyText.trim() === "") return;
+
+    // Create new reply
+    const newReply: Reply = {
+      id: `reply_${Date.now()}`,
+      text: replyText.trim(),
+      author: "Sasha Stores",
+      replyTo: "Adam Chris",
+      timestamp: "now",
+    };
+
+    // Add reply to the comment
+    setReplies((prev) => ({
+      ...prev,
+      [commentId]: [...(prev[commentId] || []), newReply],
+    }));
+
+    // Clear the reply text and close the reply input
+    setReplyTexts((prev) => ({
+      ...prev,
+      [commentId]: "",
+    }));
+    setOpenReplies((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(commentId);
+      return newSet;
+    });
+  };
+
+  // Handle reply deletion
+  const handleReplyDelete = (commentId: string, replyId: string) => {
+    setReplies((prev) => ({
+      ...prev,
+      [commentId]: prev[commentId].filter((reply) => reply.id !== replyId),
+    }));
+  };
 
   return (
     <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">
@@ -40,104 +132,354 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({ isOpen, onClose }) =>
               <div>
                 <img className="w-20 h-20" src={images.sasha} alt="" />
               </div>
-              <div className="flex flex-col gap-3 items-center justify-center">
+              <div className="flex flex-col gap-2 items-center justify-center">
                 <span className="text-[20px]">Sasha Stores</span>
-                <span className="text-[#00000080] text-[10px] ml-[-18px]">
-                  Last seen: 2 min ago
+                <span className="text-[#00000080] text-[10px]">
+                  Lagos, Nigeria 20 min ago
                 </span>
               </div>
             </div>
             <div className="mt-5">
-              <button className="px-5 py-2 cursor-pointer text-white bg-[#F29F9F] rounded-lg mr-2">
-                Join Chat
-              </button>
-              <button className="px-3 py-2 cursor-pointer text-white bg-black rounded-lg">
-                Switch to Store
+              <button className="font-bold text-[#FF0000] text-lg cursor-pointer">
+                Delete Post
               </button>
             </div>
           </div>
-          <div className="border border-[#E53E3E] bg-[#FFE5E5] rounded-2xl p-3 mt-3">
-            <div className="flex flex-col">
-              <div className="flex flex-row justify-between">
-                <span className="font-semibold">Items in cart (2)</span>
-                <span className="text-[#E53E3E] font-semibold">N5,000,000</span>
+          <div className="mt-4">
+            <img src={images.iphone14} alt="" />
+          </div>
+          <div className="w-full bg-[#F0F0F0] rounded-lg p-3 mt-4">
+            Get this phone at a cheap price for a limited period of time, get
+            the best product with us
+          </div>
+          <div className="flex flex-row gap-3 mt-4">
+            <div className="flex items-center gap-1">
+              <div>
+                <img className="cursor-pointer" src={images.heart} alt="" />
               </div>
-              <div className="flex flex-row mt-3">
-                <div>
-                  <img className="rounded-l-lg" src={images.iphone} alt="" />
+              <div>500</div>
+            </div>
+            <div className="flex items-center gap-1">
+              <div>
+                <img className="cursor-pointer" src={images.comment} alt="" />
+              </div>
+              <div>26</div>
+            </div>
+            <div className="flex items-center gap-1">
+              <div>
+                <img className="cursor-pointer" src={images.share} alt="" />
+              </div>
+              <div>26</div>
+            </div>
+          </div>
+          <div className="flex flex-col mt-4 gap-4 mb-10">
+            {/* Comment 1 */}
+            <div className="flex flex-row gap-3">
+              <div>
+                <img className="w-15 h-15" src={images.adam} alt="" />
+              </div>
+              <div className="flex flex-col w-full">
+                <div className="flex flex-row gap-1">
+                  <span className="text-[#E53E3E] font-semibold text-md">
+                    Adam Chris
+                  </span>
+                  <span className="text-[#00000080]">1 min</span>
                 </div>
-                <div className="flex flex-col p-1 pr-3 pl-3 bg-[#F9F9F9] w-full rounded-r-lg justify-between">
-                  <div className="text-[18px]">Iphone 16 pro max - Black</div>
-                  <div className="flex flex-row justify-between">
-                    <span className="text-[#E53E3E] font-semibold">
-                      N2,500,000
+                <div>
+                  <span className="text-[14px] font-semibold">
+                    This product looks really nice, do you deliver nationwide?
+                  </span>
+                </div>
+                <div className="flex flex-row mt-3 justify-between items-center">
+                  <div className="flex gap-2">
+                    <span
+                      className="text-[#00000080] cursor-pointer"
+                      onClick={() => toggleReply("comment1")}
+                    >
+                      Reply
                     </span>
-                    <span>Qty :1</span>
+                    <img
+                      className="cursor-pointer"
+                      src={images.comment}
+                      alt=""
+                    />
+                    <span>{replies.comment1?.length || 0}</span>
+                  </div>
+                  <div className="text-[#FF0000] font-bold cursor-pointer">
+                    Delete
                   </div>
                 </div>
+
+                {/* Reply Input */}
+                {openReplies.has("comment1") && (
+                  <div className="mt-3 flex flex-row gap-2 items-center">
+                    <img className="w-8 h-8" src={images.sasha} alt="" />
+                    <div className="flex-1 flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Write a reply..."
+                        value={replyTexts["comment1"] || ""}
+                        onChange={(e) =>
+                          handleReplyTextChange("comment1", e.target.value)
+                        }
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleReplySubmit("comment1");
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
+                      />
+                      <button
+                        onClick={() => handleReplySubmit("comment1")}
+                        className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Display Replies */}
+                {replies.comment1?.map((reply) => (
+                  <div key={reply.id} className="flex flex-row gap-3  mt-3">
+                    <div>
+                      <img className="w-10 h-10" src={images.sasha} alt="" />
+                    </div>
+                    <div className="flex flex-col w-full">
+                      <div className="flex flex-row gap-1">
+                        <span className="text-[#E53E3E] font-semibold text-sm">
+                          {reply.author}
+                        </span>
+                        <span className="text-[#00000080] text-sm">
+                          {reply.timestamp}
+                        </span>
+                      </div>
+                      <div className="flex flex-row justify-between items-center w-full">
+                        <div className="text-[14px] font-semibold">
+                          <span className="text-[#FF0000]">
+                            @{reply.replyTo}
+                          </span>{" "}
+                          {reply.text}
+                        </div>
+                        <div
+                          className="text-[#FF0000] font-bold cursor-pointer"
+                          onClick={() =>
+                            handleReplyDelete("comment1", reply.id)
+                          }
+                        >
+                          Delete
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex flex-row mt-3">
-                <div>
-                  <img className="rounded-l-lg" src={images.iphone} alt="" />
+            </div>
+
+            {/* Comment 2 */}
+            <div className="flex flex-row gap-3">
+              <div>
+                <img className="w-15 h-15" src={images.adam} alt="" />
+              </div>
+              <div className="flex flex-col w-full">
+                <div className="flex flex-row gap-1">
+                  <span className="text-[#E53E3E] font-semibold text-md">
+                    Adam Chris
+                  </span>
+                  <span className="text-[#00000080]">1 min</span>
                 </div>
-                <div className="flex flex-col p-1 pr-3 pl-3 bg-[#F9F9F9] w-full rounded-r-lg justify-between">
-                  <div className="text-[18px]">Iphone 16 pro max - Black</div>
-                  <div className="flex flex-row justify-between">
-                    <span className="text-[#E53E3E] font-semibold">
-                      N2,500,000
+                <div>
+                  <span className="text-[14px] font-semibold">
+                    This product looks really nice, do you deliver nationwide?
+                  </span>
+                </div>
+                <div className="flex flex-row mt-3 justify-between items-center">
+                  <div className="flex gap-2">
+                    <span
+                      className="text-[#00000080] cursor-pointer"
+                      onClick={() => toggleReply("comment2")}
+                    >
+                      Reply
                     </span>
-                    <span>Qty :1</span>
+                    <img
+                      className="cursor-pointer"
+                      src={images.comment}
+                      alt=""
+                    />
+                    <span>{replies.comment2?.length || 0}</span>
+                  </div>
+                  <div className="text-[#FF0000] font-bold cursor-pointer">
+                    Delete
                   </div>
                 </div>
+
+                {/* Reply Input */}
+                {openReplies.has("comment2") && (
+                  <div className="mt-3 flex flex-row gap-2 items-center">
+                    <img className="w-8 h-8" src={images.sasha} alt="" />
+                    <div className="flex-1 flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Write a reply..."
+                        value={replyTexts["comment2"] || ""}
+                        onChange={(e) =>
+                          handleReplyTextChange("comment2", e.target.value)
+                        }
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleReplySubmit("comment2");
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
+                      />
+                      <button
+                        onClick={() => handleReplySubmit("comment2")}
+                        className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Display Replies */}
+                {replies.comment2?.map((reply) => (
+                  <div key={reply.id} className="flex flex-row gap-3 mt-3">
+                    <div>
+                      <img className="w-10 h-10" src={images.sasha} alt="" />
+                    </div>
+                    <div className="flex flex-col w-full">
+                      <div className="flex flex-row gap-1">
+                        <span className="text-[#E53E3E] font-semibold text-sm">
+                          {reply.author}
+                        </span>
+                        <span className="text-[#00000080] text-sm">
+                          {reply.timestamp}
+                        </span>
+                      </div>
+                      <div className="flex flex-row justify-between items-center w-full">
+                        <div className="text-[14px] font-semibold">
+                          <span className="text-[#FF0000]">
+                            @{reply.replyTo}
+                          </span>{" "}
+                          {reply.text}
+                        </div>
+                        <div
+                          className="text-[#FF0000] font-bold cursor-pointer"
+                          onClick={() =>
+                            handleReplyDelete("comment2", reply.id)
+                          }
+                        >
+                          Delete
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-          <div className="flex flex-row justify-between">
-            <div></div>
-            <div className="bg-[#E53E3E] flex flex-col px-4 py-3 w-75 mt-3 rounded-t-3xl rounded-bl-3xl rounded-br-lg">
-              <span className="text-white">
-                How will i get the product delivered
-              </span>
 
-              <span className="text-[#FFFFFF80] text-[12px] flex justify-end-safe mr-4 ">
-                07:22AM
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-row justify-between">
-            <div className="bg-[#FFD8D8] flex flex-col px-4 py-3 w-70 mt-3 rounded-t-3xl rounded-bl-lg rounded-br-3xl">
-              <span className="text-black">
-                Thank you for purchasing from us
-              </span>
+            {/* Comment 3 */}
+            <div className="flex flex-row gap-3">
+              <div>
+                <img className="w-15 h-15" src={images.adam} alt="" />
+              </div>
+              <div className="flex flex-col w-full">
+                <div className="flex flex-row gap-1">
+                  <span className="text-[#E53E3E] font-semibold text-md">
+                    Adam Chris
+                  </span>
+                  <span className="text-[#00000080]">1 min</span>
+                </div>
+                <div>
+                  <span className="text-[14px] font-semibold">
+                    This product looks really nice, do you deliver nationwide?
+                  </span>
+                </div>
+                <div className="flex flex-row mt-3 justify-between items-center">
+                  <div className="flex gap-2">
+                    <span
+                      className="text-[#00000080] cursor-pointer"
+                      onClick={() => toggleReply("comment3")}
+                    >
+                      Reply
+                    </span>
+                    <img
+                      className="cursor-pointer"
+                      src={images.comment}
+                      alt=""
+                    />
+                    <span>{replies.comment3?.length || 0}</span>
+                  </div>
+                  <div className="text-[#FF0000] font-bold cursor-pointer">
+                    Delete
+                  </div>
+                </div>
 
-              <span className="text-[#00000080] text-[12px] flex justify-end-safe mr-3 ">
-                07:22AM
-              </span>
-            </div>
-            <div></div>
-          </div>
-          <div className="flex flex-row justify-between">
-            <div className="bg-[#FFD8D8] flex flex-col px-4 py-3 w-80 mt-2 rounded-tl-lg rounded-tr-3xl rounded-b-3xl">
-              <span className="text-black">
-                I will arrange a dispatch rider soon and i will contact you
-              </span>
+                {/* Reply Input */}
+                {openReplies.has("comment3") && (
+                  <div className="mt-3 flex flex-row gap-2 items-center">
+                    <img className="w-8 h-8" src={images.sasha} alt="" />
+                    <div className="flex-1 flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Write a reply..."
+                        value={replyTexts["comment3"] || ""}
+                        onChange={(e) =>
+                          handleReplyTextChange("comment3", e.target.value)
+                        }
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleReplySubmit("comment3");
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
+                      />
+                      <button
+                        onClick={() => handleReplySubmit("comment3")}
+                        className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-              <span className="text-[#00000080] text-[12px] flex justify-end-safe mr-3 ">
-                07:22AM
-              </span>
-            </div>
-            <div></div>
-          </div>
-           <div className="flex flex-row justify-between">
-            <div></div>
-            <div className="bg-[#E53E3E] flex flex-col px-3 py-3 w-53 mt-3 rounded-t-3xl rounded-bl-3xl rounded-br-lg mb-10">
-              <span className="text-white">
-                Okay i will be expecting.
-              </span>
-
-              <span className="text-[#FFFFFF80] text-[12px] flex justify-end-safe mr-4 ">
-                07:22AM
-              </span>
+                {/* Display Replies */}
+                {replies.comment3?.map((reply) => (
+                  <div key={reply.id} className="flex flex-row gap-3 mt-3">
+                    <div>
+                      <img className="w-10 h-10" src={images.sasha} alt="" />
+                    </div>
+                    <div className="flex flex-col w-full">
+                      <div className="flex flex-row gap-1">
+                        <span className="text-[#E53E3E] font-semibold text-sm">
+                          {reply.author}
+                        </span>
+                        <span className="text-[#00000080] text-sm">
+                          {reply.timestamp}
+                        </span>
+                      </div>
+                      <div className="flex flex-row justify-between items-center w-full">
+                        <div className="text-[14px] font-semibold">
+                          <span className="text-[#FF0000]">
+                            @{reply.replyTo}
+                          </span>{" "}
+                          {reply.text}
+                        </div>
+                        <div
+                          className="text-[#FF0000] font-bold cursor-pointer"
+                          onClick={() =>
+                            handleReplyDelete("comment3", reply.id)
+                          }
+                        >
+                          Delete
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

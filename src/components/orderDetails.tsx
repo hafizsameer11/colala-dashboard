@@ -7,9 +7,14 @@ import ProductCart from "./productCart";
 interface OrderDetailsProps {
   isOpen: boolean;
   onClose: () => void;
+  order?: any; // Optional order data
 }
 
-const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
+const OrderDetails: React.FC<OrderDetailsProps> = ({
+  isOpen,
+  onClose,
+  order,
+}) => {
   const [activeTab, setActiveTab] = useState<
     "track order" | "full order details"
   >("track order");
