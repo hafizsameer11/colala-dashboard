@@ -3,22 +3,23 @@ import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import UsersTable from "./usersTable";
 import AddStoreModal from "../Modals/addStoreModel";
+import SavedAddressModal from "../Modals/savedAddressModal";
+import AddAddressModal from "../Modals/addAddressModal";
 import { useState } from "react";
 import LevelDropdown from "../../../components/levelDropdown";
 
 const stores_mgt = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showSavedAddressModal, setShowSavedAddressModal] = useState(false);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [modalInitialTab, setModalInitialTab] = useState<
+    "Level 1" | "Level 2" | "Level 3"
+  >("Level 1");
 
   const handleUserSelection = (selectedIds: string[]) => {
     // Handle selected user IDs
     console.log("Selected user IDs:", selectedIds);
     // You can use this to enable/disable bulk actions or perform other operations
-  };
-
-  const handlePeriodChange = (period: string) => {
-    // Handle period change from PageHeader
-    console.log("Period changed to:", period);
-    // Add your logic here to filter data based on selected period
   };
 
   const handleBulkActionSelect = (action: string) => {
@@ -98,7 +99,7 @@ const stores_mgt = () => {
 
           <div className="mt-5">
             <div className="flex flex-row justify-between">
-              <div className="flex flex-row gap-3" >
+              <div className="flex flex-row gap-3">
                 <div>
                   <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
                 </div>
@@ -150,7 +151,40 @@ const stores_mgt = () => {
       </div>
 
       {/* Add Store Modal */}
-      <AddStoreModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      <AddStoreModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        initialTab={modalInitialTab}
+        onProceedToSavedAddress={() => {
+          setShowModal(false);
+          setShowSavedAddressModal(true);
+        }}
+      />
+
+      {/* Saved Address Modal */}
+      <SavedAddressModal
+        isOpen={showSavedAddressModal}
+        onClose={() => setShowSavedAddressModal(false)}
+        onBack={() => {
+          setShowSavedAddressModal(false);
+          setModalInitialTab("Level 3");
+          setShowModal(true);
+        }}
+        onAddNewAddress={() => {
+          setShowSavedAddressModal(false);
+          setShowAddAddressModal(true);
+        }}
+      />
+
+      {/* Add Address Modal */}
+      <AddAddressModal
+        isOpen={showAddAddressModal}
+        onClose={() => setShowAddAddressModal(false)}
+        onBack={() => {
+          setShowAddAddressModal(false);
+          setShowSavedAddressModal(true);
+        }}
+      />
     </>
   );
 };

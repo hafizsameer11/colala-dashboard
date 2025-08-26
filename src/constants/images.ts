@@ -85,6 +85,7 @@ const images = {
   adam: "/assets/layout/adam.png",
   cam: "/assets/layout/cam.svg",
   rightarrow: "/assets/layout/rightarrow.svg",
+  clock: "/assets/layout/clock.svg",
 };
 
 export default images;

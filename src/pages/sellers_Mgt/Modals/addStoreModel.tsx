@@ -1,5 +1,5 @@
 import images from "../../../constants/images";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Level1 from "./level1";
 import Level2 from "./level2";
 import Level3 from "./level3";
@@ -7,12 +7,25 @@ import Level3 from "./level3";
 interface AddStoreModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onProceedToSavedAddress?: () => void;
+  initialTab?: "Level 1" | "Level 2" | "Level 3";
 }
 
-const AddStoreModal: React.FC<AddStoreModalProps> = ({ isOpen, onClose }) => {
+const AddStoreModal: React.FC<AddStoreModalProps> = ({
+  isOpen,
+  onClose,
+  onProceedToSavedAddress,
+  initialTab = "Level 1",
+}) => {
   const [activeTab, setActiveTab] = useState<"Level 1" | "Level 2" | "Level 3">(
-    "Level 1"
+    initialTab
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -80,9 +93,17 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({ isOpen, onClose }) => {
               />
             )}
             {activeTab === "Level 3" && (
-              <>
-                <Level3 />
-              </>
+              <Level3
+                onSaveAndClose={onClose}
+                onProceed={() => {
+                  // Proceed to saved address modal
+                  if (onProceedToSavedAddress) {
+                    onProceedToSavedAddress();
+                  } else {
+                    onClose();
+                  }
+                }}
+              />
             )}
           </div>
         </div>
