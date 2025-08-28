@@ -5,19 +5,63 @@ interface AddAddressModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBack?: () => void;
+  onAddressSaved?: () => void;
+}
+
+interface SavedAddress {
+  id: string;
+  state: string;
+  lga: string;
+  fullAddress: string;
+  discountCode?: string;
+  openingHours: {
+    monday: { from: string; to: string };
+    tuesday: { from: string; to: string };
+    wednesday: { from: string; to: string };
+    thursday: { from: string; to: string };
+    friday: { from: string; to: string };
+    saturday: { from: string; to: string };
+    sunday: { from: string; to: string };
+  };
+  createdAt: string;
 }
 
 const AddAddressModal: React.FC<AddAddressModalProps> = ({
   isOpen,
   onClose,
   onBack,
+  onAddressSaved,
 }) => {
-  const [selectedstate, setSelectedstate] = useState("");
-  const [selectedLGA, setSelectedLGA] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedLga, setSelectedLga] = useState("");
   const [fullAddress, setFullAddress] = useState("");
-  const [selectedFromTime, setSelectedFromTime] = useState("");
+  const [checked] = useState(false);
+
+  // Error state (for future validation if needed)
+  const [errors] = useState({
+    state: "",
+    lga: "",
+  });
+
+  const [timeSelections, setTimeSelections] = useState({
+    mondayFrom: "",
+    mondayTo: "",
+    tuesdayFrom: "",
+    tuesdayTo: "",
+    wednesdayFrom: "",
+    wednesdayTo: "",
+    thursdayFrom: "",
+    thursdayTo: "",
+    fridayFrom: "",
+    fridayTo: "",
+    saturdayFrom: "",
+    saturdayTo: "",
+    sundayFrom: "",
+    sundayTo: "",
+  });
 
   const [dropdownStates, setDropdownStates] = useState({
+    country: false,
     state: false,
     lga: false,
     mondayFrom: false,
@@ -36,72 +80,194 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
     sundayTo: false,
   });
 
-  const [errors, setErrors] = useState({
-    state: "",
-    lga: "",
-    fullAddress: "",
-  });
-
-  const state = ["Lagos", "Abuja", "Kano"];
-  const lgaOptions = [
-    "Ikeja",
-    "Lagos Island",
-    "Surulere",
-    "Yaba",
-    "Victoria Island",
+  // Sample data
+  const states = ["Lagos", "Abuja", "Rivers", "Kano"];
+  const lgas = ["Ikeja", "Lekki", "Victoria Island", "Surulere"];
+  const timeOptions = [
+    "12:00 AM",
+    "12:30 AM",
+    "1:00 AM",
+    "1:30 AM",
+    "2:00 AM",
+    "2:30 AM",
+    "3:00 AM",
+    "3:30 AM",
+    "4:00 AM",
+    "4:30 AM",
+    "5:00 AM",
+    "5:30 AM",
+    "6:00 AM",
+    "6:30 AM",
+    "7:00 AM",
+    "7:30 AM",
+    "8:00 AM",
+    "8:30 AM",
+    "9:00 AM",
+    "9:30 AM",
+    "10:00 AM",
+    "10:30 AM",
+    "11:00 AM",
+    "11:30 AM",
+    "12:00 PM",
+    "12:30 PM",
+    "1:00 PM",
+    "1:30 PM",
+    "2:00 PM",
+    "2:30 PM",
+    "3:00 PM",
+    "3:30 PM",
+    "4:00 PM",
+    "4:30 PM",
+    "5:00 PM",
+    "5:30 PM",
+    "6:00 PM",
+    "6:30 PM",
+    "7:00 PM",
+    "7:30 PM",
+    "8:00 PM",
+    "8:30 PM",
+    "9:00 PM",
+    "9:30 PM",
+    "10:00 PM",
+    "10:30 PM",
+    "11:00 PM",
+    "11:30 PM",
   ];
 
-  // Generate 24-hour time options
-  const timeOptions = [];
-  for (let hour = 1; hour <= 12; hour++) {
-    timeOptions.push(`${hour}:00 AM`);
-    if (hour !== 12) {
-      timeOptions.push(`${hour}:30 AM`);
-    }
-  }
-  for (let hour = 1; hour <= 12; hour++) {
-    timeOptions.push(`${hour}:00 PM`);
-    if (hour !== 12) {
-      timeOptions.push(`${hour}:30 PM`);
-    }
-  }
-
-  const toggleDropdown = (dropdownName: keyof typeof dropdownStates) => {
+  const toggleDropdown = (dropdownName: string) => {
     setDropdownStates((prev) => ({
       ...prev,
-      [dropdownName]: !prev[dropdownName],
+      [dropdownName]: !prev[dropdownName as keyof typeof prev],
     }));
   };
 
-  const handlestateSelect = (state: string) => {
-    setSelectedstate(state);
-    setDropdownStates((prev) => ({ ...prev, state: false }));
-    if (errors.state) {
-      setErrors((prev) => ({ ...prev, state: "" }));
-    }
+  const closeAllDropdowns = () => {
+    setDropdownStates({
+      country: false,
+      state: false,
+      lga: false,
+      mondayFrom: false,
+      mondayTo: false,
+      tuesdayFrom: false,
+      tuesdayTo: false,
+      wednesdayFrom: false,
+      wednesdayTo: false,
+      thursdayFrom: false,
+      thursdayTo: false,
+      fridayFrom: false,
+      fridayTo: false,
+      saturdayFrom: false,
+      saturdayTo: false,
+      sundayFrom: false,
+      sundayTo: false,
+    });
   };
 
-  const handleLGASelect = (lga: string) => {
-    setSelectedLGA(lga);
-    setDropdownStates((prev) => ({ ...prev, lga: false }));
-    if (errors.lga) {
-      setErrors((prev) => ({ ...prev, lga: "" }));
-    }
+  // Generic time selection handler
+  const handleTimeSelect = (period: string, time: string) => {
+    setTimeSelections((prev) => ({
+      ...prev,
+      [period]: time,
+    }));
+    closeAllDropdowns();
   };
 
-  const handleFromTimeSelect = (time: string) => {
-    setSelectedFromTime(time);
-    setDropdownStates((prev) => ({ ...prev, fromTime: false }));
+  // Generic selection handlers
+  const handleStateSelect = (state: string) => {
+    setSelectedState(state);
+    closeAllDropdowns();
+  };
+
+  const handleLgaSelect = (lga: string) => {
+    setSelectedLga(lga);
+    closeAllDropdowns();
   };
 
   const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving address:", {
-      state: selectedstate,
-      lga: selectedLGA,
+    // Validation
+    if (!selectedState || !selectedLga || !fullAddress) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    // Create new address object
+    const newAddress: SavedAddress = {
+      id: Date.now().toString(),
+      state: selectedState,
+      lga: selectedLga,
       fullAddress: fullAddress,
+      discountCode: "NEW123", // Default discount code
+      openingHours: {
+        monday: {
+          from: timeSelections.mondayFrom || "08:00 AM",
+          to: timeSelections.mondayTo || "07:00 PM",
+        },
+        tuesday: {
+          from: timeSelections.tuesdayFrom || "08:00 AM",
+          to: timeSelections.tuesdayTo || "07:00 PM",
+        },
+        wednesday: {
+          from: timeSelections.wednesdayFrom || "08:00 AM",
+          to: timeSelections.wednesdayTo || "07:00 PM",
+        },
+        thursday: {
+          from: timeSelections.thursdayFrom || "08:00 AM",
+          to: timeSelections.thursdayTo || "07:00 PM",
+        },
+        friday: {
+          from: timeSelections.fridayFrom || "08:00 AM",
+          to: timeSelections.fridayTo || "07:00 PM",
+        },
+        saturday: {
+          from: timeSelections.saturdayFrom || "08:00 AM",
+          to: timeSelections.saturdayTo || "07:00 PM",
+        },
+        sunday: {
+          from: timeSelections.sundayFrom || "08:00 AM",
+          to: timeSelections.sundayTo || "07:00 PM",
+        },
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    // Get existing addresses from localStorage
+    const existingAddresses = JSON.parse(
+      localStorage.getItem("savedAddresses") || "[]"
+    );
+
+    // Add new address
+    existingAddresses.push(newAddress);
+
+    // Save back to localStorage
+    localStorage.setItem("savedAddresses", JSON.stringify(existingAddresses));
+
+    console.log("Address saved:", newAddress);
+
+    // Callback to parent to refresh saved addresses
+    if (onAddressSaved) {
+      onAddressSaved();
+    }
+
+    // Reset form fields after saving
+    setSelectedState("");
+    setSelectedLga("");
+    setFullAddress("");
+    setTimeSelections({
+      mondayFrom: "",
+      mondayTo: "",
+      tuesdayFrom: "",
+      tuesdayTo: "",
+      wednesdayFrom: "",
+      wednesdayTo: "",
+      thursdayFrom: "",
+      thursdayTo: "",
+      fridayFrom: "",
+      fridayTo: "",
+      saturdayFrom: "",
+      saturdayTo: "",
+      sundayFrom: "",
+      sundayTo: "",
     });
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -140,9 +306,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 onClick={() => toggleDropdown("state")}
               >
                 <div
-                  className={selectedstate ? "text-black" : "text-[#00000080]"}
+                  className={selectedState ? "text-black" : "text-[#00000080]"}
                 >
-                  {selectedstate || "Select State"}
+                  {selectedState || "Select State"}
                 </div>
                 <div
                   className={`transform transition-transform duration-200 ${
@@ -155,11 +321,11 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
 
               {dropdownStates.state && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {state.map((stateOption, index) => (
+                  {states.map((stateOption, index) => (
                     <div
                       key={index}
                       className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                      onClick={() => handlestateSelect(stateOption)}
+                      onClick={() => handleStateSelect(stateOption)}
                     >
                       {stateOption}
                     </div>
@@ -185,9 +351,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 onClick={() => toggleDropdown("lga")}
               >
                 <div
-                  className={selectedLGA ? "text-black" : "text-[#00000080]"}
+                  className={selectedLga ? "text-black" : "text-[#00000080]"}
                 >
-                  {selectedLGA || "Select LGA"}
+                  {selectedLga || "Select LGA"}
                 </div>
                 <div
                   className={`transform transition-transform duration-200 ${
@@ -200,11 +366,11 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
 
               {dropdownStates.lga && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {lgaOptions.map((lga, index) => (
+                  {lgas.map((lga, index) => (
                     <div
                       key={index}
                       className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                      onClick={() => handleLGASelect(lga)}
+                      onClick={() => handleLgaSelect(lga)}
                     >
                       {lga}
                     </div>
@@ -234,6 +400,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
           <div className="mt-5">
             <span className="font-semibold text-lg">Opening Hours</span>
             <div className="flex flex-col mt-5">
+              {/* Monday */}
               <div className="flex flex-row justify-between">
                 <div className="font-semibold flex items-center w-23">
                   Monday
@@ -247,10 +414,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.mondayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.mondayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -271,7 +440,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("mondayFrom", time)}
                           >
                             {time}
                           </div>
@@ -279,8 +448,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
                   {/* To Time Dropdown */}
                   <div className="relative">
                     <div
@@ -289,10 +456,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.mondayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.mondayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -313,7 +482,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("mondayTo", time)}
                           >
                             {time}
                           </div>
@@ -324,12 +493,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
 
+              {/* Tuesday */}
               <div className="flex flex-row justify-between mt-5">
                 <div className="font-semibold flex items-center w-23">
                   Tuesday
                 </div>
                 <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -337,10 +506,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.tuesdayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.tuesdayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -361,7 +532,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() =>
+                              handleTimeSelect("tuesdayFrom", time)
+                            }
                           >
                             {time}
                           </div>
@@ -369,9 +542,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  {/* To Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -379,10 +549,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.tuesdayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.tuesdayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -403,7 +575,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("tuesdayTo", time)}
                           >
                             {time}
                           </div>
@@ -414,12 +586,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
 
+              {/* Wednesday */}
               <div className="flex flex-row justify-between mt-5">
                 <div className="font-semibold flex items-center w-23">
                   Wednesday
                 </div>
                 <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -427,10 +599,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.wednesdayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.wednesdayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -451,7 +625,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() =>
+                              handleTimeSelect("wednesdayFrom", time)
+                            }
                           >
                             {time}
                           </div>
@@ -459,9 +635,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -469,10 +642,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.wednesdayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.wednesdayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -493,7 +668,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() =>
+                              handleTimeSelect("wednesdayTo", time)
+                            }
                           >
                             {time}
                           </div>
@@ -504,12 +681,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
 
+              {/* Thursday */}
               <div className="flex flex-row justify-between mt-5">
                 <div className="font-semibold flex items-center w-23">
                   Thursday
                 </div>
                 <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -517,10 +694,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.thursdayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.thursdayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -541,7 +720,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() =>
+                              handleTimeSelect("thursdayFrom", time)
+                            }
                           >
                             {time}
                           </div>
@@ -549,9 +730,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -559,10 +737,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.thursdayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.thursdayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -583,7 +763,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("thursdayTo", time)}
                           >
                             {time}
                           </div>
@@ -594,12 +774,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-row justify-between mt-5 ">
+              {/* Friday */}
+              <div className="flex flex-row justify-between mt-5">
                 <div className="font-semibold flex items-center w-23">
                   Friday
                 </div>
                 <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -607,10 +787,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.fridayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.fridayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -631,7 +813,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("fridayFrom", time)}
                           >
                             {time}
                           </div>
@@ -639,9 +821,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -649,10 +828,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.fridayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.fridayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -673,7 +854,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("fridayTo", time)}
                           >
                             {time}
                           </div>
@@ -684,12 +865,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
 
+              {/* Saturday */}
               <div className="flex flex-row justify-between mt-5">
                 <div className="font-semibold flex items-center w-23">
                   Saturday
                 </div>
                 <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -697,10 +878,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.saturdayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.saturdayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -721,7 +904,9 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() =>
+                              handleTimeSelect("saturdayFrom", time)
+                            }
                           >
                             {time}
                           </div>
@@ -729,9 +914,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -739,10 +921,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.saturdayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.saturdayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -763,7 +947,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("saturdayTo", time)}
                           >
                             {time}
                           </div>
@@ -774,12 +958,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
 
+              {/* Sunday */}
               <div className="flex flex-row justify-between mt-5">
                 <div className="font-semibold flex items-center w-23">
                   Sunday
                 </div>
                 <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -787,10 +971,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.sundayFrom
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "From"}
+                        {timeSelections.sundayFrom || "From"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -811,7 +997,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("sundayFrom", time)}
                           >
                             {time}
                           </div>
@@ -819,9 +1005,6 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  {/* From Time Dropdown */}
                   <div className="relative">
                     <div
                       className="w-42 border border-[#989898] px-2 py-3 rounded-lg text-sm flex flex-row justify-between items-center cursor-pointer bg-white"
@@ -829,10 +1012,12 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     >
                       <div
                         className={
-                          selectedFromTime ? "text-black" : "text-[#00000080]"
+                          timeSelections.sundayTo
+                            ? "text-black"
+                            : "text-[#00000080]"
                         }
                       >
-                        {selectedFromTime || "To"}
+                        {timeSelections.sundayTo || "To"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -853,7 +1038,7 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <div
                             key={index}
                             className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleFromTimeSelect(time)}
+                            onClick={() => handleTimeSelect("sundayTo", time)}
                           >
                             {time}
                           </div>
@@ -864,6 +1049,20 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </div>
               </div>
             </div>
+          </div>
+
+          <div
+            className={`mt-5 flex flex-row gap-3 items-center p-2 rounded ${
+              checked ? "bg-[#E53E3E]" : "bg-transparent"
+            }`}
+          >
+            <input
+              type="checkbox"
+              name="mainStore"
+              id="mainStore"
+              className="w-5 h-5 accent-[#E53E3E]"
+            />
+            <span className="font-semibold text-md">Mark as Main Store</span>
           </div>
 
           {/* Save Button */}

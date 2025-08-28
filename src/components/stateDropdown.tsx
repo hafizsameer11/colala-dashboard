@@ -7,10 +7,10 @@ interface StateDropdownProps {
 
 const StateDropdown: React.FC<StateDropdownProps> = ({ onStateSelect }) => {
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
-  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [selectedState, setSelectedState] = useState<string>("All");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const states = ["All", "Lagos", "Abuja", "Kano"];
+  const states = ["All", "Lagos", "Abuja", "Kano", "Rivers"];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -52,11 +52,9 @@ const StateDropdown: React.FC<StateDropdownProps> = ({ onStateSelect }) => {
     <div ref={dropdownRef} className="relative inline-block text-left">
       <div
         onClick={(e) => handleStateDropdownToggle(e)}
-        className="flex flex-row justify-center items-center px-2.5 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer"
+        className="flex flex-row justify-center items-center px-4 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer"
       >
-        <span className="cursor-pointer">
-          {selectedState || "Select State"}
-        </span>
+        <span className="cursor-pointer">State</span>
         <div>
           <img className="w-4 h-4 ml-5" src={images.dropdown} alt="" />
         </div>
