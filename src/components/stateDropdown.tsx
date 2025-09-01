@@ -52,11 +52,11 @@ const StateDropdown: React.FC<StateDropdownProps> = ({ onStateSelect }) => {
     <div ref={dropdownRef} className="relative inline-block text-left">
       <div
         onClick={(e) => handleStateDropdownToggle(e)}
-        className="flex flex-row justify-center items-center px-4 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer"
+        className="flex flex-row justify-center items-center px-2.5 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer"
       >
         <span className="cursor-pointer">State</span>
         <div>
-          <img className="w-4 h-4 ml-5" src={images.dropdown} alt="" />
+          <img className="w-4 h-4 ml-10" src={images.dropdown} alt="" />
         </div>
       </div>
 

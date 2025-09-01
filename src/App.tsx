@@ -4,6 +4,7 @@ import Layout from "./layout/Layout";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Customer_mgt from "./pages/buyers_Mgt/customer_mgt/customer_mgt";
 import CustomerDetails from "./pages/buyers_Mgt/customer_mgt/customerDetails";
+import StoreDetails from "./pages/sellers_Mgt/stores/storeDetails";
 import OrdersMgtbuyers from "./pages/buyers_Mgt/ordersMgt/ordersMgt";
 import Transactionsbuyers from "./pages/buyers_Mgt/Transactions/Transactions";
 import Stores_mgt from "./pages/sellers_Mgt/stores/stores_mgt";
@@ -31,6 +32,7 @@ function App() {
     { path: "/dashboard", element: <Dashboard /> },
     { path: "/customer-mgt", element: <Customer_mgt /> },
     { path: "/customer-details/:userId", element: <CustomerDetails /> },
+    { path: "/store-details/:storeId", element: <StoreDetails /> },
     { path: "/orders-mgt-buyers", element: <OrdersMgtbuyers /> },
     { path: "/transactions-buyers", element: <Transactionsbuyers /> },
     { path: "/stores-mgt", element: <Stores_mgt /> },

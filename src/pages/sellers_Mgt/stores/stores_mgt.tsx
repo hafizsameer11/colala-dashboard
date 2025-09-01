@@ -1,20 +1,67 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import UsersTable from "./usersTable";
+import StoresTable from "./storeTable";
 import AddStoreModal from "../Modals/addStoreModel";
 import SavedAddressModal from "../Modals/savedAddressModal";
 import AddAddressModal from "../Modals/addAddressModal";
+import DeliveryPricing from "../Modals/deliveryPricing";
 import { useState } from "react";
 import LevelDropdown from "../../../components/levelDropdown";
+import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
+import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
 
 const stores_mgt = () => {
   const [showModal, setShowModal] = useState(false);
   const [showSavedAddressModal, setShowSavedAddressModal] = useState(false);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [showAddNewDeliveryPricingModal, setShowAddNewDeliveryPricingModal] =
+    useState(false);
+  const [showDeliveryPricingModal, setShowDeliveryPricingModal] =
+    useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<
     "Level 1" | "Level 2" | "Level 3"
   >("Level 1");
+
+  // State for delivery pricing entries
+  const [deliveryPricingEntries, setDeliveryPricingEntries] = useState<
+    DeliveryPricingEntry[]
+  >([
+    {
+      id: "1",
+      state: "Lagos",
+      lga: "Ikeja",
+      price: "N2,999",
+      isFreeDelivery: false,
+    },
+  ]);
+
+  // Function to add new delivery pricing entry
+  const handleAddDeliveryPricing = (newEntry: DeliveryPricingEntry) => {
+    setDeliveryPricingEntries((prev) => [...prev, newEntry]);
+  };
+
+  // Function to edit delivery pricing entry
+  const handleEditDeliveryPricing = (
+    id: string,
+    updatedEntry: DeliveryPricingEntry
+  ) => {
+    setDeliveryPricingEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? updatedEntry : entry))
+    );
+  };
+
+  // Function to delete delivery pricing entry
+  const handleDeleteDeliveryPricing = (id: string) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this delivery pricing?"
+    );
+    if (confirmDelete) {
+      setDeliveryPricingEntries((prev) =>
+        prev.filter((entry) => entry.id !== id)
+      );
+    }
+  };
 
   const handleUserSelection = (selectedIds: string[]) => {
     // Handle selected user IDs
@@ -145,7 +192,7 @@ const stores_mgt = () => {
           </div>
 
           <div className="mt-5">
-            <UsersTable title="Users" onRowSelect={handleUserSelection} />
+            <StoresTable title="Stores" onRowSelect={handleUserSelection} />
           </div>
         </div>
       </div>
@@ -174,6 +221,10 @@ const stores_mgt = () => {
           setShowSavedAddressModal(false);
           setShowAddAddressModal(true);
         }}
+        onAddNewDeliveryPricing={() => {
+          setShowSavedAddressModal(false);
+          setShowDeliveryPricingModal(true);
+        }}
       />
 
       {/* Add Address Modal */}
@@ -184,6 +235,34 @@ const stores_mgt = () => {
           setShowAddAddressModal(false);
           setShowSavedAddressModal(true);
         }}
+      />
+
+      {/* Delivery Pricing Modal */}
+      <DeliveryPricing
+        isOpen={showDeliveryPricingModal}
+        onClose={() => setShowDeliveryPricingModal(false)}
+        onBack={() => {
+          setShowDeliveryPricingModal(false);
+          setShowSavedAddressModal(true);
+        }}
+        onAddNewDeliveryPricing={() => {
+          setShowDeliveryPricingModal(false);
+          setShowAddNewDeliveryPricingModal(true);
+        }}
+        deliveryPricingEntries={deliveryPricingEntries}
+        onEditDeliveryPricing={handleEditDeliveryPricing}
+        onDeleteDeliveryPricing={handleDeleteDeliveryPricing}
+      />
+
+      {/* Add new Delivery Pricing Modal */}
+      <AddNewDeliveryPricing
+        isOpen={showAddNewDeliveryPricingModal}
+        onClose={() => setShowAddNewDeliveryPricingModal(false)}
+        onBack={() => {
+          setShowAddNewDeliveryPricingModal(false);
+          setShowDeliveryPricingModal(true);
+        }}
+        onSave={handleAddDeliveryPricing}
       />
     </>
   );

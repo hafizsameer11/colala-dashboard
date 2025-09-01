@@ -7,6 +7,7 @@ interface SavedAddressModalProps {
   onClose: () => void;
   onBack?: () => void;
   onAddNewAddress?: () => void;
+  onAddNewDeliveryPricing?: () => void;
 }
 
 interface SavedAddress {
@@ -32,6 +33,7 @@ const SavedAddressModal: React.FC<SavedAddressModalProps> = ({
   onClose,
   onBack,
   onAddNewAddress,
+  onAddNewDeliveryPricing,
 }) => {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedStateFilter, setSelectedStateFilter] = useState<string>("All");
@@ -1297,6 +1299,15 @@ const SavedAddressModal: React.FC<SavedAddressModalProps> = ({
               );
             })
           )}
+
+          <div className="">
+            <button
+              onClick={onAddNewDeliveryPricing}
+              className="w-full py-4 bg-[#E53E3E] text-white rounded-lg cursor-pointer"
+            >
+              Add New
+            </button>
+          </div>
         </div>
       </div>
     </div>

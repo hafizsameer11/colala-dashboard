@@ -63,7 +63,7 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
   );
 };
 
-interface User {
+interface Store {
   id: string;
   storeName: string;
   email: string;
@@ -73,12 +73,12 @@ interface User {
   userImage?: string;
 }
 
-interface UsersTableProps {
+interface StoreTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
 }
 
-const UsersTable: React.FC<UsersTableProps> = ({
+const StoreTable: React.FC<StoreTableProps> = ({
   title = "Users",
   onRowSelect,
 }) => {
@@ -86,68 +86,67 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
 
-const users: User[] = [
-  {
-    id: "1",
-    storeName: "Adebayo Stores",
-    email: "adebayo.w@outlook.com",
-    phoneNumber: "09098765432",
-    level: 1,
-    walletBalance: "₦150,000",
-  },
-  {
-    id: "2",
-    storeName: "Halima Stores",
-    email: "halima.abubakar@protonmail.com",
-    phoneNumber: "08056781234",
-    level: 2,
-    walletBalance: "₦250,000",
-  },
-  {
-    id: "3",
-    storeName: "Chidinma Stores",
-    email: "chidinma.okoro@yahoo.com",
-    phoneNumber: "08021234567",
-    level: 3,
-    walletBalance: "₦180,000",
-  },
-  {
-    id: "4",
-    storeName: "Fatima Stores",
-    email: "fatima.bello@icloud.com",
-    phoneNumber: "08181122334",
-    level: 1,
-    walletBalance: "₦95,000",
-  },
-  {
-    id: "5",
-    storeName: "Emeka Stores",
-    email: "emeka.eze.ng@gmail.com",
-    phoneNumber: "07065557788",
-    level: 1,
-    walletBalance: "₦320,000",
-  },
-  {
-    id: "6",
-    storeName: "Tunde Stores",
-    email: "tunde.ogunsola@live.com",
-    phoneNumber: "09034445566",
-    level: 1,
-    walletBalance: "₦75,000",
-  },
-  {
-    id: "7",
-    storeName: "Tunde Stores",
-    email: "tunde.ogunsola@live.com",
-    phoneNumber: "09034445566",
-    level: 2,
-    walletBalance: "₦195,000",
-  },
-];
-
+  const stores: Store[] = [
+    {
+      id: "1",
+      storeName: "Adebayo Stores",
+      email: "adebayo.w@outlook.com",
+      phoneNumber: "09098765432",
+      level: 1,
+      walletBalance: "₦150,000",
+    },
+    {
+      id: "2",
+      storeName: "Halima Stores",
+      email: "halima.abubakar@protonmail.com",
+      phoneNumber: "08056781234",
+      level: 2,
+      walletBalance: "₦250,000",
+    },
+    {
+      id: "3",
+      storeName: "Chidinma Stores",
+      email: "chidinma.okoro@yahoo.com",
+      phoneNumber: "08021234567",
+      level: 3,
+      walletBalance: "₦180,000",
+    },
+    {
+      id: "4",
+      storeName: "Fatima Stores",
+      email: "fatima.bello@icloud.com",
+      phoneNumber: "08181122334",
+      level: 1,
+      walletBalance: "₦95,000",
+    },
+    {
+      id: "5",
+      storeName: "Emeka Stores",
+      email: "emeka.eze.ng@gmail.com",
+      phoneNumber: "07065557788",
+      level: 1,
+      walletBalance: "₦320,000",
+    },
+    {
+      id: "6",
+      storeName: "Tunde Stores",
+      email: "tunde.ogunsola@live.com",
+      phoneNumber: "09034445566",
+      level: 1,
+      walletBalance: "₦75,000",
+    },
+    {
+      id: "7",
+      storeName: "Tunde Stores",
+      email: "tunde.ogunsola@live.com",
+      phoneNumber: "09034445566",
+      level: 2,
+      walletBalance: "₦195,000",
+    },
+  ];
 
   const handleSelectAll = () => {
-    const allIds = users.map((user) => user.id);
+    const allIds = stores.map((store) => store.id);
     const newSelection = selectAll ? [] : allIds;
     setSelectedRows(newSelection);
     setSelectAll(!selectAll);
@@ -164,15 +163,15 @@ const users: User[] = [
       : [...selectedRows, id];
 
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === users.length);
+    setSelectAll(newSelection.length === stores.length);
 
     if (onRowSelect) {
       onRowSelect(newSelection);
     }
   };
 
-  const handleCustomerDetails = (user: User) => {
-    navigate(`/customer-details/${user.id}`, { state: user });
+  const handleCustomerDetails = (store: Store) => {
+    navigate(`/store-details/${store.id}`, { state: store });
   };
 
   return (
@@ -201,16 +200,16 @@ const users: User[] = [
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {stores.map((store) => (
               <tr
-                key={user.id}
+                key={store.id}
                 className="text-center border-t border-gray-200"
               >
                 <td className="p-3">
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(user.id)}
-                    onChange={() => handleRowSelect(user.id)}
+                    checked={selectedRows.includes(store.id)}
+                    onChange={() => handleRowSelect(store.id)}
                     className="w-5 h-5"
                   />
                 </td>
@@ -220,14 +219,14 @@ const users: User[] = [
                     alt="User"
                     className="w-8 h-8 rounded-full"
                   />
-                  <span>{user.storeName}</span>
+                  <span>{store.storeName}</span>
                 </td>
-                <td className="p-3 text-left">{user.email}</td>
-                <td className="p-3 text-left">{user.phoneNumber}</td>
-                <td className="p-3 font-bold">{user.level}</td>
+                <td className="p-3 text-left">{store.email}</td>
+                <td className="p-3 text-left">{store.phoneNumber}</td>
+                <td className="p-3 font-bold">{store.level}</td>
                 <td className="p-3 space-x-1">
                   <button
-                    onClick={() => handleCustomerDetails(user)}
+                    onClick={() => handleCustomerDetails(store)}
                     className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
                   >
                     Customer Details
@@ -239,7 +238,7 @@ const users: User[] = [
                 <td className="p-3 text-right">
                   <DotsDropdown
                     onActionSelect={(action) =>
-                      console.log(`Action ${action} for user ${user.id}`)
+                      console.log(`Action ${action} for store ${store.id}`)
                     }
                   />
                 </td>
@@ -252,4 +251,4 @@ const users: User[] = [
   );
 };
 
-export default UsersTable;
+export default StoreTable;

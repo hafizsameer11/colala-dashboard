@@ -86,6 +86,7 @@ const images = {
   cam: "/assets/layout/cam.svg",
   rightarrow: "/assets/layout/rightarrow.svg",
   clock: "/assets/layout/clock.svg",
+  verified: "/assets/layout/verified.svg",
 };
 
 export default images;
