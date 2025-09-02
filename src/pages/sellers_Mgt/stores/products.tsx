@@ -7,7 +7,7 @@ import AddNewProduct from "../Modals/addNewProduct";
 const Products = () => {
   const [activeTab, setActiveTab] = useState("All");
   const tabs = ["All", "General", "Sponsored"];
-    const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
@@ -125,7 +125,10 @@ const Products = () => {
         </div>
         <div className="flex gap-2">
           <div>
-            <button className="bg-[#E53E3E] px-3.5 py-3.5 cursor-pointer text-white rounded-xl" onClick={() => setShowModal(true)} >
+            <button
+              className="bg-[#E53E3E] px-3.5 py-3.5 cursor-pointer text-white rounded-xl"
+              onClick={() => setShowModal(true)}
+            >
               Add new product
             </button>
           </div>
@@ -153,15 +156,11 @@ const Products = () => {
           </div>
         </div>
       </div>
-      <div className="mt-5" >
+      <div className="mt-5">
         <ProductsTable />
       </div>
 
-      <AddNewProduct
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-      />
-
+      <AddNewProduct isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 };

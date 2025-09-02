@@ -3,6 +3,7 @@ import { useState } from "react";
 import Overview from "./overview";
 import Description from "./description";
 import Review from "./review";
+import ProductStats from "./productStats";
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -111,14 +112,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           </div>
         );
       case "Product Stats":
-        return (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">Statistics</h3>
-            <p className="text-gray-600">
-              Product statistics content will go here...
-            </p>
-          </div>
-        );
+        return <ProductStats />;
       default:
         return null;
     }
@@ -127,7 +121,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">
-      <div className="bg-white w-[500px] relative h-full overflow-y-auto">
+      <div className="bg-white w-[600px] relative h-full overflow-y-auto">
         {/* Header */}
         <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">

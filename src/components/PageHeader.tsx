@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import images from "../constants/images";
 
 interface PageHeaderProps {
-  title: string;
+  title: React.ReactNode; 
   showDropdown?: boolean;
   defaultPeriod?: string;
   timeOptions?: string[];
