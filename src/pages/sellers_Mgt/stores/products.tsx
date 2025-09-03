@@ -201,7 +201,7 @@ const Products = () => {
               }}
             >
               {selectedProductType === "Services"
-                ? "New Product/Service"
+                ? "Add new Service"
                 : "Add new product"}
             </button>
           </div>

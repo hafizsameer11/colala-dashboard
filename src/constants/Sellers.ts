@@ -20,8 +20,8 @@ export const Sellers_links = [
         sublinks: [],
     },
     {
-        name: "Products",
-        link: "/products",
+        name: "Products/Services",
+        link: "/products-services",
         icon: images.products,
         sublinks: [],
     },

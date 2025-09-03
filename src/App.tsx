@@ -10,7 +10,7 @@ import Transactionsbuyers from "./pages/buyers_Mgt/Transactions/Transactions";
 import Stores_mgt from "./pages/sellers_Mgt/stores/stores_mgt";
 import OrdersMgtsellers from "./pages/sellers_Mgt/orders/orders_Mgt";
 import Transactionssellers from "./pages/sellers_Mgt/Transactions/transactions";
-import Products from "./pages/sellers_Mgt/Products/products";
+import Products_Services from "./pages/sellers_Mgt/Products_services/products_sevices";
 import StoreKYC from "./pages/sellers_Mgt/store_KYC/storeKYC";
 import Subscription from "./pages/sellers_Mgt/subscription/subscription";
 import Promotions from "./pages/sellers_Mgt/promotions/promotions";
@@ -38,7 +38,7 @@ function App() {
     { path: "/stores-mgt", element: <Stores_mgt /> },
     { path: "/orders-mgt-sellers", element: <OrdersMgtsellers /> },
     { path: "/transactions-sellers", element: <Transactionssellers /> },
-    { path: "/products", element: <Products /> },
+    { path: "/products-services", element: <Products_Services /> },
     { path: "/store-kyc", element: <StoreKYC /> },
     { path: "/subscriptions", element: <Subscription /> },
     { path: "/promotions", element: <Promotions /> },

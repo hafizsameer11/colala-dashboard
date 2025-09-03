@@ -95,6 +95,7 @@ const images = {
   s1: "/assets/layout/s1.png",
   s2: "/assets/layout/s2.png",
   s3: "/assets/layout/s3.png",
+  kyc: "/assets/layout/kyc.svg",
 };
 
 export default images;
