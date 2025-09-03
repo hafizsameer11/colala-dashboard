@@ -349,5 +349,4 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
   );
 };
 
-// const ProductOverviewComponent = ProductOverview;
 export default ProductOverview;

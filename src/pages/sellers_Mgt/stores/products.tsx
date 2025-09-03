@@ -3,11 +3,79 @@ import { useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import ProductsTable from "./productsTable";
 import AddNewProduct from "../Modals/addNewProduct";
+import ServiceModal from "../Modals/serviceModal";
+import ServicesTable from "./servicesTable";
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState("All");
   const tabs = ["All", "General", "Sponsored"];
   const [showModal, setShowModal] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [selectedProductType, setSelectedProductType] = useState("Products");
+
+  interface ProductsDropdownProps {
+    onProductSelect?: (product: string) => void;
+  }
+
+  const ProductsDropdown: React.FC<ProductsDropdownProps> = ({
+    onProductSelect,
+  }) => {
+    const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
+
+    const products = ["Products", "Services"];
+
+    const handleProductsDropdownToggle = () => {
+      setIsProductsDropdownOpen(!isProductsDropdownOpen);
+    };
+
+    const handleProductOptionSelect = (product: string) => {
+      setSelectedProductType(product);
+      setIsProductsDropdownOpen(false);
+
+      if (onProductSelect) {
+        onProductSelect(product);
+      }
+
+      console.log("Selected product type:", product);
+    };
+
+    return (
+      <div className="relative inline-block text-left">
+        <div
+          className="flex flex-row justify-center items-center px-2.5 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer"
+          onClick={handleProductsDropdownToggle}
+        >
+          <span className="cursor-pointer">{selectedProductType}</span>
+          <div>
+            <img className="w-4 h-4 ml-5" src={images.dropdown} alt="" />
+          </div>
+        </div>
+
+        {isProductsDropdownOpen && (
+          <div className="absolute z-10 mt-2 w-35 bg-white border border-gray-200 font-semibold rounded-2xl shadow-lg">
+            {products.map((product) => (
+              <button
+                key={product}
+                onClick={() => handleProductOptionSelect(product)}
+                className={`block w-full text-left px-4 py-2 text-sm ${
+                  product === selectedProductType
+                    ? "text-[#E53E3E] bg-gray-50"
+                    : "text-black"
+                } cursor-pointer hover:bg-gray-50`}
+              >
+                {product}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const handleProductSelect = (product: string) => {
+    setSelectedProductType(product);
+    console.log("Selected product:", product);
+  };
 
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
@@ -101,11 +169,8 @@ const Products = () => {
           <div>
             <TabButtons />
           </div>
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
-            <div>Products</div>
-            <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-            </div>
+          <div>
+            <ProductsDropdown onProductSelect={handleProductSelect} />
           </div>
           <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
             <div>Today</div>
@@ -127,9 +192,17 @@ const Products = () => {
           <div>
             <button
               className="bg-[#E53E3E] px-3.5 py-3.5 cursor-pointer text-white rounded-xl"
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                if (selectedProductType === "Services") {
+                  setShowServiceModal(true);
+                } else {
+                  setShowModal(true);
+                }
+              }}
             >
-              Add new product
+              {selectedProductType === "Services"
+                ? "New Product/Service"
+                : "Add new product"}
             </button>
           </div>
           <div className="relative">
@@ -156,11 +229,25 @@ const Products = () => {
           </div>
         </div>
       </div>
-      <div className="mt-5">
-        <ProductsTable />
-      </div>
+
+      {/* Conditional Table Rendering */}
+      {selectedProductType === "Products" && (
+        <div className="mt-5">
+          <ProductsTable />
+        </div>
+      )}
+
+      {selectedProductType === "Services" && (
+        <div className="mt-5">
+          <ServicesTable />
+        </div>
+      )}
 
       <AddNewProduct isOpen={showModal} onClose={() => setShowModal(false)} />
+      <ServiceModal
+        isOpen={showServiceModal}
+        onClose={() => setShowServiceModal(false)}
+      />
     </div>
   );
 };

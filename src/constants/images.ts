@@ -90,6 +90,11 @@ const images = {
   csv: "/assets/layout/csv.svg",
   DownloadSimple: "/assets/layout/DownloadSimple.svg",
   UploadSimple: "/assets/layout/UploadSimple.svg",
+  service: "/assets/layout/service.png",
+  serviceDetails: "/assets/layout/serviceDetails.png",
+  s1: "/assets/layout/s1.png",
+  s2: "/assets/layout/s2.png",
+  s3: "/assets/layout/s3.png",
 };
 
 export default images;
