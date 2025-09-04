@@ -97,6 +97,10 @@ const images = {
   s3: "/assets/layout/s3.png",
   kyc: "/assets/layout/kyc.svg",
   subscription: "/assets/layout/subscription.svg",
+  ChartLineUp: "/assets/layout/ChartLineUp.svg",
+  itable: "/assets/layout/itable.png",
+  laptop: "/assets/layout/laptop.png",
+  stop: "/assets/layout/stop.svg",
   
 };
 
