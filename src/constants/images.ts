@@ -101,7 +101,11 @@ const images = {
   itable: "/assets/layout/itable.png",
   laptop: "/assets/layout/laptop.png",
   stop: "/assets/layout/stop.svg",
-  
+  apple: "/assets/layout/apple.png",
+  feed1: "/assets/layout/feed1.svg",
+  ThumbsUp: "/assets/layout/ThumbsUp.svg",
+  comment1: "/assets/layout/comment1.svg",
+  share1: "/assets/layout/share1.svg",
 };
 
 export default images;
