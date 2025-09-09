@@ -106,6 +106,8 @@ const images = {
   ThumbsUp: "/assets/layout/ThumbsUp.svg",
   comment1: "/assets/layout/comment1.svg",
   share1: "/assets/layout/share1.svg",
+  balance1: "/assets/layout/balance.svg",
+
 };
 
 export default images;
