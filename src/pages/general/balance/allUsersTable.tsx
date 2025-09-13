@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-
 
 interface User {
   id: string;
@@ -23,7 +21,6 @@ const UsersTable: React.FC<UsersTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const navigate = useNavigate();
 
   const users: User[] = [
     {
@@ -109,10 +106,6 @@ const UsersTable: React.FC<UsersTableProps> = ({
     }
   };
 
-  const handleUserDetails = (user: User) => {
-    navigate(`/user-details/${user.id}`, { state: user });
-  };
-
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
@@ -131,9 +124,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 />
               </th>
               <th className="p-3 text-left font-normal">User Name</th>
-              <th className="p-3 text-left font-normal">
-                Shopping balance
-              </th>
+              <th className="p-3 text-left font-normal">Shopping balance</th>
               <th className="p-3 text-center font-normal">Escrow balance</th>
               <th className="p-3 text-center font-normal">Points Balance</th>
               <th className="p-3 text-center font-normal">User type</th>
@@ -162,15 +153,14 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   />
                   <span>{user.userName}</span>
                 </td>
-                <td className="p-3 text-left font-semibold">{user.shoppingBalance}</td>
+                <td className="p-3 text-left font-semibold">
+                  {user.shoppingBalance}
+                </td>
                 <td className="p-3 font-semibold">{user.escrowBalance}</td>
                 <td className="p-3 font-semibold">{user.pointsBalance}</td>
                 <td className="p-3">{user.userType}</td>
                 <td className="p-3 flex items-center justify-start gap-2">
-                  <button
-                    onClick={() => handleUserDetails(user)}
-                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-                  >
+                  <button className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer">
                     User Details
                   </button>
                 </td>

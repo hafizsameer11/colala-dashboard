@@ -1,9 +1,8 @@
 const images = {
-
-  logo : "/assets/sidebar/logo.png",
+  logo: "/assets/sidebar/logo.png",
   dashboard: "/assets/sidebar/dashboard.svg",
   Users: "/assets/sidebar/Users.svg",
-  admin : "/assets/layout/admin.png",
+  admin: "/assets/layout/admin.png",
   orders: "/assets/sidebar/orders.svg",
   transaction: "/assets/sidebar/transaction.svg",
   products: "/assets/sidebar/products.svg",
@@ -20,7 +19,7 @@ const images = {
   ratingsreviews: "/assets/sidebar/ratings-reviews.svg",
   referralmgt: "/assets/sidebar/referral-mgt.svg",
   notifications: "/assets/sidebar/notifications.svg",
-  logout : "/assets/sidebar/logout.svg",
+  logout: "/assets/sidebar/logout.svg",
   dropdown: "/assets/layout/dropdown.svg",
   analyticsIcon: "/assets/layout/analytics.svg",
   money: "/assets/layout/money.svg",
@@ -107,7 +106,13 @@ const images = {
   comment1: "/assets/layout/comment1.svg",
   share1: "/assets/layout/share1.svg",
   balance1: "/assets/layout/balance.svg",
-
+  share2: "/assets/layout/share2.svg",
+  link: "/assets/layout/link.svg",
+  Headset: "/assets/layout/Headset.svg",
+  star: "/assets/layout/star.svg",
+  cover1: "/assets/layout/cover1.png",
+  Referral: "/assets/layout/Referral.svg",
+  Login: "/assets/layout/Login.svg",
 };
 
 export default images;
