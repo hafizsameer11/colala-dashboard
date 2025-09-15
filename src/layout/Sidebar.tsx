@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import LinkComp from "./components/Link";
 import { Sidebar_links } from "../constants/siderbar";
 import { Buyers_links } from "../constants/Buyers";
 import { Sellers_links } from "../constants/Sellers";
 import { General_links } from "../constants/general";
 import images from "../constants/images";
-import { useAuth } from "../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   setMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -15,8 +13,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
   const location = useLocation();
-    const navigate = useNavigate();
-  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [activeLink, setActiveLink] = useState<string>("/dashboard");
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
@@ -25,9 +22,13 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
   }, [location.pathname]);
 
   const handleLogout = () => {
-    console.log("Sidebar logout button clicked"); // Debug log
-    logout();
-    console.log("Navigating to /login from sidebar"); // Debug log
+    // Clear any stored authentication data
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userSession");
+    localStorage.removeItem("userData");
+    sessionStorage.clear();
+
+    // Navigate to login page
     navigate("/login");
   };
 
@@ -152,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
       <div className=" mx-4 mt-2 flex items-center justify-center">
         <button
           onClick={handleLogout}
-          className="flex items-center p-2 cursor-pointer gap-2 text-[#FF0000] text-[20px] rounded-lg w-full  hover:bg-opacity-10 transition-colors"
+          className="flex items-center p-2 cursor-pointer gap-2 text-[#FF0000] text-[20px] rounded-lg w-full  transition-colors"
         >
           <img src={images.logout} alt="logout" className="w-6 h-6" />
           {!menuOpen && <span>Logout</span>}

@@ -139,7 +139,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
             <div
               className="w-[512px] h-full  bg-cover bg-center bg-no-repeat rounded-2xl"
               style={{
-                backgroundImage: `url(${images.cover1})`,
+                backgroundImage: `url(${images.cover})`,
               }}
             >
               {/* Overlay for better text readability */}

@@ -141,9 +141,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
       >
         {/* Header */}
         <div className="flex items-center p-5 border-b border-[#787878] justify-between mb-6">
-          <h2 className=" font-semibold text-gray-900">
-            Add New Admin
-          </h2>
+          <h2 className=" font-semibold text-gray-900">Add New Admin</h2>
           <button
             onClick={handleClose}
             className=" cursor-pointer transition-colors"
@@ -155,12 +153,8 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
         <div className="p-5">
           {/* Profile Picture Placeholder */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-              <img
-                src={images.img}
-                alt="Profile"
-                className="w-10 h-10 "
-              />
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center cursor-pointer">
+              <img src={images.img} alt="Profile" className="w-10 h-10 cursor-pointer" />
             </div>
           </div>
 
@@ -168,7 +162,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
                 Full Name
               </label>
               <input
@@ -177,14 +171,14 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Enter full name"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
                 required
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
                 Email
               </label>
               <input
@@ -193,14 +187,14 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email address"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
                 required
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
                 Password
               </label>
               <div className="relative">
@@ -210,7 +204,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Enter password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                  className="w-full p-5 pr-12 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
                   required
                 />
                 <button
@@ -259,18 +253,18 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
 
             {/* Assign Role */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
                 Assign Role
               </label>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent text-left flex items-center justify-between bg-white"
+                  className="w-full p-5 cursor-pointer border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent text-left flex items-center justify-between bg-white"
                 >
-                  <span className="text-gray-900">{formData.role}</span>
+                  <span className="text-gray-900 cursor-pointer">{formData.role}</span>
                   <svg
-                    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
                       isRoleDropdownOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -287,7 +281,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 </button>
 
                 {isRoleDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-[10001]">
+                  <div className="absolute top-full left-0 mt-1 w-full cursor-pointer bg-white border border-gray-300 rounded-lg shadow-lg z-[10001]">
                     {roleOptions.map((role) => (
                       <button
                         key={role}
@@ -309,7 +303,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#E53E3E] text-white py-3 px-4 rounded-lg font-medium text-sm hover:bg-[#D32F2F] transition-colors mt-6"
+              className="w-full bg-[#E53E3E] cursor-pointer text-white py-3 px-4 rounded-lg font-medium text-sm hover:bg-[#D32F2F] transition-colors mt-6"
             >
               Add Admin
             </button>

@@ -45,7 +45,7 @@ const AllRatingAndReview = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-5 flex justify-center items-center">
-              <img className="w-7 h-7" src={images.star} alt="" />
+              <img className="w-7 h-7" src={images.star3} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-8 gap-1">
               <span className="font-semibold text-[13px]">
@@ -65,7 +65,7 @@ const AllRatingAndReview = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-5 flex justify-center items-center">
-              <img className="w-7 h-7" src={images.star} alt="" />
+              <img className="w-7 h-7" src={images.star3} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-8 gap-1">
               <span className="font-semibold text-[13px]">
@@ -85,7 +85,7 @@ const AllRatingAndReview = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-5 flex justify-center items-center">
-              <img className="w-7 h-7" src={images.star} alt="" />
+              <img className="w-7 h-7" src={images.star3} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-8 gap-1">
               <span className="font-semibold text-[13px]">
@@ -108,7 +108,7 @@ const AllRatingAndReview = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-5 flex justify-center items-center">
-              <img className="w-7 h-7" src={images.star} alt="" />
+              <img className="w-7 h-7" src={images.star3} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-8 gap-1">
               <span className="font-semibold text-[13px]">

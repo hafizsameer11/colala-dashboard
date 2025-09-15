@@ -44,7 +44,7 @@ const AllSupport = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.Headset} alt="" />
+              <img className="w-9 h-9" src={images.support1} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Chats</span>
@@ -63,7 +63,7 @@ const AllSupport = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.Headset} alt="" />
+              <img className="w-9 h-9" src={images.support1} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Pending Issues</span>
@@ -82,7 +82,7 @@ const AllSupport = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.Headset} alt="" />
+              <img className="w-9 h-9" src={images.support1} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Resolved Issues</span>

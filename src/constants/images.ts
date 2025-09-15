@@ -113,6 +113,13 @@ const images = {
   cover1: "/assets/layout/cover1.png",
   Referral: "/assets/layout/Referral.svg",
   Login: "/assets/layout/Login.svg",
+  support1: "/assets/layout/support.svg",
+  star3: "/assets/layout/star3.svg",
+  PencilSimpleLine: "/assets/layout/PencilSimpleLine.svg",
+  TrashSimple: "/assets/layout/TrashSimple.svg",
+  banner: "/assets/layout/banner.png",
+  // Alternative banner path for testing
+  bannerTest: "/assets/layout/admin.png", // Using admin.png as test
 };
 
 export default images;

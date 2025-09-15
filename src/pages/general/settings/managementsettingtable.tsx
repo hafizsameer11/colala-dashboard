@@ -45,10 +45,10 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
       status: "active",
       email: "qamardeen@admingmail.com",
       location: "Lagos, Nigeria",
-      lastLogin: "23/02/25 - 11:22 AM",
+      lastLogin: "23/02/25 - 11:22 AM"
     },
     {
-      id: "2",
+      id: "2", 
       name: "Cynthia Uwak",
       avatar: images.sasha,
       role: "Admin",
@@ -56,40 +56,40 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
       status: "active",
       email: "cynthia@admingmail.com",
       location: "Abuja, Nigeria",
-      lastLogin: "22/10/25 - 07:22 AM",
+      lastLogin: "22/10/25 - 07:22 AM"
     },
     {
       id: "3",
       name: "Karen Minty",
       avatar: images.bella,
-      role: "Admin",
+      role: "Admin", 
       dateJoined: "22/08/25 - 08:22 AM",
       status: "active",
       email: "karen@admingmail.com",
       location: "Port Harcourt, Nigeria",
-      lastLogin: "21/10/25 - 09:15 AM",
+      lastLogin: "21/10/25 - 09:15 AM"
     },
     {
       id: "4",
       name: "Adesola Kamil",
       avatar: images.jennifer,
       role: "Admin",
-      dateJoined: "22/08/25 - 08:22 AM",
+      dateJoined: "22/08/25 - 08:22 AM", 
       status: "active",
       email: "adesola@admingmail.com",
       location: "Kano, Nigeria",
-      lastLogin: "20/10/25 - 14:30 PM",
+      lastLogin: "20/10/25 - 14:30 PM"
     },
   ];
 
   // Load admins from localStorage on component mount
   useEffect(() => {
-    const savedAdmins = localStorage.getItem("adminsList");
+    const savedAdmins = localStorage.getItem('adminsList');
     if (savedAdmins) {
       setAdmins(JSON.parse(savedAdmins));
     } else {
       setAdmins(initialAdmins);
-      localStorage.setItem("adminsList", JSON.stringify(initialAdmins));
+      localStorage.setItem('adminsList', JSON.stringify(initialAdmins));
     }
   }, []);
 
@@ -98,28 +98,18 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
     if (newAdmin) {
       const getCurrentDateTime = () => {
         const now = new Date();
-        const day = String(now.getDate()).padStart(2, "0");
-        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
         const year = String(now.getFullYear()).slice(-2);
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        const ampm = now.getHours() >= 12 ? "PM" : "AM";
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
         const displayHours = now.getHours() % 12 || 12;
-
-        return `${day}/${month}/${year} - ${String(displayHours).padStart(
-          2,
-          "0"
-        )}:${minutes} ${ampm}`;
+        
+        return `${day}/${month}/${year} - ${String(displayHours).padStart(2, '0')}:${minutes} ${ampm}`;
       };
 
       // Get a random avatar for new admin
-      const avatars = [
-        images.admin,
-        images.sasha,
-        images.bella,
-        images.jennifer,
-        images.tom,
-        images.emma,
-      ];
+      const avatars = [images.admin, images.sasha, images.bella, images.jennifer, images.tom, images.emma];
       const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
 
       const newAdminData: Admin = {
@@ -131,9 +121,9 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
         status: "active",
       };
 
-      setAdmins((prevAdmins) => {
+      setAdmins(prevAdmins => {
         const updatedAdmins = [...prevAdmins, newAdminData];
-        localStorage.setItem("adminsList", JSON.stringify(updatedAdmins));
+        localStorage.setItem('adminsList', JSON.stringify(updatedAdmins));
         return updatedAdmins;
       });
     }
@@ -184,24 +174,24 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
       alert("Cannot delete the owner account");
       return;
     }
-
+    
     if (window.confirm(`Are you sure you want to delete ${admin.name}?`)) {
-      setAdmins((prevAdmins) => {
-        const updatedAdmins = prevAdmins.filter((a) => a.id !== admin.id);
-        localStorage.setItem("adminsList", JSON.stringify(updatedAdmins));
+      setAdmins(prevAdmins => {
+        const updatedAdmins = prevAdmins.filter(a => a.id !== admin.id);
+        localStorage.setItem('adminsList', JSON.stringify(updatedAdmins));
         return updatedAdmins;
       });
-
+      
       // Remove from selected rows if it was selected
-      setSelectedRows((prev) => prev.filter((id) => id !== admin.id));
+      setSelectedRows(prev => prev.filter(id => id !== admin.id));
     }
   };
 
   const StatusIndicator = ({ status }: { status: "active" | "inactive" }) => (
     <div className="flex items-center justify-center">
       <div
-        className={`w-5 h-5 rounded-full ${
-          status === "active" ? "bg-[#008000]" : "bg-red-500"
+        className={`w-3 h-3 rounded-full ${
+          status === "active" ? "bg-green-500" : "bg-red-500"
         }`}
       />
     </div>
@@ -224,11 +214,21 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                   className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                 />
               </th>
-              <th className="text-left p-3 font-normal">User Name</th>
-              <th className="text-left p-3 font-normal">Role</th>
-              <th className="text-left p-3 font-normal">Date Joined</th>
-              <th className="text-center p-3 font-normal">Status</th>
-              <th className="text-center p-3 font-normal">Actions</th>
+              <th className="text-left p-3 font-normal">
+                User Name
+              </th>
+              <th className="text-left p-3 font-normal">
+                Role
+              </th>
+              <th className="text-left p-3 font-normal">
+                Date Joined
+              </th>
+              <th className="text-center p-3 font-normal">
+                Status
+              </th>
+              <th className="text-center p-3 font-normal">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -259,35 +259,35 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                     </span>
                   </div>
                 </td>
-                <td className="p-4 text-black">{admin.role}</td>
-                <td className="p-4 text-black">{admin.dateJoined}</td>
+                <td className="p-4 text-black">
+                  {admin.role}
+                </td>
+                <td className="p-4 text-black">
+                  {admin.dateJoined}
+                </td>
                 <td className="p-4">
                   <StatusIndicator status={admin.status} />
                 </td>
                 <td className="p-4">
-                  <div className="flex justify-center items-center gap-3">
+                  <div className="flex justify-end items-center gap-2">
                     <button
                       onClick={() => handleAdminDetails(admin)}
-                      className="px-6 py-2.5 rounded-xl font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F] text-sm"
+                      className="px-6 py-2.5 rounded-lg  font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F]"
                     >
                       Admin Details
                     </button>
                     <button
                       onClick={() => handleEdit(admin)}
-                      className="p-2 cursor-pointer rounded-lg border border-[#E5E5E5]  transition-colors"
+                      className="p-1.5 cursor-pointer rounded transition-colors"
                     >
-                      <img src={images.edit1} alt="Edit" className="w-5 h-5" />
+                      <img src={images.edit1} alt="Edit" className="w-8 h-8 p-1 rounded-lg border border-[#989898]" />
                     </button>
                     {admin.role !== "Owner" && (
                       <button
                         onClick={() => handleDelete(admin)}
-                        className="p-2 cursor-pointer rounded-lg border border-[#E5E5E5]  transition-colors"
+                        className="p-1.5 cursor-pointer rounded transition-colors"
                       >
-                        <img
-                          src={images.delete1}
-                          alt="Delete"
-                          className="w-5 h-5"
-                        />
+                        <img src={images.delete1} alt="Delete" className="w-8 h-8 p-1 rounded-lg border border-[#989898] " />
                       </button>
                     )}
                   </div>
