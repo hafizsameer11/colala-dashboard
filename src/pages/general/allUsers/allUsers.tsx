@@ -2,7 +2,7 @@ import images from "../../../constants/images";
 import { useState } from "react";
 import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import AllUsersTable from "./allUsersTable";
+import AllUsersTable from "./components/allUsersTable";
 
 const AllUsers = () => {
   const [activeTab, setActiveTab] = useState("All");

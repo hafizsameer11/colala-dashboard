@@ -1,4 +1,4 @@
-import ChatsTable from "./chattable";
+import ChatsTable from "./components/chattable";
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";

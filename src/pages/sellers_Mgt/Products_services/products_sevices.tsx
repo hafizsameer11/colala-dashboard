@@ -1,10 +1,10 @@
 import { useState } from "react";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import ProductsTable from "./productsTable";
+import ProductsTable from "./components/productsTable";
 import AddNewProduct from "../Modals/addNewProduct";
 import ServiceModal from "../Modals/serviceModal";
-import ServicesTable from "./servicesTable";
+import ServicesTable from "./components/servicesTable";
 import PageHeader from "../../../components/PageHeader";
 
 const Products_Services = () => {

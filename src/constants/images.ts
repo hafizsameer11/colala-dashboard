@@ -118,8 +118,8 @@ const images = {
   PencilSimpleLine: "/assets/layout/PencilSimpleLine.svg",
   TrashSimple: "/assets/layout/TrashSimple.svg",
   banner: "/assets/layout/banner.png",
-  // Alternative banner path for testing
-  bannerTest: "/assets/layout/admin.png", // Using admin.png as test
+  bannerTest: "/assets/layout/admin.png", 
+  disputes: "/assets/sidebar/disputes.svg",
 };
 
 export default images;

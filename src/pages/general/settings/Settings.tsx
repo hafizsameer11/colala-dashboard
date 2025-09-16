@@ -1,10 +1,10 @@
 import images from "../../../constants/images";
 import { useState } from "react";
-import ManagementSettingTable from "./managementsettingtable";
-import AddNewAdmin from "./addnewadmin";
-import AdminDetail from "./admindetail";
-import Categories from "./categories";
-import QuestionModal from "./questionmodal";
+import ManagementSettingTable from "./components/managementsettingtable";
+import AddNewAdmin from "./components/addnewadmin";
+import AdminDetail from "./components/admindetail";
+import Categories from "./components/categories";
+import QuestionModal from "./components/questionmodal";
 
 interface Admin {
   id: string;

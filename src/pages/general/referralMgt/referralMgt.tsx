@@ -1,7 +1,7 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
-import ReferralTable from "./referraltable";
-import ReferralFilters from "./referralfilters";
+import ReferralTable from "./components/referraltable";
+import ReferralFilters from "./components/referralfilters";
 
 const AllReferral = () => {
   const handleBulkActionSelect = (action: string) => {

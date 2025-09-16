@@ -38,6 +38,12 @@ export const General_links = [
      sublinks: [],
   },
   {
+    name: "Disputes",
+    link: "/disputes",
+    icon: images.disputes,
+     sublinks: [],
+  },
+  {
     name: "Ratings & Reviews",
     link: "/ratings-reviews",
     icon: images.ratingsreviews,

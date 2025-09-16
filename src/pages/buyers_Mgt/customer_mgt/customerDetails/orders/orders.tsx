@@ -1,10 +1,9 @@
-import PageHeader from "../../../components/PageHeader";
 import { useState } from "react";
-import images from "../../../constants/images";
-import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import LatestOrders from "../customer_mgt/customerDetails/orders/latestOrders";
+import images from "../../../../../constants/images";
+import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
+import LatestOrders from "./latestOrders";
 
-const ordersMgt = () => {
+const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState("All");
 
   const tabs = [
@@ -52,9 +51,7 @@ const ordersMgt = () => {
 
   return (
     <>
-      <PageHeader title="Orders Management" />
-
-      <div className="p-5" >
+      <div>
         <div className="flex flex-row justify-between items-center">
           {/* Card 1 */}
           <div
@@ -66,7 +63,7 @@ const ordersMgt = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-2xl">2,000</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -85,7 +82,7 @@ const ordersMgt = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-2xl">2,000</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -104,7 +101,7 @@ const ordersMgt = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-2xl">2,000</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -160,4 +157,4 @@ const ordersMgt = () => {
   );
 };
 
-export default ordersMgt;
+export default Orders;

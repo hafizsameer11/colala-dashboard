@@ -3,7 +3,7 @@ import PageHeader from "../../../components/PageHeader";
 import { useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 
-import RatingAndReviewTable from "./ratingandreviewtable";
+import RatingAndReviewTable from "./components/ratingandreviewtable";
 
 const AllRatingAndReview = () => {
   const [activeTab, setActiveTab] = useState("All");

@@ -1,6 +1,6 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
-import SupportTable from "./supporttable";
+import SupportTable from "./components/supporttable";
 import { useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 

@@ -3,7 +3,7 @@ import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LevelDropdown from "../../../components/levelDropdown";
 import PageHeader from "../../../components/PageHeader";
-import StoreKYCTable from "./storeKYCTable";
+import StoreKYCTable from "./components/storeKYCTable";
 
 const StoreKYC = () => {
   const [activeTab, setActiveTab] = useState("All");

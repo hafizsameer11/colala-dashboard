@@ -2,7 +2,7 @@ import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import { useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import AllUsersTable from "./allUsersTable";
+import AllUsersTable from "./components/allUsersTable";
 
 const Balance = () => {
   const [activeTab, setActiveTab] = useState("All");

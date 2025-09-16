@@ -1,6 +1,6 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
-import { leaderboardUsers } from "./leaderboardData";
+import { leaderboardUsers } from "./components/leaderboardData";
 import { useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 

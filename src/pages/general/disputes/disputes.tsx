@@ -2,12 +2,11 @@ import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import { useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import DepositDropdown from "../../../components/DepositsDropdown";
-import TransactionTable from "../customer_mgt/customerDetails/transaction/transactionTable";
+// import DisputesTable from "./components/disputeTable";
 
-const Transactions = () => {
+const Disputes = () => {
   const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "Pending", "Successful", "Failed"];
+  const tabs = ["All", "Pending", "On Hold", "Resolved"];
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -27,21 +26,16 @@ const Transactions = () => {
       })}
     </div>
   );
+
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
     // Add your custom logic here
   };
 
-  const handleDepositActionSelect = (action: string) => {
-    // Handle the deposit action selection from the parent component
-    console.log("Deposit action selected in Orders:", action);
-    // Add your custom logic here
-  };
-
   return (
     <>
-      <PageHeader title="Transactions" />
+      <PageHeader title="Disputes" />
 
       <div className="p-5">
         <div className="flex flex-row justify-between items-center">
@@ -51,12 +45,10 @@ const Transactions = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.transaction1} alt="" />
+              <img className="w-9 h-9" src={images.chats} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                All Transactions
-              </span>
+              <span className="font-semibold text-[15px]">Total Chats</span>
               <span className="font-semibold text-2xl">10</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
@@ -72,12 +64,10 @@ const Transactions = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.transaction1} alt="" />
+              <img className="w-9 h-9" src={images.chats} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                Pending Transactions
-              </span>
+              <span className="font-semibold text-[15px]">Pending Chats</span>
               <span className="font-semibold text-2xl">2</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
@@ -93,12 +83,10 @@ const Transactions = () => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.transaction1} alt="" />
+              <img className="w-9 h-9" src={images.chats} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                Successful Transactions
-              </span>
+              <span className="font-semibold text-[15px]">Resolved Chats</span>
               <span className="font-semibold text-2xl">0</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
@@ -107,7 +95,6 @@ const Transactions = () => {
             </div>
           </div>
         </div>
-
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
             <div>
@@ -118,9 +105,6 @@ const Transactions = () => {
               <div>
                 <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
-            </div>
-            <div>
-              <DepositDropdown onActionSelect={handleDepositActionSelect} />
             </div>
             <div>
               <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
@@ -151,12 +135,12 @@ const Transactions = () => {
             </div>
           </div>
         </div>
-        <div>
-          <TransactionTable />
-        </div>
       </div>
+      {/* <div className="">
+        <DisputesTable />
+      </div> */}
     </>
   );
 };
 
-export default Transactions;
+export default Disputes;

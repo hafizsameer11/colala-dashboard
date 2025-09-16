@@ -3,7 +3,7 @@ import "./App.css";
 import Layout from "./layout/Layout";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Customer_mgt from "./pages/buyers_Mgt/customer_mgt/customer_mgt";
-import CustomerDetails from "./pages/buyers_Mgt/customer_mgt/customerDetails";
+import CustomerDetails from "./pages/buyers_Mgt/customer_mgt/customerDetails/customerDetails";
 import StoreDetails from "./pages/sellers_Mgt/stores/storeDetails";
 import OrdersMgtbuyers from "./pages/buyers_Mgt/ordersMgt/ordersMgt";
 import Transactionsbuyers from "./pages/buyers_Mgt/Transactions/Transactions";
@@ -28,6 +28,7 @@ import Settings from "./pages/general/settings/Settings";
 import Login from "./pages/auth/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute"; 
+import Disputes from "./pages/general/disputes/disputes";
 
 function App() {
   const routes = [
@@ -52,6 +53,7 @@ function App() {
     { path: "/analytics", element: <Analytics /> },
     { path: "/leaderboard", element: <LeaderBoard /> },
     { path: "/support", element: <Support /> },
+    { path: "/disputes", element: <Disputes /> },
     { path: "/ratings-reviews", element: <RatingsReviews /> },
     { path: "/referral-mgt", element: <ReferralMgt /> },
     { path: "/notifications", element: <Notifications /> },
