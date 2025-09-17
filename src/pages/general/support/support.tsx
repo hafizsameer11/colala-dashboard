@@ -1,16 +1,42 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
 import SupportTable from "./components/supporttable";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import { FilterDropdown } from "./components/FilterDropdown";
+
+type Tab = "All" | "Pending" | "Resolved";
+type IssueType =
+  | "All Types"
+  | "Order Dispute"
+  | "Payment"
+  | "Delivery"
+  | "Account";
 
 const AllSupport = () => {
-  const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "Pending", "Resolved"];
+  const [activeTab, setActiveTab] = useState<Tab>("All");
+
+  // Issue type
+  const [issueType, setIssueType] = useState<IssueType>("All Types");
+  const issueTypes: IssueType[] = [
+    "All Types",
+    "Order Dispute",
+    "Payment",
+    "Delivery",
+    "Account",
+  ];
+
+  // Search (debounced)
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
-      {tabs.map((tab) => {
+      {(["All", "Pending", "Resolved"] as Tab[]).map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
@@ -28,9 +54,7 @@ const AllSupport = () => {
   );
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
   };
 
   return (
@@ -99,11 +123,14 @@ const AllSupport = () => {
             <div>
               <TabButtons />
             </div>
-            <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
-              <div>Issue Type</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-              </div>
+            <div>
+              <FilterDropdown
+                value={issueType}
+                options={issueTypes}
+                placeholder="Issue Type"
+                onChange={(val) => setIssueType(val as IssueType)}
+                className="ml-1"
+              />
             </div>
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
               <div>Sellers</div>
@@ -127,7 +154,9 @@ const AllSupport = () => {
               <input
                 type="text"
                 placeholder="Search"
-                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[330px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
@@ -149,12 +178,15 @@ const AllSupport = () => {
         </div>
       </div>
 
-      <div className="">
+      <div>
         <SupportTable
           title="All Support"
-          onRowSelect={(selectedIds) => {
-            console.log("Selected support IDs:", selectedIds);
-          }}
+          filterStatus={activeTab}
+          issueType={issueType}
+          searchTerm={debouncedSearch}
+          onRowSelect={(selectedIds) =>
+            console.log("Selected support IDs:", selectedIds)
+          }
         />
       </div>
     </>

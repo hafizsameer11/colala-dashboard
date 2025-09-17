@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 interface User {
   id: string;
@@ -6,18 +6,22 @@ interface User {
   shoppingBalance: string;
   escrowBalance: string;
   pointsBalance: string;
-  userType: string;
+  userType: "Buyer" | "Seller";
   userImage?: string;
 }
 
 interface UsersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  filterType?: "All" | "Buyers" | "Sellers";
+  searchTerm?: string;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
   title = "All Users",
   onRowSelect,
+  filterType = "All",
+  searchTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -81,15 +85,51 @@ const UsersTable: React.FC<UsersTableProps> = ({
     },
   ];
 
-  const handleSelectAll = () => {
-    const allIds = users.map((user) => user.id);
-    const newSelection = selectAll ? [] : allIds;
-    setSelectedRows(newSelection);
-    setSelectAll(!selectAll);
+  // Tab filter
+  const matchesTab = (u: User) => {
+    if (filterType === "All") return true;
+    if (filterType === "Buyers") return u.userType === "Buyer";
+    if (filterType === "Sellers") return u.userType === "Seller";
+    return true;
+  };
 
-    if (onRowSelect) {
-      onRowSelect(newSelection);
+  // Search across fields (case-insensitive)
+  const filteredUsers = useMemo(() => {
+    const term = (searchTerm || "").toLowerCase();
+
+    return users.filter(matchesTab).filter((u) => {
+      if (!term) return true;
+      const haystack = [
+        u.userName,
+        u.shoppingBalance,
+        u.escrowBalance,
+        u.pointsBalance,
+        u.userType,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [users, filterType, searchTerm]);
+
+  // keep selection in sync with current view
+  useEffect(() => {
+    setSelectAll(false);
+    setSelectedRows((prev) =>
+      prev.filter((id) => filteredUsers.some((u) => u.id === id))
+    );
+  }, [filterType, searchTerm]); // eslint-disable-line
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedRows([]);
+      onRowSelect?.([]);
+    } else {
+      const visibleIds = filteredUsers.map((u) => u.id);
+      setSelectedRows(visibleIds);
+      onRowSelect?.(visibleIds);
     }
+    setSelectAll(!selectAll);
   };
 
   const handleRowSelect = (id: string) => {
@@ -99,11 +139,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
       : [...selectedRows, id];
 
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === users.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+    setSelectAll(
+      newSelection.length > 0 && newSelection.length === filteredUsers.length
+    );
+    onRowSelect?.(newSelection);
   };
 
   return (
@@ -118,7 +157,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
               <th className="p-3 text-left font-semibold">
                 <input
                   type="checkbox"
-                  checked={selectAll}
+                  checked={
+                    selectAll &&
+                    filteredUsers.length > 0 &&
+                    selectedRows.length === filteredUsers.length
+                  }
                   onChange={handleSelectAll}
                   className="w-5 h-5"
                 />
@@ -132,7 +175,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr
                 key={user.id}
                 className="text-center border-t border-gray-200"
@@ -166,6 +209,18 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
               </tr>
             ))}
+
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="p-6 text-center text-sm text-gray-500"
+                >
+                  No users found{searchTerm ? ` for “${searchTerm}”` : ""}
+                  {filterType !== "All" ? ` in ${filterType}` : ""}.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -1,12 +1,22 @@
 import images from "../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
 
+type Tab = "All" | "Buyers" | "Sellers";
+
 const AllUsers = () => {
-  const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "Buyers", "Sellers"];
+  const [activeTab, setActiveTab] = useState<Tab>("All");
+
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const tabs: Tab[] = ["All", "Buyers", "Sellers"];
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -28,15 +38,11 @@ const AllUsers = () => {
   );
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
   };
 
   const handleUserSelection = (selectedIds: string[]) => {
-    // Handle selected user IDs
     console.log("Selected user IDs:", selectedIds);
-    // You can use this to enable/disable bulk actions or perform other operations
   };
 
   return (
@@ -124,6 +130,8 @@ const AllUsers = () => {
               <input
                 type="text"
                 placeholder="Search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -145,7 +153,11 @@ const AllUsers = () => {
           </div>
         </div>
         <div className="mt-5">
-          <AllUsersTable onRowSelect={handleUserSelection} />
+          <AllUsersTable
+            onRowSelect={handleUserSelection}
+            filterType={activeTab}
+            searchTerm={debouncedSearch}
+          />
         </div>
       </div>
     </>

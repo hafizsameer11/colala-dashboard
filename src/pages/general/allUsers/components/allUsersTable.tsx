@@ -1,39 +1,23 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import images from "../../../../constants/images";
+
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
 }
 
 const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
-
   const DotsActions = ["Block user", "Ban user"];
-
-  // Icons for each action (use your actual icon paths here)
   const actionIcons: Record<string, string> = {
-    "Block user": "/assets/layout/block.svg", // replace with your actual image paths
+    "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
-  };
-
-  const handleDotsDropdownToggle = () => {
-    setIsDotsDropdownOpen(!isDotsDropdownOpen);
-  };
-
-  const handleDotsOptionSelect = (action: string) => {
-    setIsDotsDropdownOpen(false);
-
-    if (onActionSelect) {
-      onActionSelect(action);
-    }
-
-    console.log("Selected Dots action:", action);
   };
 
   return (
     <div className="relative">
       <button
-        onClick={handleDotsDropdownToggle}
+        onClick={() => setIsDotsDropdownOpen((s) => !s)}
         className="w-10 h-10 cursor-pointer"
       >
         <img src={images.dots} alt="Dots" />
@@ -44,16 +28,16 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
           {DotsActions.map((action) => (
             <button
               key={action}
-              onClick={() => handleDotsOptionSelect(action)}
+              onClick={() => {
+                setIsDotsDropdownOpen(false);
+                onActionSelect?.(action);
+                console.log("Selected Dots action:", action);
+              }}
               className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
                 action === "Ban user" ? "text-[#FF0000]" : "text-black"
               } cursor-pointer font-medium`}
             >
-              <img
-                src={actionIcons[action]}
-                alt={`${action} icon`}
-                className="w-4 h-4"
-              />
+              <img src={actionIcons[action]} alt="" className="w-4 h-4" />
               <span>{action}</span>
             </button>
           ))}
@@ -69,18 +53,22 @@ interface User {
   email: string;
   phoneNumber: string;
   walletBalance: string;
-  userType: string;
+  userType: "Buyer" | "Seller";
   userImage?: string;
 }
 
 interface UsersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  filterType?: "All" | "Buyers" | "Sellers"; // <-- from parent tabs
+  searchTerm?: string; // <-- debounced search from parent
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
   title = "All Users",
   onRowSelect,
+  filterType = "All",
+  searchTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -145,15 +133,50 @@ const UsersTable: React.FC<UsersTableProps> = ({
     },
   ];
 
-  const handleSelectAll = () => {
-    const allIds = users.map((user) => user.id);
-    const newSelection = selectAll ? [] : allIds;
-    setSelectedRows(newSelection);
-    setSelectAll(!selectAll);
+  // Map tab -> filter
+  const matchesTab = (u: User) => {
+    if (filterType === "All") return true;
+    if (filterType === "Buyers") return u.userType === "Buyer";
+    if (filterType === "Sellers") return u.userType === "Seller";
+    return true;
+  };
 
-    if (onRowSelect) {
-      onRowSelect(newSelection);
+  // Search across common fields (case-insensitive)
+  const filteredUsers = useMemo(() => {
+    const term = (searchTerm || "").toLowerCase();
+    return users.filter(matchesTab).filter((u) => {
+      if (!term) return true;
+      const haystack = [
+        u.userName,
+        u.email,
+        u.phoneNumber,
+        u.walletBalance,
+        u.userType,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [users, filterType, searchTerm]);
+
+  // keep selection in sync with filtered view
+  useEffect(() => {
+    setSelectAll(false);
+    setSelectedRows((prev) =>
+      prev.filter((id) => filteredUsers.some((u) => u.id === id))
+    );
+  }, [filterType, searchTerm]); // eslint-disable-line
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedRows([]);
+      onRowSelect?.([]);
+    } else {
+      const visibleIds = filteredUsers.map((u) => u.id);
+      setSelectedRows(visibleIds);
+      onRowSelect?.(visibleIds);
     }
+    setSelectAll(!selectAll);
   };
 
   const handleRowSelect = (id: string) => {
@@ -163,11 +186,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
       : [...selectedRows, id];
 
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === users.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+    setSelectAll(
+      newSelection.length > 0 && newSelection.length === filteredUsers.length
+    );
+    onRowSelect?.(newSelection);
   };
 
   const handleCustomerDetails = (user: User) => {
@@ -186,7 +208,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
               <th className="p-3 text-left font-semibold">
                 <input
                   type="checkbox"
-                  checked={selectAll}
+                  checked={
+                    selectAll &&
+                    filteredUsers.length > 0 &&
+                    selectedRows.length === filteredUsers.length
+                  }
                   onChange={handleSelectAll}
                   className="w-5 h-5"
                 />
@@ -200,7 +226,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr
                 key={user.id}
                 className="text-center border-t border-gray-200"
@@ -234,16 +260,28 @@ const UsersTable: React.FC<UsersTableProps> = ({
                       User Details
                     </button>
                   </div>
-                 <div>
-                     <DotsDropdown
-                    onActionSelect={(action) =>
-                      console.log(`Action ${action} for user ${user.id}`)
-                    }
-                  />
-                 </div>
+                  <div>
+                    <DotsDropdown
+                      onActionSelect={(action) =>
+                        console.log(`Action ${action} for user ${user.id}`)
+                      }
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
+
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="p-6 text-center text-sm text-gray-500"
+                >
+                  No users found{searchTerm ? ` for “${searchTerm}”` : ""}
+                  {filterType !== "All" ? ` in ${filterType}` : ""}.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

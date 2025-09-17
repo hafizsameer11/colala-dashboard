@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import images from "../../constants/images";
 import BulkActionDropdown from "../../components/BulkActionDropdown";
 import OrdersTable from "./OrdersTable";
@@ -23,23 +23,47 @@ ChartJS.register(
   Legend
 );
 
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+const tabs = [
+  "All",
+  "Order Placed",
+  "Out for delivery",
+  "Delivered",
+  "Completed",
+  "Disputed",
+];
+
+type Tab = (typeof tabs)[number];
+
 const Dashboard = () => {
+  const [activeTab, setActiveTab] = useState<Tab>("All");
+
+  // search with debounce
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Dashboard:", action);
-    // Add your custom logic here
   };
 
   const handleOrderSelection = (selectedIds: string[]) => {
-    // Handle selected order IDs
     console.log("Selected order IDs:", selectedIds);
-    // You can use this to enable/disable bulk actions or perform other operations
   };
 
   const handlePeriodChange = (period: string) => {
-    // Handle period change from PageHeader
     console.log("Period changed to:", period);
-    // Add your logic here to filter data based on selected period
   };
 
   const tabs = [
@@ -52,8 +76,6 @@ const Dashboard = () => {
   ];
 
   const TabButtons = () => {
-    const [activeTab, setActiveTab] = useState("All");
-
     return (
       <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
         {tabs.map((tab) => {
@@ -73,7 +95,6 @@ const Dashboard = () => {
       </div>
     );
   };
-
   // Chart data based on the image
   const chartData = {
     labels: [
@@ -504,6 +525,8 @@ const Dashboard = () => {
               <input
                 type="text"
                 placeholder="Search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -529,6 +552,8 @@ const Dashboard = () => {
           <OrdersTable
             title="Latest Orders"
             onRowSelect={handleOrderSelection}
+            filterStatus={activeTab}
+            searchTerm={debouncedSearch}
           />
         </div>
       </div>
