@@ -1,11 +1,22 @@
 import PageHeader from "../../../components/PageHeader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
 
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 const orders_Mgt = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 450);
 
   const tabs = [
     "All",
@@ -18,9 +29,7 @@ const orders_Mgt = () => {
   ];
 
   const handleUserSelection = (selectedIds: string[]) => {
-    // Handle selected user IDs
     console.log("Selected user IDs:", selectedIds);
-    // You can use this to enable/disable bulk actions or perform other operations
   };
 
   const TabButtons = () => {
@@ -45,9 +54,7 @@ const orders_Mgt = () => {
   };
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
   };
 
   return (
@@ -128,6 +135,8 @@ const orders_Mgt = () => {
             <input
               type="text"
               placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -152,6 +161,7 @@ const orders_Mgt = () => {
             title="Latest Orders"
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
+            searchTerm={debouncedSearch} // ⬅️ pass debounced search
           />
         </div>
       </div>

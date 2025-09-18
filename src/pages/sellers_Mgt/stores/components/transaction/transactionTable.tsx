@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import TransactionsModel from "../Modals/transactionsModel";
+import TransactionsModel from "../../../Modals/transactionsModel";
 
 interface Transaction {
   id: string;

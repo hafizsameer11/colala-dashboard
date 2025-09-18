@@ -5,7 +5,7 @@ type RowType = "Store" | "Product";
 
 interface RatingReview {
   id: string;
-  type: RowType;           // <-- added: used by tab filter
+  type: RowType;       
   storeName: string;
   noOfReviews: number;
   averageRating: number;

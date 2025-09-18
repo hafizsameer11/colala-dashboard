@@ -1,8 +1,8 @@
-import images from "../../../constants/images";
-import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import images from "../../../../../constants/images";
+import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import { useState } from "react";
-import NewBanner from "../Modals/newBanner";
-import NewAnnouncement from "../Modals/newAnnouncement";
+import NewBanner from "../../../Modals/newBanner";
+import NewAnnouncement from "../../../Modals/newAnnouncement";
 import AnnouncementsTable from "./announcementTable";
 
 const Announcements = () => {

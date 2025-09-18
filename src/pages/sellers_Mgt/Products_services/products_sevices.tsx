@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import ProductsTable from "./components/productsTable";
@@ -7,49 +7,53 @@ import ServiceModal from "../Modals/serviceModal";
 import ServicesTable from "./components/servicesTable";
 import PageHeader from "../../../components/PageHeader";
 
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 const Products_Services = () => {
-  const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "General", "Sponsored"];
+  const [activeTab, setActiveTab] = useState<"All" | "General" | "Sponsored">(
+    "All"
+  );
+  const tabs: Array<"All" | "General" | "Sponsored"> = [
+    "All",
+    "General",
+    "Sponsored",
+  ];
+
   const [showModal, setShowModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
-  const [selectedProductType, setSelectedProductType] = useState("Products");
+  const [selectedProductType, setSelectedProductType] = useState<
+    "Products" | "Services"
+  >("Products");
+
+  // search
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 450);
 
   interface ProductsDropdownProps {
-    onProductSelect?: (product: string) => void;
+    onProductSelect?: (product: "Products" | "Services") => void;
   }
 
   const ProductsDropdown: React.FC<ProductsDropdownProps> = ({
     onProductSelect,
   }) => {
     const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
-
-    const products = ["Products", "Services"];
-
-    const handleProductsDropdownToggle = () => {
-      setIsProductsDropdownOpen(!isProductsDropdownOpen);
-    };
-
-    const handleProductOptionSelect = (product: string) => {
-      setSelectedProductType(product);
-      setIsProductsDropdownOpen(false);
-
-      if (onProductSelect) {
-        onProductSelect(product);
-      }
-
-      console.log("Selected product type:", product);
-    };
+    const products: Array<"Products" | "Services"> = ["Products", "Services"];
 
     return (
       <div className="relative inline-block text-left">
         <div
           className="flex flex-row justify-center items-center px-2.5 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer"
-          onClick={handleProductsDropdownToggle}
+          onClick={() => setIsProductsDropdownOpen((s) => !s)}
         >
           <span className="cursor-pointer">{selectedProductType}</span>
-          <div>
-            <img className="w-4 h-4 ml-5" src={images.dropdown} alt="" />
-          </div>
+          <img className="w-4 h-4 ml-5" src={images.dropdown} alt="" />
         </div>
 
         {isProductsDropdownOpen && (
@@ -57,7 +61,11 @@ const Products_Services = () => {
             {products.map((product) => (
               <button
                 key={product}
-                onClick={() => handleProductOptionSelect(product)}
+                onClick={() => {
+                  setSelectedProductType(product);
+                  setIsProductsDropdownOpen(false);
+                  onProductSelect?.(product);
+                }}
                 className={`block w-full text-left px-4 py-2 text-sm ${
                   product === selectedProductType
                     ? "text-[#E53E3E] bg-gray-50"
@@ -73,15 +81,12 @@ const Products_Services = () => {
     );
   };
 
-  const handleProductSelect = (product: string) => {
+  const handleProductSelect = (product: "Products" | "Services") => {
     setSelectedProductType(product);
-    console.log("Selected product:", product);
   };
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
-    console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
+    console.log("Bulk action selected:", action);
   };
 
   const TabButtons = () => (
@@ -172,49 +177,43 @@ const Products_Services = () => {
 
           <div className="mt-5 flex flex-row justify-between">
             <div className="flex flex-row items-center gap-2">
-              <div>
-                <TabButtons />
-              </div>
-              <div>
-                <ProductsDropdown onProductSelect={handleProductSelect} />
-              </div>
+              <TabButtons />
+              <ProductsDropdown onProductSelect={handleProductSelect} />
+
               <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
                 <div>Today</div>
-                <div>
-                  <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-                </div>
+                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
+
               <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
                 <div>Category</div>
-                <div>
-                  <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-                </div>
+                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
-              <div>
-                <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
-              </div>
+
+              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
             </div>
+
             <div className="flex gap-2">
-              <div>
-                <button
-                  className="bg-[#E53E3E] px-3.5 py-3.5 cursor-pointer text-white rounded-xl"
-                  onClick={() => {
-                    if (selectedProductType === "Services") {
-                      setShowServiceModal(true);
-                    } else {
-                      setShowModal(true);
-                    }
-                  }}
-                >
-                  {selectedProductType === "Services"
-                    ? "Add new Service"
-                    : "Add new product"}
-                </button>
-              </div>
+              <button
+                className="bg-[#E53E3E] px-3.5 py-3.5 cursor-pointer text-white rounded-xl"
+                onClick={() =>
+                  selectedProductType === "Services"
+                    ? setShowServiceModal(true)
+                    : setShowModal(true)
+                }
+              >
+                {selectedProductType === "Services"
+                  ? "Add new Service"
+                  : "Add new product"}
+              </button>
+
+              {/* search with debounce */}
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[180px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -237,15 +236,20 @@ const Products_Services = () => {
           </div>
 
           {/* Conditional Table Rendering */}
-          {selectedProductType === "Products" && (
+          {selectedProductType === "Products" ? (
             <div className="mt-5">
-              <ProductsTable />
+              <ProductsTable
+                activeTab={activeTab}
+                searchTerm={debouncedSearch}
+              />
             </div>
-          )}
-
-          {selectedProductType === "Services" && (
+          ) : (
             <div className="mt-5">
-              <ServicesTable />
+              {/* Services ignore Sponsored/General (no such flag). We still pass the tab in case you add one later. */}
+              <ServicesTable
+                activeTab={activeTab}
+                searchTerm={debouncedSearch}
+              />
             </div>
           )}
 

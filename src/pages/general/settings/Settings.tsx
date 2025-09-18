@@ -1,10 +1,19 @@
 import images from "../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ManagementSettingTable from "./components/managementsettingtable";
 import AddNewAdmin from "./components/addnewadmin";
 import AdminDetail from "./components/admindetail";
 import Categories from "./components/categories";
 import QuestionModal from "./components/questionmodal";
+import useDebouncedValue from "../../../hooks/useDebouncedValue";
+
+type FaqItem = {
+  id: string;
+  type: string;
+  users: "All" | "Buyers" | "Sellers";
+  questions: number;
+  userType: "All" | "Buyers" | "Sellers"; // used for filtering via tabs
+};
 
 interface Admin {
   id: string;
@@ -39,9 +48,10 @@ const AllUsers = () => {
     password: string;
     role: string;
   } | null>(null);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
 
-  // FAQ Data
-  const faqData = [
+  const [faqItems, setFaqItems] = useState<FaqItem[]>([
     {
       id: "1",
       type: "General FAQ",
@@ -63,12 +73,70 @@ const AllUsers = () => {
       questions: 3,
       userType: "All",
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("faqList");
+    if (saved) {
+      try {
+        setFaqItems(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("faqList", JSON.stringify(faqItems));
+  }, [faqItems]);
 
   const filteredFaqData =
     faqActiveTab === "All"
-      ? faqData
-      : faqData.filter((faq) => faq.userType === faqActiveTab);
+      ? faqItems
+      : faqItems.filter((faq) => faq.userType === faqActiveTab);
+
+  const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
+  const [editFaqForm, setEditFaqForm] = useState<{
+    type: string;
+    users: "All" | "Buyers" | "Sellers";
+    questions: number | string;
+  }>({ type: "", users: "All", questions: 0 });
+
+  const openEditFaq = (faq: FaqItem) => {
+    setEditingFaq(faq);
+    setEditFaqForm({
+      type: faq.type,
+      users: faq.users,
+      questions: faq.questions,
+    });
+  };
+
+  const cancelEditFaq = () => setEditingFaq(null);
+
+  const saveEditFaq = () => {
+    if (!editingFaq) return;
+    const nextType = editFaqForm.type.trim() || editingFaq.type;
+    const nextUsers = editFaqForm.users;
+    const nextQuestions = Number(editFaqForm.questions);
+    setFaqItems((prev) =>
+      prev.map((f) =>
+        f.id === editingFaq.id
+          ? {
+              ...f,
+              type: nextType,
+              users: nextUsers,
+              userType: nextUsers, // keep filterable field in sync
+              questions: Number.isFinite(nextQuestions)
+                ? nextQuestions
+                : f.questions,
+            }
+          : f
+      )
+    );
+    setEditingFaq(null);
+  };
+
+  const deleteFaq = (faq: FaqItem) => {
+    if (!window.confirm(`Delete "${faq.type}"?`)) return;
+    setFaqItems((prev) => prev.filter((f) => f.id !== faq.id));
+  };
 
   const dropdownOptions = ["Online", "All", "Active", "Inactive"];
 
@@ -331,6 +399,8 @@ const AllUsers = () => {
                         <input
                           type="text"
                           placeholder="Search"
+                          value={search} // <- NEW
+                          onChange={(e) => setSearch(e.target.value)} // <- NEW
                           className="pl-12 pr-6 py-3 border border-[#00000080] rounded-lg text-[15px] w-[267px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -354,6 +424,7 @@ const AllUsers = () => {
                   <ManagementSettingTable
                     newAdmin={newAdminData}
                     onAdminDetails={handleAdminDetails}
+                    searchTerm={debouncedSearch} // <- NEW
                   />
                   <AddNewAdmin
                     isOpen={isAddAdminModalOpen}
@@ -599,17 +670,17 @@ const AllUsers = () => {
                                 />
                               </td>
                               <td className="px-6 py-4">
-                                <span className=" font-medium text-gray-900">
+                                <span className="font-medium text-gray-900">
                                   {faq.type}
                                 </span>
                               </td>
                               <td className="px-6 py-4">
-                                <span className=" text-gray-600">
+                                <span className="text-gray-600">
                                   {faq.users}
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-center">
-                                <span className=" text-gray-600">
+                                <span className="text-gray-600">
                                   {faq.questions}
                                 </span>
                               </td>
@@ -617,17 +688,29 @@ const AllUsers = () => {
                                 <div className="flex items-center justify-end gap-3">
                                   <button
                                     onClick={handleOpenQuestionModal}
-                                    className="px-4 py-3 cursor-pointer bg-[#E53E3E] text-white  font-medium rounded-lg hover:bg-[#D32F2F] transition-colors"
+                                    className="px-4 py-3 cursor-pointer bg-[#E53E3E] text-white font-medium rounded-lg hover:bg-[#D32F2F] transition-colors"
                                   >
                                     Add Question
                                   </button>
-                                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+
+                                  {/* EDIT (now functional) */}
+                                  <button
+                                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                                    onClick={() => openEditFaq(faq)}
+                                    title="Edit"
+                                  >
                                     <img
                                       src="/public/assets/layout/edit1.svg"
                                       alt="Edit"
                                     />
                                   </button>
-                                  <button className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+
+                                  {/* DELETE (now functional) */}
+                                  <button
+                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                                    onClick={() => deleteFaq(faq)}
+                                    title="Delete"
+                                  >
                                     <img
                                       src="/public/assets/layout/delete1.svg"
                                       alt="Delete"
@@ -637,10 +720,134 @@ const AllUsers = () => {
                               </td>
                             </tr>
                           ))}
+
+                          {filteredFaqData.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="px-6 py-8 text-center text-gray-500"
+                              >
+                                No FAQs found for this tab.
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
                   </div>
+
+                  {/* ---- Edit FAQ Modal ---- */}
+                  {editingFaq && (
+                    <div
+                      className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center"
+                      onClick={cancelEditFaq}
+                    >
+                      <div
+                        className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold">Edit FAQ</h3>
+                          <button
+                            onClick={cancelEditFaq}
+                            className="p-1 rounded-full cursor-pointer border"
+                          >
+                            <svg
+                              width="22"
+                              height="22"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              Type
+                            </label>
+                            <input
+                              value={editFaqForm.type}
+                              onChange={(e) =>
+                                setEditFaqForm((f) => ({
+                                  ...f,
+                                  type: e.target.value,
+                                }))
+                              }
+                              className="w-full border rounded-lg px-3 py-2"
+                              placeholder="FAQ type (e.g., General FAQ)"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                Users
+                              </label>
+                              <select
+                                value={editFaqForm.users}
+                                onChange={(e) =>
+                                  setEditFaqForm((f) => ({
+                                    ...f,
+                                    users: e.target.value as
+                                      | "All"
+                                      | "Buyers"
+                                      | "Sellers",
+                                  }))
+                                }
+                                className="w-full border rounded-lg px-3 py-2 bg-white"
+                              >
+                                <option value="All">All</option>
+                                <option value="Buyers">Buyers</option>
+                                <option value="Sellers">Sellers</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                No. of Questions
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={editFaqForm.questions}
+                                onChange={(e) =>
+                                  setEditFaqForm((f) => ({
+                                    ...f,
+                                    questions: e.target.value,
+                                  }))
+                                }
+                                className="w-full border rounded-lg px-3 py-2"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-2">
+                          <button
+                            onClick={cancelEditFaq}
+                            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={saveEditFaq}
+                            className="px-4 py-2 rounded-lg bg-[#E53E3E] text-white hover:bg-[#D32F2F] cursor-pointer"
+                          >
+                            Save Changes
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

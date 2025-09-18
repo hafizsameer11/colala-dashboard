@@ -1,12 +1,32 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PromotionsTable from "./promotionsTable";
 
+// tiny debounce hook
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced as T;
+}
+
 const Promotions = () => {
-  const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "Pending", "Approved", "Rejected"];
+  const [activeTab, setActiveTab] = useState<
+    "All" | "Pending" | "Approved" | "Rejected"
+  >("All");
+  const tabs: Array<"All" | "Pending" | "Approved" | "Rejected"> = [
+    "All",
+    "Pending",
+    "Approved",
+    "Rejected",
+  ];
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 450);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -26,18 +46,18 @@ const Promotions = () => {
       })}
     </div>
   );
+
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
-    console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
+    console.log("Bulk action selected in Promotions:", action);
+    // do your bulk logic here using selected IDs from table (if you wire it up)
   };
 
   return (
     <div>
       <PageHeader title="Latest Promotions" />
       <div className="p-5">
+        {/* Stat cards ... unchanged */}
         <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
           <div
             className="flex flex-row rounded-2xl  w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -56,8 +76,6 @@ const Promotions = () => {
               </span>
             </div>
           </div>
-
-          {/* Card 2 */}
 
           <div
             className="flex flex-row rounded-2xl w-90"
@@ -78,8 +96,6 @@ const Promotions = () => {
             </div>
           </div>
 
-          {/* Card 3 */}
-
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -99,48 +115,50 @@ const Promotions = () => {
             </div>
           </div>
         </div>
+
+        {/* Filters row */}
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
-            <div>
-              <TabButtons />
-            </div>
+            <TabButtons />
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
               <div>Today</div>
               <div>
                 <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
             </div>
-            <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
-            </div>
+            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
           </div>
-          <div>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search"
-                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
+
+          {/* Search (debounced) */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
             </div>
           </div>
         </div>
-        <div className="">
-          <PromotionsTable />
+
+        {/* Table with filters */}
+        <div>
+          <PromotionsTable activeTab={activeTab} searchTerm={debouncedSearch} />
         </div>
       </div>
     </div>

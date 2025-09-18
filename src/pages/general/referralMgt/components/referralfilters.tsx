@@ -2,16 +2,27 @@ import React, { useState } from "react";
 import SettingsModal from "./settingsmodal";
 import images from "../../../../constants/images";
 import BulkActionDropdown from "../../../../components/BulkActionDropdown";
+import useDebouncedValue from "../../../../hooks/useDebouncedValue";
 
 interface ReferralFiltersProps {
   onBulkActionSelect?: (action: string) => void;
+  onSearchChange?: (term: string) => void; // <- NEW
 }
 
 const ReferralFilters: React.FC<ReferralFiltersProps> = ({
   onBulkActionSelect,
+  onSearchChange,
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState("All");
+  const [search, setSearch] = useState(""); // <- NEW
+  const debouncedSearch = useDebouncedValue(search, 450); // <- delay (ms)
+
+  // push debounced value up
+  React.useEffect(() => {
+    onSearchChange?.(debouncedSearch.trim());
+  }, [debouncedSearch, onSearchChange]);
+
   const tabs = ["All", "Pending", "Resolved"];
 
   const TabButtons = () => (
@@ -34,10 +45,7 @@ const ReferralFilters: React.FC<ReferralFiltersProps> = ({
   );
 
   const handleBulkActionSelect = (action: string) => {
-    // Call the parent component's handler if provided
-    if (onBulkActionSelect) {
-      onBulkActionSelect(action);
-    }
+    onBulkActionSelect?.(action);
     console.log("Bulk action selected in Referrals:", action);
   };
 
@@ -49,9 +57,9 @@ const ReferralFilters: React.FC<ReferralFiltersProps> = ({
           <div className="flex items-center">
             <TabButtons />
           </div>
-          {/* Right side - Today dropdown, Bulk Action, Settings, and Search */}
+
+          {/* Right side - Today dropdown + Bulk Action */}
           <div className="flex flex-row items-center gap-3">
-            {/* Today Dropdown */}
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
               <div>Today</div>
               <div>
@@ -59,8 +67,7 @@ const ReferralFilters: React.FC<ReferralFiltersProps> = ({
               </div>
             </div>
 
-            {/* Bulk Action Dropdown */}
-            <div className="">
+            <div>
               <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
             </div>
           </div>
@@ -80,6 +87,8 @@ const ReferralFilters: React.FC<ReferralFiltersProps> = ({
             <input
               type="text"
               placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)} // <- wire it
               className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -100,7 +109,6 @@ const ReferralFilters: React.FC<ReferralFiltersProps> = ({
           </div>
         </div>
 
-        {/* Settings Modal */}
         <SettingsModal
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}

@@ -2,13 +2,17 @@ import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
 import ReferralTable from "./components/referraltable";
 import ReferralFilters from "./components/referralfilters";
+// import { useState } from "react";
+import React from "react";
 
 const AllReferral = () => {
-  const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
-    console.log("Bulk action selected in Referral:", action);
-    // Add your custom logic here
-  };
+  // const handleBulkActionSelect = (action: string) => {
+  //   // Handle the bulk action selection from the parent component
+  //   console.log("Bulk action selected in Referral:", action);
+  //   // Add your custom logic here
+  // };
+
+  const [search, setSearch] = React.useState("");
 
   return (
     <>
@@ -73,12 +77,8 @@ const AllReferral = () => {
             </div>
           </div>
         </div>
-            <ReferralFilters onBulkActionSelect={handleBulkActionSelect} />
-        <ReferralTable
-          onRowSelect={(selectedIds) =>
-            console.log("Selected referrals:", selectedIds)
-          }
-        />
+        <ReferralFilters onSearchChange={setSearch} />
+        <ReferralTable searchTerm={search} />
       </div>
     </>
   );

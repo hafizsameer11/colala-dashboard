@@ -1,14 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LevelDropdown from "../../../components/levelDropdown";
 import PageHeader from "../../../components/PageHeader";
 import StoreKYCTable from "./components/storeKYCTable";
 
+// tiny debounce hook
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 const StoreKYC = () => {
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState<
+    "All" | "Pending" | "Successful" | "Rejected"
+  >("All");
   const [selectedLevel, setSelectedLevel] = useState<number | "all">("all");
-  const tabs = ["All", "Pending", "Successful", "Failed"];
+  const tabs: Array<"All" | "Pending" | "Successful" | "Rejected"> = [
+    "All",
+    "Pending",
+    "Successful",
+    "Rejected",
+  ];
+
+  // search (debounced)
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 450);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -28,31 +49,23 @@ const StoreKYC = () => {
       })}
     </div>
   );
+
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
   };
 
   const handleLevelActionSelect = (level: string) => {
-    // Handle the level action selection from the LevelDropdown
-    console.log("Level action selected in Dashboard:", level);
-    // Convert the level string to appropriate type and update state
-    if (level === "All") {
-      setSelectedLevel("all");
-    } else if (level === "Level 1") {
-      setSelectedLevel(1);
-    } else if (level === "Level 2") {
-      setSelectedLevel(2);
-    } else if (level === "Level 3") {
-      setSelectedLevel(3);
-    }
+    if (level === "All") setSelectedLevel("all");
+    else if (level === "Level 1") setSelectedLevel(1);
+    else if (level === "Level 2") setSelectedLevel(2);
+    else if (level === "Level 3") setSelectedLevel(3);
   };
 
   return (
     <>
       <PageHeader title="Stores KYC" />
       <div className="p-5">
+        {/* top cards (unchanged) */}
         <div className="flex flex-row justify-between items-center">
           {/* Card 1 */}
           <div
@@ -73,7 +86,6 @@ const StoreKYC = () => {
           </div>
 
           {/* Card 2 */}
-
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -92,7 +104,6 @@ const StoreKYC = () => {
           </div>
 
           {/* Card 3 */}
-
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -111,51 +122,54 @@ const StoreKYC = () => {
           </div>
         </div>
 
+        {/* filters */}
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
-            <div>
-              <TabButtons />
-            </div>
+            <TabButtons />
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
               <div>Today</div>
               <div>
                 <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
             </div>
-            <div>
-              <LevelDropdown onLevelSelect={handleLevelActionSelect} />
-            </div>
-            <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
-            </div>
+            <LevelDropdown onLevelSelect={handleLevelActionSelect} />
+            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
           </div>
-          <div>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search"
-                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
+
+          {/* Search (debounced) */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
             </div>
           </div>
         </div>
+
+        {/* table with filters */}
         <div>
-          <StoreKYCTable levelFilter={selectedLevel} />
+          <StoreKYCTable
+            levelFilter={selectedLevel}
+            statusFilter={activeTab}
+            searchTerm={debouncedSearch}
+          />
         </div>
       </div>
     </>

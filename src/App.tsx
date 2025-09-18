@@ -4,7 +4,7 @@ import Layout from "./layout/Layout";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Customer_mgt from "./pages/buyers_Mgt/customer_mgt/customer_mgt";
 import CustomerDetails from "./pages/buyers_Mgt/customer_mgt/customerDetails/customerDetails";
-import StoreDetails from "./pages/sellers_Mgt/stores/storeDetails";
+import StoreDetails from "./pages/sellers_Mgt/stores/storeDetails/storeDetails";
 import OrdersMgtbuyers from "./pages/buyers_Mgt/ordersMgt/ordersMgt";
 import Transactionsbuyers from "./pages/buyers_Mgt/Transactions/Transactions";
 import Stores_mgt from "./pages/sellers_Mgt/stores/stores_mgt";
@@ -27,7 +27,7 @@ import Notifications from "./pages/general/notifications/notifications";
 import Settings from "./pages/general/settings/Settings";
 import Login from "./pages/auth/Login";
 import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute"; 
+import ProtectedRoute from "./components/ProtectedRoute";
 import Disputes from "./pages/general/disputes/disputes";
 
 function App() {
@@ -65,9 +65,16 @@ function App() {
         <Routes>
           {/* Login Route - Public */}
           <Route path="/login" element={<Login />} />
-          
+
           {/* Protected Routes */}
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             {routes.map(({ path, element }) => (
               <Route key={path} path={path} element={element} />
             ))}

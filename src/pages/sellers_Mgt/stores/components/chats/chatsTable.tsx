@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import ChatsModel from "../Modals/chatsModel";
+import ChatsModel from "../../../Modals/chatsModel";
 
 interface Chat {
   id: string;

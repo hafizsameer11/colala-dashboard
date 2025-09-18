@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../Modals/orderDetails";
 
 interface Order {
@@ -20,6 +20,7 @@ interface LatestOrdersProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   activeTab?: string;
+  searchTerm?: string; // ⬅️ NEW
 }
 
 const statusColors: Record<Order["status"], string> = {
@@ -38,9 +39,11 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   title = "Latest Orders",
   onRowSelect,
   activeTab = "All",
+  searchTerm = "", // ⬅️ NEW
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const orders: Order[] = [
     {
@@ -100,26 +103,35 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       status: "Completed",
     },
   ];
-  const [showModal, setShowModal] = useState(false);
 
-  // Filter orders based on active tab
-  const filteredOrders =
-    activeTab === "All"
-      ? orders
-      : orders.filter((order) => order.status === activeTab);
+  // Combine tab filter + search filter
+  const filteredOrders = useMemo(() => {
+    const base =
+      activeTab === "All"
+        ? orders
+        : orders.filter((o) => o.status === (activeTab as Order["status"]));
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((o) =>
+      [o.storeName, o.productName, o.price, o.orderDate, o.status]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [orders, activeTab, searchTerm]);
 
-  // Reset selected rows when tab changes
+  // Reset selection when tab or search changes
   useEffect(() => {
     setSelectedRows([]);
     setSelectAll(false);
-  }, [activeTab]);
+  }, [activeTab, searchTerm]);
 
   const handleSelectAll = () => {
     const allIds = filteredOrders.map((order) => order.id);
     const newSelection = selectAll ? [] : allIds;
     setSelectedRows(newSelection);
     setSelectAll(!selectAll);
-    if (onRowSelect) onRowSelect(newSelection);
+    onRowSelect?.(newSelection);
   };
 
   const handleRowSelect = (id: string) => {
@@ -129,12 +141,10 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       : [...selectedRows, id];
     setSelectedRows(newSelection);
     setSelectAll(newSelection.length === filteredOrders.length);
-    if (onRowSelect) onRowSelect(newSelection);
+    onRowSelect?.(newSelection);
   };
 
-  const handleShowDetails = () => {
-    setShowModal(true);
-  };
+  const handleShowDetails = () => setShowModal(true);
 
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
@@ -148,7 +158,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
               <th className="p-3 text-left font-semibold">
                 <input
                   type="checkbox"
-                  checked={selectAll}
+                  checked={selectAll && filteredOrders.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5"
                 />
@@ -162,50 +172,57 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order) => (
-              <tr
-                key={order.id}
-                className="text-center border-t border-gray-200"
-              >
-                <td className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(order.id)}
-                    onChange={() => handleRowSelect(order.id)}
-                    className="w-5 h-5"
-                  />
-                </td>
-                <td className="p-3 text-left">{order.storeName}</td>
-                <td className="p-3 text-left">{order.productName}</td>
-                <td className="p-3 font-bold">{order.price}</td>
-                <td className="p-3">{order.orderDate}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      statusColors[order.status]
-                    }`}
-                  >
-                    {order.status}
-                  </span>
-                </td>
-                <td className="p-3 space-x-2">
-                  <button
-                    onClick={() => handleShowDetails()}
-                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
-                  >
-                    Details
-                  </button>
-                  <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
-                    View Chat
-                  </button>
+            {filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">
+                  No orders found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredOrders.map((order) => (
+                <tr
+                  key={order.id}
+                  className="text-center border-t border-gray-200"
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(order.id)}
+                      onChange={() => handleRowSelect(order.id)}
+                      className="w-5 h-5"
+                    />
+                  </td>
+                  <td className="p-3 text-left">{order.storeName}</td>
+                  <td className="p-3 text-left">{order.productName}</td>
+                  <td className="p-3 font-bold">{order.price}</td>
+                  <td className="p-3">{order.orderDate}</td>
+                  <td className="p-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        statusColors[order.status]
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="p-3 space-x-2">
+                    <button
+                      onClick={handleShowDetails}
+                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
+                    >
+                      Details
+                    </button>
+                    <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                      View Chat
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Order Details Modal */}
       <OrderDetails isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );

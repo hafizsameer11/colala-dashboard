@@ -6,10 +6,19 @@ import AddStoreModal from "../Modals/addStoreModel";
 import SavedAddressModal from "../Modals/savedAddressModal";
 import AddAddressModal from "../Modals/addAddressModal";
 import DeliveryPricing from "../Modals/deliveryPricing";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LevelDropdown from "../../../components/levelDropdown";
 import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
 import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
+
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
 
 const stores_mgt = () => {
   const [showModal, setShowModal] = useState(false);
@@ -23,7 +32,12 @@ const stores_mgt = () => {
     "Level 1" | "Level 2" | "Level 3"
   >("Level 1");
 
-  // State for delivery pricing entries
+  // NEW: filters
+  const [selectedLevel, setSelectedLevel] = useState<number | "all">("all");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 450);
+
+  // Delivery pricing entries (unchanged)
   const [deliveryPricingEntries, setDeliveryPricingEntries] = useState<
     DeliveryPricingEntry[]
   >([
@@ -36,12 +50,10 @@ const stores_mgt = () => {
     },
   ]);
 
-  // Function to add new delivery pricing entry
   const handleAddDeliveryPricing = (newEntry: DeliveryPricingEntry) => {
     setDeliveryPricingEntries((prev) => [...prev, newEntry]);
   };
 
-  // Function to edit delivery pricing entry
   const handleEditDeliveryPricing = (
     id: string,
     updatedEntry: DeliveryPricingEntry
@@ -51,34 +63,31 @@ const stores_mgt = () => {
     );
   };
 
-  // Function to delete delivery pricing entry
   const handleDeleteDeliveryPricing = (id: string) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this delivery pricing?"
     );
-    if (confirmDelete) {
+    if (confirmDelete)
       setDeliveryPricingEntries((prev) =>
         prev.filter((entry) => entry.id !== id)
       );
-    }
   };
 
   const handleUserSelection = (selectedIds: string[]) => {
-    // Handle selected user IDs
     console.log("Selected user IDs:", selectedIds);
-    // You can use this to enable/disable bulk actions or perform other operations
   };
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Dashboard:", action);
-    // Add your custom logic here
   };
 
+  // NEW: level dropdown wiring
   const handleLevelActionSelect = (level: string) => {
-    // Handle the level action selection from the LevelDropdown
-    console.log("Level action selected in Dashboard:", level);
-    // Add your custom logic here
+    if (level === "All") setSelectedLevel("all");
+    else if (level === "Level 1") setSelectedLevel(1);
+    else if (level === "Level 2") setSelectedLevel(2);
+    else if (level === "Level 3") setSelectedLevel(3);
+    else setSelectedLevel("all");
   };
 
   return (
@@ -168,6 +177,8 @@ const stores_mgt = () => {
                     <input
                       type="text"
                       placeholder="Search"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
                       className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                     />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -192,7 +203,12 @@ const stores_mgt = () => {
           </div>
 
           <div className="mt-5">
-            <StoresTable title="Stores" onRowSelect={handleUserSelection} />
+            <StoresTable
+              title="Stores"
+              onRowSelect={handleUserSelection}
+              levelFilter={selectedLevel}
+              searchTerm={debouncedSearch}
+            />
           </div>
         </div>
       </div>

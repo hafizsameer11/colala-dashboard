@@ -1,14 +1,35 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import SubscriptionTable from "./subscriptionTable";
 import PlansModal from "../Modals/planModal";
 
+// tiny debounce hook
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 const Subscription = () => {
-  const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "Basic", "Standard", "Ultra"];
+  const [activeTab, setActiveTab] = useState<
+    "All" | "Basic" | "Standard" | "Ultra"
+  >("All");
+  const tabs: Array<"All" | "Basic" | "Standard" | "Ultra"> = [
+    "All",
+    "Basic",
+    "Standard",
+    "Ultra",
+  ];
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // search (debounced)
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 450);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -30,22 +51,18 @@ const Subscription = () => {
   );
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
   };
 
-  const handleModalOpen = () => {
-    setIsModalOpen(true);
-  };
+  const handleModalOpen = () => setIsModalOpen(true);
 
   return (
     <div>
       <PageHeader title="Subscriptions" />
 
       <div className="p-5">
+        {/* stat cards (unchanged) */}
         <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
           <div
             className="flex flex-row rounded-2xl  w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -64,8 +81,6 @@ const Subscription = () => {
               </span>
             </div>
           </div>
-
-          {/* Card 2 */}
 
           <div
             className="flex flex-row rounded-2xl w-90"
@@ -86,8 +101,6 @@ const Subscription = () => {
             </div>
           </div>
 
-          {/* Card 3 */}
-
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -107,11 +120,11 @@ const Subscription = () => {
             </div>
           </div>
         </div>
+
+        {/* filters */}
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
-            <div>
-              <TabButtons />
-            </div>
+            <TabButtons />
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
               <div>Today</div>
               <div>
@@ -122,16 +135,22 @@ const Subscription = () => {
               <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
             </div>
           </div>
+
           <div className="flex flex-row gap-2">
-            <div>
-              <button className="bg-[#E53E3E] text-white py-3.5 px-6 rounded-lg cursor-pointer" onClick={handleModalOpen}>
-                View Plans
-              </button>
-            </div>
+            <button
+              className="bg-[#E53E3E] text-white py-3.5 px-6 rounded-lg cursor-pointer"
+              onClick={handleModalOpen}
+            >
+              View Plans
+            </button>
+
+            {/* Search (debounced) */}
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -153,8 +172,12 @@ const Subscription = () => {
           </div>
         </div>
 
+        {/* table with filters */}
         <div className="mt-5">
-          <SubscriptionTable />
+          <SubscriptionTable
+            activeTab={activeTab}
+            searchTerm={debouncedSearch}
+          />
         </div>
       </div>
 

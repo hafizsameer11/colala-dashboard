@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import OrderDetails from "../Modals/orderDetails";
+import OrderDetails from "../../../Modals/orderDetails";
 
 interface Order {
   id: string;

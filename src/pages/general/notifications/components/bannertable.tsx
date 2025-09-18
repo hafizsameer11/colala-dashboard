@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import images from "../../../../constants/images";
 
 interface BannerData {
@@ -11,63 +11,74 @@ interface BannerData {
 
 interface BannerTableProps {
   onRowSelect?: (selectedIds: number[]) => void;
+  searchTerm?: string; // <- NEW
 }
 
-const BannerTable: React.FC<BannerTableProps> = ({ onRowSelect }) => {
+const BannerTable: React.FC<BannerTableProps> = ({
+  onRowSelect,
+  searchTerm = "",
+}) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
-  // Debug: Log the banner image path
-  console.log("Banner image path:", images.banner);
-
-  // Sample banner data - replace the image paths with your own photo paths
   const banners: BannerData[] = [
     {
       id: 1,
-      image: images.banner, // Using banner image
+      image: images.banner,
       date: "21-08-2025 / 07:22 AM",
       link: "Lagos, Nigeria",
       status: "active",
     },
     {
       id: 2,
-      image: images.banner, // Using images constant
+      image: images.banner,
       date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Nigeria",
+      link: "Lagos, Cambodia",
       status: "active",
     },
     {
       id: 3,
-      image: images.banner, // Using images constant
+      image: images.banner,
       date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Nigeria",
+      link: "Milan, Italy",
       status: "active",
     },
     {
       id: 4,
-      image: images.banner, // Using images constant
+      image: images.banner,
       date: "21-08-2025 / 07:22 AM",
       link: "Lagos, Nigeria",
       status: "active",
     },
     {
       id: 5,
-      image: images.banner, // Using images constant
+      image: images.banner,
       date: "21-08-2025 / 07:22 AM",
       link: "Lagos, Nigeria",
       status: "active",
     },
     {
       id: 6,
-      image: images.banner, // Using images constant
+      image: images.banner,
       date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Nigeria",
+      link: "Frankfurt, Germany",
       status: "active",
     },
   ];
 
+  const filtered = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return banners;
+    return banners.filter(
+      (b) =>
+        b.link.toLowerCase().includes(q) ||
+        b.date.toLowerCase().includes(q) ||
+        b.status.toLowerCase().includes(q)
+    );
+  }, [searchTerm]);
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const allIds = banners.map((banner) => banner.id);
+      const allIds = filtered.map((b) => b.id); // <- select filtered only
       setSelectedRows(allIds);
       onRowSelect?.(allIds);
     } else {
@@ -77,30 +88,24 @@ const BannerTable: React.FC<BannerTableProps> = ({ onRowSelect }) => {
   };
 
   const handleRowSelect = (id: number) => {
-    const newSelectedRows = selectedRows.includes(id)
+    const newSelected = selectedRows.includes(id)
       ? selectedRows.filter((rowId) => rowId !== id)
       : [...selectedRows, id];
-
-    setSelectedRows(newSelectedRows);
-    onRowSelect?.(newSelectedRows);
+    setSelectedRows(newSelected);
+    onRowSelect?.(newSelected);
   };
 
-  const handleEdit = (id: number) => {
+  const handleEdit = (id: number) =>
     console.log("Edit clicked for banner:", id);
-  };
-
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number) =>
     console.log("Delete clicked for banner:", id);
-  };
 
   return (
     <div className="mt-5 bg-white border border-[#E5E7EB] rounded-lg">
-      {/* Table Header */}
       <div className="bg-[#F9FAFB] px-6 py-4 border-b border-[#E5E7EB] rounded-t-lg">
         <h3 className="text-base font-medium text-[#111827]">Latest Banners</h3>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-[#F9FAFB]">
@@ -111,121 +116,97 @@ const BannerTable: React.FC<BannerTableProps> = ({ onRowSelect }) => {
                   className="w-4 h-4 rounded border-[#D1D5DB] text-[#E53E3E] focus:ring-[#E53E3E]"
                   onChange={handleSelectAll}
                   checked={
-                    selectedRows.length === banners.length && banners.length > 0
+                    filtered.length > 0 &&
+                    selectedRows.length === filtered.length
                   }
                 />
               </th>
               <th className="p-3 text-left font-normal text-[#000]">
                 Banner Image
               </th>
-              <th className="p-3 text-left font-normal text-[#000]">
-                Date
-              </th>
-              <th className="p-3 text-left font-normal text-[#000]">
-                Link
-              </th>
-              <th className="p-3 text-left font-normal text-[#000]">
-                Status
-              </th>
+              <th className="p-3 text-left font-normal text-[#000]">Date</th>
+              <th className="p-3 text-left font-normal text-[#000]">Link</th>
+              <th className="p-3 text-left font-normal text-[#000]">Status</th>
             </tr>
           </thead>
           <tbody className="bg-white">
-            {banners.map((banner, index) => (
-              <tr
-                key={banner.id}
-                className={`hover:bg-[#F9FAFB] ${
-                  index !== banners.length - 1
-                    ? "border-b border-[#E5E7EB]"
-                    : ""
-                }`}
-              >
-                <td className="p-4">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-[#D1D5DB] text-[#E53E3E] focus:ring-[#E53E3E]"
-                    checked={selectedRows.includes(banner.id)}
-                    onChange={() => handleRowSelect(banner.id)}
-                  />
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-6 text-center text-gray-500">
+                  No results found.
                 </td>
-                <td className="p-4">
-                  <div className="flex items-center">
-                    {/* Banner Image Preview */}
+              </tr>
+            ) : (
+              filtered.map((banner, index) => (
+                <tr
+                  key={banner.id}
+                  className={`hover:bg-[#F9FAFB] ${
+                    index !== filtered.length - 1
+                      ? "border-b border-[#E5E7EB]"
+                      : ""
+                  }`}
+                >
+                  <td className="p-4">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-[#D1D5DB] text-[#E53E3E] focus:ring-[#E53E3E]"
+                      checked={selectedRows.includes(banner.id)}
+                      onChange={() => handleRowSelect(banner.id)}
+                    />
+                  </td>
+                  <td className="p-4">
                     <div className="w-[220px] h-[41px] rounded-md overflow-hidden shadow-sm border border-gray-200">
                       <img
                         src={banner.image}
                         alt="Banner"
                         className="w-[220px] h-[41px] object-cover"
-                        onLoad={() =>
-                          console.log(
-                            "Image loaded successfully:",
-                            banner.image
-                          )
-                        }
-                        onError={(e) => {
-                          console.error("Failed to load image:", banner.image);
-                          // Fallback to gradient background if image fails to load
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          target.parentElement!.className +=
-                            " bg-gradient-to-r from-amber-600 via-orange-500 to-blue-600 flex items-center justify-center";
-                          target.parentElement!.innerHTML =
-                            '<span class="text-white text-xs font-medium">BANNER</span>';
-                        }}
                       />
                     </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <span className="text text-[#000]">{banner.date}</span>
-                </td>
-                <td className="p-4">
-                  <span className="text text-[#000]">{banner.link}</span>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center justify-between">
-                    {/* Status Indicator */}
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full ${
-                          banner.status === "active"
-                            ? "bg-[#008000]"
-                            : "bg-red-500"
-                        }`}
-                      ></div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3">
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => handleEdit(banner.id)}
-                        className="border border-[#989898] rounded-xl p-2 "
-                        title="Edit"
-                      >
-                        <img
-                          src={images.PencilSimpleLine}
-                          alt="Edit"
-                          className="w-8 h-8 cursor-pointer"
+                  </td>
+                  <td className="p-4">
+                    <span className="text text-[#000]">{banner.date}</span>
+                  </td>
+                  <td className="p-4">
+                    <span className="text text-[#000]">{banner.link}</span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div
+                          className={`w-5 h-5 rounded-full ${
+                            banner.status === "active"
+                              ? "bg-[#008000]"
+                              : "bg-red-500"
+                          }`}
                         />
-                      </button>
-
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDelete(banner.id)}
-                        className="border border-[#989898] rounded-xl p-2 "
-                        title="Delete"
-                      >
-                        <img
-                          src={images.TrashSimple}
-                          alt="Delete"
-                          className="w-8 h-8 cursor-pointer"
-                        />
-                      </button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleEdit(banner.id)}
+                          className="border border-[#989898] rounded-xl p-2 "
+                        >
+                          <img
+                            src={images.PencilSimpleLine}
+                            alt="Edit"
+                            className="w-8 h-8 cursor-pointer"
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(banner.id)}
+                          className="border border-[#989898] rounded-xl p-2 "
+                        >
+                          <img
+                            src={images.TrashSimple}
+                            alt="Delete"
+                            className="w-8 h-8 cursor-pointer"
+                          />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -6,39 +6,32 @@ import BannerTable from "./components/bannertable";
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState("Notification");
-
-  const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
-    console.log("Bulk action selected in Notifications:", action);
-    // Add your custom logic here
-  };
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
-  const handleRowSelect = (selectedIds: number[]) => {
-    console.log("Selected IDs:", selectedIds);
-  };
+  const [search, setSearch] = useState("");
 
   return (
     <>
       <div>
         <PageHeader title="Notifications" />
-        <div className="p-5" >
+        <div className="p-5">
           <NotificationsFilters
-            onBulkActionSelect={handleBulkActionSelect}
-            onTabChange={handleTabChange}
+            onBulkActionSelect={(a) => console.log("Bulk action:", a)}
+            onTabChange={setActiveTab}
             activeTab={activeTab}
+            onSearchChange={setSearch} // <- NEW
           />
 
-          {/* Conditional content based on active tab */}
           {activeTab === "Notification" && (
-            <NotificationTable onRowSelect={handleRowSelect} />
+            <NotificationTable
+              searchTerm={search} // <- NEW
+              onRowSelect={(ids) => console.log("Selected IDs:", ids)}
+            />
           )}
 
           {activeTab === "Banner" && (
-            <BannerTable onRowSelect={handleRowSelect} />
+            <BannerTable
+              searchTerm={search} // <- NEW
+              onRowSelect={(ids) => console.log("Selected IDs:", ids)}
+            />
           )}
         </div>
       </div>

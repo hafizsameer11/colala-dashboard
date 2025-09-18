@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SocialFeedModel from "../Modals/socialFeedModal";
+import SocialFeedModel from "../../../Modals/socialFeedModal";
 
 interface SocialFeed {
   id: string;

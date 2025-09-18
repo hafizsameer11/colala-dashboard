@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import ProductDetailsModal from "../Modals/productDetailsModal";
+import ProductDetailsModal from "../../../Modals/productDetailsModal";
 
 interface Product {
   id: string;

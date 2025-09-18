@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PromotionsModal from "../Modals/promotionsModal";
 
 interface Submission {
@@ -15,17 +15,22 @@ interface Submission {
 interface PromotionsTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  activeTab: "All" | "Pending" | "Approved" | "Rejected";
+  /** debounced */
+  searchTerm?: string;
 }
 
 const PromotionsTable: React.FC<PromotionsTableProps> = ({
   title = "Latest Submissions",
   onRowSelect,
+  activeTab,
+  searchTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Sample data based on the image
+  // Sample data
   const submissions: Submission[] = [
     {
       id: "1",
@@ -99,45 +104,68 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
     },
   ];
 
-//   const handleShowDetails = (submission: Submission) => {
-//     // Handle view details logic here
-//     console.log("View details for:", submission);
-//   };
+  const handleModalOpen = () => setIsModalOpen(true);
 
-  const handleModalOpen = () => {
-    setIsModalOpen(true);
-  };
+  // Filter by tab + search
+  const filteredSubmissions = useMemo(() => {
+    const q = (searchTerm || "").trim().toLowerCase();
+    return submissions.filter((s) => {
+      const statusOk = activeTab === "All" ? true : s.status === activeTab;
+      if (!q) return statusOk;
 
+      const haystack = [
+        s.storeName,
+        s.product,
+        s.amount,
+        s.duration,
+        s.date,
+        s.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return statusOk && haystack.includes(q);
+    });
+  }, [activeTab, searchTerm]);
+
+  // Select All should affect only visible rows
   const handleSelectAll = () => {
+    const visibleIds = filteredSubmissions.map((s) => s.id);
     if (selectAll) {
-      setSelectedRows([]);
+      // unselect only visible
+      const remaining = selectedRows.filter((id) => !visibleIds.includes(id));
+      setSelectedRows(remaining);
+      setSelectAll(false);
+      onRowSelect?.(remaining);
     } else {
-      setSelectedRows(submissions.map((submission) => submission.id));
-    }
-    setSelectAll(!selectAll);
-
-    if (onRowSelect) {
-      onRowSelect(
-        selectAll ? [] : submissions.map((submission) => submission.id)
-      );
+      // add all visible to selection (keep any previously selected)
+      const union = Array.from(new Set([...selectedRows, ...visibleIds]));
+      setSelectedRows(union);
+      setSelectAll(true);
+      onRowSelect?.(union);
     }
   };
 
-  const handleRowSelect = (submissionId: string) => {
-    let newSelectedRows;
-    if (selectedRows.includes(submissionId)) {
-      newSelectedRows = selectedRows.filter((id) => id !== submissionId);
-    } else {
-      newSelectedRows = [...selectedRows, submissionId];
-    }
-
-    setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === submissions.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelectedRows);
-    }
+  const handleRowSelect = (id: string) => {
+    setSelectedRows((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
+      onRowSelect?.(next);
+      return next;
+    });
   };
+
+  // Keep selectAll checkbox in sync with the current filtered view
+  useEffect(() => {
+    const visibleIds = new Set(filteredSubmissions.map((s) => s.id));
+    const visibleSelected = selectedRows.filter((id) => visibleIds.has(id));
+    setSelectAll(
+      filteredSubmissions.length > 0 &&
+        visibleSelected.length === filteredSubmissions.length
+    );
+  }, [filteredSubmissions, selectedRows]);
 
   const getStatusStyle = (status: Submission["status"]) => {
     switch (status) {
@@ -164,7 +192,7 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
               <th className="text-center p-3 font-normal text-[14px] w-12">
                 <input
                   type="checkbox"
-                  checked={selectAll}
+                  checked={selectAll && filteredSubmissions.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                 />
@@ -189,73 +217,82 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {submissions.map((submission, index) => (
-              <tr
-                key={submission.id}
-                className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
-                  index === submissions.length - 1 ? "" : "border-b"
-                }`}
-              >
-                <td className="p-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(submission.id)}
-                    onChange={() => handleRowSelect(submission.id)}
-                    className="w-5 h-5 border border-gray-300 rounded cursor-pointer mx-auto"
-                  />
-                </td>
-                <td className="p-4 text-[14px] text-black text-left">
-                  {submission.storeName}
-                </td>
-                <td className="p-4 text-[14px] text-black text-left">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                      <img
-                        src={submission.productImage}
-                        alt={submission.product}
-                        className="w-full h-full object-cover rounded-lg"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          e.currentTarget.parentElement!.classList.add(
-                            "bg-gray-400"
-                          );
-                        }}
-                      />
-                    </div>
-                    <span className="text-left">{submission.product}</span>
-                  </div>
-                </td>
-                <td className="p-4 text-[14px] text-black font-semibold text-center">
-                  {submission.amount}
-                </td>
-                <td className="p-4 text-[14px] text-black text-center">
-                  {submission.duration}
-                </td>
-                <td className="p-4 text-[14px] font-semibold text-black text-center">
-                  {submission.date}
-                </td>
-                <td className="p-4 text-center">
-                  <span
-                    className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
-                      submission.status
-                    )}`}
-                  >
-                    {submission.status}
-                  </span>
-                </td>
-                <td className="p-4 text-center">
-                  <button
-                    onClick={handleModalOpen}
-                    className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
-                  >
-                    View Details
-                  </button>
+            {filteredSubmissions.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-gray-500">
+                  No submissions found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredSubmissions.map((submission, index) => (
+                <tr
+                  key={submission.id}
+                  className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
+                    index === filteredSubmissions.length - 1 ? "" : "border-b"
+                  }`}
+                >
+                  <td className="p-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(submission.id)}
+                      onChange={() => handleRowSelect(submission.id)}
+                      className="w-5 h-5 border border-gray-300 rounded cursor-pointer mx-auto"
+                    />
+                  </td>
+                  <td className="p-4 text-[14px] text-black text-left">
+                    {submission.storeName}
+                  </td>
+                  <td className="p-4 text-[14px] text-black text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                        <img
+                          src={submission.productImage}
+                          alt={submission.product}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            e.currentTarget.parentElement!.classList.add(
+                              "bg-gray-400"
+                            );
+                          }}
+                        />
+                      </div>
+                      <span className="text-left">{submission.product}</span>
+                    </div>
+                  </td>
+                  <td className="p-4 text-[14px] text-black font-semibold text-center">
+                    {submission.amount}
+                  </td>
+                  <td className="p-4 text-[14px] text-black text-center">
+                    {submission.duration}
+                  </td>
+                  <td className="p-4 text-[14px] font-semibold text-black text-center">
+                    {submission.date}
+                  </td>
+                  <td className="p-4 text-center">
+                    <span
+                      className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
+                        submission.status
+                      )}`}
+                    >
+                      {submission.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <button
+                      onClick={handleModalOpen}
+                      className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
+                    >
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
+
       <PromotionsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

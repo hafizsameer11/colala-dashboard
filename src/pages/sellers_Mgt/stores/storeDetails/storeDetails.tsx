@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
-import PageHeader from "../../../components/PageHeader";
-import Activity from "./activity";
-import Orders from "./orders";
-import Chats from "./chats"
-import Transaction from "./transaction";
-import SocialFeed from "./socialFeed";
-import Products from "./products";
-import Announcements from "./announcements";
-import Others from "./others";
+import PageHeader from "../../../../components/PageHeader";
+import Activity from "../components/activity/activity";
+import Orders from "../components/orders/orders";
+import Chats from "../components/chats/chats";
+import Transaction from "../components/transaction/transaction";
+import SocialFeed from "../components/socialFeed/socialFeed";
+import Products from "../components/products/products";
+import Announcements from "../components/announcement/announcements";
+import Others from "../components/others/others";
 
 const StoreDetails: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -24,7 +24,16 @@ const StoreDetails: React.FC = () => {
     walletBalance: "₦0",
   };
 
-  const tabs = ["Activity", "Orders", "Chats", "Transactions", "Social Feed", "Products", "Announcements", "Others"];
+  const tabs = [
+    "Activity",
+    "Orders",
+    "Chats",
+    "Transactions",
+    "Social Feed",
+    "Products",
+    "Announcements",
+    "Others",
+  ];
 
   const handlePeriodChange = (period: string) => {
     console.log("Period changed to:", period);

@@ -1,50 +1,36 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import images from "../../../constants/images";
+
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
 }
 
 const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
-
   const DotsActions = ["Block user", "Ban user"];
-
-  // Icons for each action (use your actual icon paths here)
   const actionIcons: Record<string, string> = {
-    "Block user": "/assets/layout/block.svg", // replace with your actual image paths
+    "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
-  };
-
-  const handleDotsDropdownToggle = () => {
-    setIsDotsDropdownOpen(!isDotsDropdownOpen);
-  };
-
-  const handleDotsOptionSelect = (action: string) => {
-    setIsDotsDropdownOpen(false);
-
-    if (onActionSelect) {
-      onActionSelect(action);
-    }
-
-    console.log("Selected Dots action:", action);
   };
 
   return (
     <div className="relative">
       <button
-        onClick={handleDotsDropdownToggle}
+        onClick={() => setIsDotsDropdownOpen((s) => !s)}
         className="w-10 h-10 cursor-pointer"
       >
         <img src={images.dots} alt="Dots" />
       </button>
-
       {isDotsDropdownOpen && (
         <div className="absolute z-10 mt-2 right-5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
           {DotsActions.map((action) => (
             <button
               key={action}
-              onClick={() => handleDotsOptionSelect(action)}
+              onClick={() => {
+                setIsDotsDropdownOpen(false);
+                onActionSelect?.(action);
+              }}
               className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
                 action === "Ban user" ? "text-[#FF0000]" : "text-black"
               } cursor-pointer font-medium`}
@@ -76,16 +62,23 @@ interface Store {
 interface StoreTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  /** NEW: filter by level ("all" shows everything) */
+  levelFilter?: number | "all";
+  /** NEW: debounced search term from parent */
+  searchTerm?: string;
 }
 
 const StoreTable: React.FC<StoreTableProps> = ({
   title = "Users",
   onRowSelect,
+  levelFilter = "all",
+  searchTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
 
+  // Source data
   const stores: Store[] = [
     {
       id: "1",
@@ -145,15 +138,32 @@ const StoreTable: React.FC<StoreTableProps> = ({
     },
   ];
 
+  // NEW: filtered data (by level + search)
+  const filteredStores = useMemo(() => {
+    const q = (searchTerm || "").trim().toLowerCase();
+    return stores
+      .filter((s) => (levelFilter === "all" ? true : s.level === levelFilter))
+      .filter((s) => {
+        if (!q) return true;
+        const haystack = [s.storeName, s.email, s.phoneNumber, String(s.level)]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+  }, [levelFilter, searchTerm]);
+
+  // Reset selection when filters change
+  useEffect(() => {
+    setSelectedRows([]);
+    setSelectAll(false);
+  }, [levelFilter, searchTerm]);
+
   const handleSelectAll = () => {
-    const allIds = stores.map((store) => store.id);
+    const allIds = filteredStores.map((store) => store.id);
     const newSelection = selectAll ? [] : allIds;
     setSelectedRows(newSelection);
     setSelectAll(!selectAll);
-
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+    onRowSelect?.(newSelection);
   };
 
   const handleRowSelect = (id: string) => {
@@ -161,13 +171,9 @@ const StoreTable: React.FC<StoreTableProps> = ({
     const newSelection = isSelected
       ? selectedRows.filter((rowId) => rowId !== id)
       : [...selectedRows, id];
-
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === stores.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+    setSelectAll(newSelection.length === filteredStores.length);
+    onRowSelect?.(newSelection);
   };
 
   const handleCustomerDetails = (store: Store) => {
@@ -186,7 +192,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
               <th className="p-3 text-left font-semibold">
                 <input
                   type="checkbox"
-                  checked={selectAll}
+                  checked={selectAll && filteredStores.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5"
                 />
@@ -200,50 +206,58 @@ const StoreTable: React.FC<StoreTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {stores.map((store) => (
-              <tr
-                key={store.id}
-                className="text-center border-t border-gray-200"
-              >
-                <td className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(store.id)}
-                    onChange={() => handleRowSelect(store.id)}
-                    className="w-5 h-5"
-                  />
-                </td>
-                <td className="p-3 text-left flex items-center justify-start gap-2">
-                  <img
-                    src="/assets/layout/admin.png"
-                    alt="User"
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <span>{store.storeName}</span>
-                </td>
-                <td className="p-3 text-left">{store.email}</td>
-                <td className="p-3 text-left">{store.phoneNumber}</td>
-                <td className="p-3 font-bold">{store.level}</td>
-                <td className="p-3 space-x-1">
-                  <button
-                    onClick={() => handleCustomerDetails(store)}
-                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-                  >
-                    Customer Details
-                  </button>
-                  <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
-                    Transactions
-                  </button>
-                </td>
-                <td className="p-3 text-right">
-                  <DotsDropdown
-                    onActionSelect={(action) =>
-                      console.log(`Action ${action} for store ${store.id}`)
-                    }
-                  />
+            {filteredStores.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">
+                  No matching stores.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredStores.map((store) => (
+                <tr
+                  key={store.id}
+                  className="text-center border-t border-gray-200"
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(store.id)}
+                      onChange={() => handleRowSelect(store.id)}
+                      className="w-5 h-5"
+                    />
+                  </td>
+                  <td className="p-3 text-left flex items-center justify-start gap-2">
+                    <img
+                      src="/assets/layout/admin.png"
+                      alt="User"
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <span>{store.storeName}</span>
+                  </td>
+                  <td className="p-3 text-left">{store.email}</td>
+                  <td className="p-3 text-left">{store.phoneNumber}</td>
+                  <td className="p-3 font-bold">{store.level}</td>
+                  <td className="p-3 space-x-1">
+                    <button
+                      onClick={() => handleCustomerDetails(store)}
+                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
+                    >
+                      Customer Details
+                    </button>
+                    <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                      Transactions
+                    </button>
+                  </td>
+                  <td className="p-3 text-right">
+                    <DotsDropdown
+                      onActionSelect={(action) =>
+                        console.log(`Action ${action} for store ${store.id}`)
+                      }
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

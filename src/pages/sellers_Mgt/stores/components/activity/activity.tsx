@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import images from "../../../constants/images";
-import BulkActionDropdown from "../../../components/BulkActionDropdown";
-// import AddUserModal from "../../../components/addUserModel";
+import images from "../../../../../constants/images";
+import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
+
 
 interface ActivityProps {
   userData: {

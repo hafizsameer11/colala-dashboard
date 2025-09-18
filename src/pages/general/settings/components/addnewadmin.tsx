@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import images from "../../../../constants/images";
 
@@ -10,6 +10,7 @@ interface AddNewAdminProps {
     email: string;
     password: string;
     role: string;
+    avatar?: File | null; // <- NEW
   }) => void;
 }
 
@@ -24,48 +25,79 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     password: "",
     role: "Admin",
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
+  // --- Image state
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const roleOptions = ["Admin", "Super Admin", "Moderator"];
 
-  // Handle body scroll lock when modal is open
+  // Lock body scroll
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    // Cleanup function to restore scroll when component unmounts
+    document.body.style.overflow = isOpen ? "hidden" : "unset";
     return () => {
       document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
-  // Handle escape key press
+  // Escape key to close
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen) {
-        handleClose();
-      }
+      if (event.key === "Escape" && isOpen) handleClose();
     };
+    if (isOpen) document.addEventListener("keydown", handleEscapeKey);
+    return () => document.removeEventListener("keydown", handleEscapeKey);
+  }, [isOpen]);
 
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscapeKey);
+  // Cleanup preview URL
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
+
+  const triggerFilePicker = () => fileInputRef.current?.click();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) return;
+
+    // Basic validation
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const maxBytes = 2 * 1024 * 1024; // 2MB
+
+    if (!allowed.includes(file.type)) {
+      alert("Please select a JPG, PNG, or WEBP image.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > maxBytes) {
+      alert("Image too large. Max size is 2MB.");
+      e.target.value = "";
+      return;
     }
 
-    return () => {
-      document.removeEventListener("keydown", handleEscapeKey);
-    };
-  }, [isOpen]);
+    // set state + preview
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    const url = URL.createObjectURL(file);
+    setAvatarFile(file);
+    setAvatarPreview(url);
+  };
+
+  const clearAvatar = () => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -94,29 +126,19 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
       return;
     }
 
-    onAddAdmin(formData);
+    onAddAdmin({ ...formData, avatar: avatarFile || null });
 
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      role: "Admin",
-    });
-
+    // Reset
+    setFormData({ name: "", email: "", password: "", role: "Admin" });
+    clearAvatar();
     onClose();
   };
 
   const handleClose = () => {
-    // Reset form when closing
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      role: "Admin",
-    });
+    setFormData({ name: "", email: "", password: "", role: "Admin" });
     setShowPassword(false);
     setIsRoleDropdownOpen(false);
+    clearAvatar();
     onClose();
   };
 
@@ -126,35 +148,79 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     <div
       className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end"
       onClick={(e) => {
-        // Close modal when clicking on backdrop
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div
         className="bg-white w-[500px] relative h-full overflow-y-auto"
-        onClick={(e) => {
-          // Prevent closing when clicking inside modal
-          e.stopPropagation();
-        }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center p-5 border-b border-[#787878] justify-between mb-6">
-          <h2 className=" font-semibold text-gray-900">Add New Admin</h2>
+          <h2 className="font-semibold text-gray-900">Add New Admin</h2>
           <button
             onClick={handleClose}
-            className=" cursor-pointer transition-colors"
+            className="cursor-pointer transition-colors"
           >
             <img src={images.close} alt="Close" className="w-8 h-8" />
           </button>
         </div>
 
         <div className="p-5">
-          {/* Profile Picture Placeholder */}
+          {/* Profile Picture Upload */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center cursor-pointer">
-              <img src={images.img} alt="Profile" className="w-10 h-10 cursor-pointer" />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={triggerFilePicker}
+                className="w-24 h-24 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center border border-gray-200 hover:ring-2 hover:ring-[#E53E3E] transition cursor-pointer"
+                aria-label="Upload profile image"
+              >
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt="Profile preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={images.img}
+                    alt="Profile placeholder"
+                    className="w-10 h-10"
+                  />
+                )}
+              </button>
+
+              {avatarPreview && (
+                <button
+                  type="button"
+                  onClick={clearAvatar}
+                  className="absolute -right-2 -top-2 bg-white border border-gray-300 rounded-full p-1 shadow cursor-pointer"
+                  title="Remove image"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
           </div>
 
@@ -210,7 +276,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer rounded"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 cursor-pointer rounded"
                 >
                   {showPassword ? (
                     <svg
@@ -262,7 +328,9 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                   onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                   className="w-full p-5 cursor-pointer border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent text-left flex items-center justify-between bg-white"
                 >
-                  <span className="text-gray-900 cursor-pointer">{formData.role}</span>
+                  <span className="text-gray-900 cursor-pointer">
+                    {formData.role}
+                  </span>
                   <svg
                     className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
                       isRoleDropdownOpen ? "rotate-180" : ""
@@ -300,10 +368,10 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-[#E53E3E] cursor-pointer text-white py-3 px-4 rounded-lg font-medium text-sm hover:bg-[#D32F2F] transition-colors mt-6"
+              className="w-full bg-[#E53E3E] cursor-pointer text-white py-4 rounded-xl font-medium hover:bg-[#D32F2F] transition-colors mt-6"
             >
               Add Admin
             </button>

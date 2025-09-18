@@ -1,6 +1,6 @@
 import { useState } from "react";
-import images from "../../../constants/images";
-import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import images from "../../../../../constants/images";
+import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
 
 const Orders: React.FC = () => {

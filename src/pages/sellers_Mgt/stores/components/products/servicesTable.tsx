@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import ServicesDetails from "../Modals/servicesDetails";
+import ServicesDetails from "../../../Modals/servicesDetails";
 
 interface Service {
   id: string;
@@ -135,10 +135,7 @@ const ServicesTable: React.FC<ServicesTableProps> = ({
           </tbody>
         </table>
       </div>
-      <ServicesDetails
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-      />
+      <ServicesDetails isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 };

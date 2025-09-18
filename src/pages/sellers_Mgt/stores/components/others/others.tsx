@@ -1,8 +1,8 @@
-import images from "../../../constants/images";
+import images from "../../../../../constants/images";
 import { useState } from "react";
-import NewCoupon from "../Modals/newCoupon";
-import PointsSettings from "../Modals/pointsSettings";
-import NewUser from "../Modals/newUser";
+import NewCoupon from "../../../Modals/newCoupon";
+import PointsSettings from "../../../Modals/pointsSettings";
+import NewUser from "../../../Modals/newUser";
 
 const Others = () => {
   const [activeTab, setActiveTab] = useState("Coupons");

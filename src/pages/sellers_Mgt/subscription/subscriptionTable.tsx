@@ -1,26 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import PlansModal from "../Modals/planModal";
 
 interface Subscription {
   id: string;
   storeName: string;
-  plan: string;
+  plan: string; // e.g., "Basic Plan", "Standard Plan", "Ultra Plan"
   daysLeft: number;
   subscriptionDate: string;
   price: string;
-  status?: "Active" | "Expired" | "Pending"; // Added status field
+  status?: "Active" | "Expired" | "Pending";
 }
 
 interface SubscriptionTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   data?: Subscription[];
+  activeTab: "All" | "Basic" | "Standard" | "Ultra";
+  /** debounced string */
+  searchTerm?: string;
 }
 
 const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   title = "Latest Submissions",
   onRowSelect,
   data,
+  activeTab,
+  searchTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -32,12 +37,10 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   >("Basic");
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
-  // Use provided data or sample data as fallback
   useEffect(() => {
     if (data && data.length > 0) {
       setSubscriptions(data);
     } else {
-      // Sample data with more realistic values
       setSubscriptions([
         {
           id: "1",
@@ -106,13 +109,11 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
     }
   }, [data]);
 
-  // Function to map plan names to modal tab names
   const getPlanTabName = (planName: string): "Basic" | "Standard" | "Ultra" => {
-    const lowerPlan = planName.toLowerCase();
-    if (lowerPlan.includes("basic")) return "Basic";
-    if (lowerPlan.includes("standard")) return "Standard";
-    if (lowerPlan.includes("ultra")) return "Ultra";
-    // Default to Basic if plan doesn't match any known type
+    const lower = planName.toLowerCase();
+    if (lower.includes("basic")) return "Basic";
+    if (lower.includes("standard")) return "Standard";
+    if (lower.includes("ultra")) return "Ultra";
     return "Basic";
   };
 
@@ -122,36 +123,63 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
     setShowModal(true);
   };
 
+  // --- FILTERING (tab + debounced search)
+  const filtered = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return subscriptions.filter((s) => {
+      const tabOk =
+        activeTab === "All" ? true : getPlanTabName(s.plan) === activeTab;
+      if (!q) return tabOk;
+
+      const haystack = [
+        s.storeName,
+        s.plan,
+        String(s.daysLeft),
+        s.subscriptionDate,
+        s.price,
+        s.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return tabOk && haystack.includes(q);
+    });
+  }, [subscriptions, activeTab, searchTerm]);
+
+  // --- SELECTION (acts on visible rows only)
   const handleSelectAll = () => {
+    const visibleIds = filtered.map((s) => s.id);
     if (selectAll) {
-      setSelectedRows([]);
+      const remaining = selectedRows.filter((id) => !visibleIds.includes(id));
+      setSelectedRows(remaining);
+      setSelectAll(false);
+      onRowSelect?.(remaining);
     } else {
-      setSelectedRows(subscriptions.map((subscription) => subscription.id));
-    }
-    setSelectAll(!selectAll);
-
-    if (onRowSelect) {
-      onRowSelect(
-        selectAll ? [] : subscriptions.map((subscription) => subscription.id)
-      );
+      const union = Array.from(new Set([...selectedRows, ...visibleIds]));
+      setSelectedRows(union);
+      setSelectAll(true);
+      onRowSelect?.(union);
     }
   };
 
-  const handleRowSelect = (subscriptionId: string) => {
-    let newSelectedRows;
-    if (selectedRows.includes(subscriptionId)) {
-      newSelectedRows = selectedRows.filter((id) => id !== subscriptionId);
-    } else {
-      newSelectedRows = [...selectedRows, subscriptionId];
-    }
-
-    setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === subscriptions.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelectedRows);
-    }
+  const handleRowSelect = (id: string) => {
+    setSelectedRows((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
+      onRowSelect?.(next);
+      return next;
+    });
   };
+
+  useEffect(() => {
+    const vis = new Set(filtered.map((s) => s.id));
+    const visibleSelected = selectedRows.filter((id) => vis.has(id));
+    setSelectAll(
+      filtered.length > 0 && visibleSelected.length === filtered.length
+    );
+  }, [filtered, selectedRows]);
 
   const getDaysLeftStyle = (daysLeft: number) => {
     if (daysLeft <= 3) return "text-[#FF0000] font-semibold";
@@ -172,7 +200,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                 <th className="text-center p-3 font-normal text-[14px] w-12">
                   <input
                     type="checkbox"
-                    checked={selectAll}
+                    checked={selectAll && filtered.length > 0}
                     onChange={handleSelectAll}
                     className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                   />
@@ -196,50 +224,58 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
               </tr>
             </thead>
             <tbody>
-              {subscriptions.map((subscription, index) => (
-                <tr
-                  key={subscription.id}
-                  className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
-                    index === subscriptions.length - 1 ? "" : "border-b"
-                  }`}
-                >
-                  <td className="p-4 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(subscription.id)}
-                      onChange={() => handleRowSelect(subscription.id)}
-                      className="w-5 h-5 border border-gray-300 rounded cursor-pointer mx-auto"
-                    />
-                  </td>
-                  <td className="p-4 text-[14px] text-black text-left">
-                    {subscription.storeName}
-                  </td>
-                  <td className="p-4 text-[14px] text-black text-left">
-                    {subscription.plan}
-                  </td>
-                  <td
-                    className={`p-4 text-[14px] text-center ${getDaysLeftStyle(
-                      subscription.daysLeft
-                    )}`}
-                  >
-                    {subscription.daysLeft}
-                  </td>
-                  <td className="p-4 text-[14px] text-black text-center">
-                    {subscription.subscriptionDate}
-                  </td>
-                  <td className="p-4 text-[14px] font-semibold text-center">
-                    {subscription.price}
-                  </td>
-                  <td className="p-4 text-center">
-                    <button
-                      onClick={() => handleShowDetails(subscription)}
-                      className="bg-[#E53E3E] text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
-                    >
-                      View History
-                    </button>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-gray-500">
+                    No subscriptions found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((subscription, index) => (
+                  <tr
+                    key={subscription.id}
+                    className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
+                      index === filtered.length - 1 ? "" : "border-b"
+                    }`}
+                  >
+                    <td className="p-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(subscription.id)}
+                        onChange={() => handleRowSelect(subscription.id)}
+                        className="w-5 h-5 border border-gray-300 rounded cursor-pointer mx-auto"
+                      />
+                    </td>
+                    <td className="p-4 text-[14px] text-black text-left">
+                      {subscription.storeName}
+                    </td>
+                    <td className="p-4 text-[14px] text-black text-left">
+                      {subscription.plan}
+                    </td>
+                    <td
+                      className={`p-4 text-[14px] text-center ${getDaysLeftStyle(
+                        subscription.daysLeft
+                      )}`}
+                    >
+                      {subscription.daysLeft}
+                    </td>
+                    <td className="p-4 text-[14px] text-black text-center">
+                      {subscription.subscriptionDate}
+                    </td>
+                    <td className="p-4 text-[14px] font-semibold text-center">
+                      {subscription.price}
+                    </td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => handleShowDetails(subscription)}
+                        className="bg-[#E53E3E] text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
+                      >
+                        View History
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

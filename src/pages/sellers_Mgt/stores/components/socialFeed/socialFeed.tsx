@@ -1,12 +1,13 @@
-import images from "../../../constants/images";
 import { useState } from "react";
-import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import DepositDropdown from "../../../components/DepositsDropdown";
-import TransactionTable from "./transactionTable";
+import images from "../../../../../constants/images";
+import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
+import SocialFeedTable from "./socialFeedTable";
+import NewPost from "../../../Modals/newPost";
 
-const Transaction = () => {
+const SocialFeed = () => {
   const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "Pending", "Successful", "Failed"];
+  const tabs = ["All", "My Posts"];
+  const [showModal, setShowModal] = useState(false);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -32,12 +33,6 @@ const Transaction = () => {
     // Add your custom logic here
   };
 
-  const handleDepositActionSelect = (action: string) => {
-    // Handle the deposit action selection from the parent component
-    console.log("Deposit action selected in Orders:", action);
-    // Add your custom logic here
-  };
-
   return (
     <div>
       <div className="flex flex-row justify-between items-center">
@@ -50,7 +45,7 @@ const Transaction = () => {
             <img className="w-9 h-9" src={images.transaction1} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">All Transactions</span>
+            <span className="font-semibold text-[15px]">Liked Posts</span>
             <span className="font-semibold text-2xl">10</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
@@ -69,9 +64,7 @@ const Transaction = () => {
             <img className="w-9 h-9" src={images.transaction1} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">
-              Pending Transactions
-            </span>
+            <span className="font-semibold text-[15px]">Comments</span>
             <span className="font-semibold text-2xl">2</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
@@ -90,9 +83,7 @@ const Transaction = () => {
             <img className="w-9 h-9" src={images.transaction1} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">
-              Successful Transactions
-            </span>
+            <span className="font-semibold text-[15px]">Saved Posts</span>
             <span className="font-semibold text-2xl">0</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
@@ -113,14 +104,22 @@ const Transaction = () => {
               <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
             </div>
           </div>
-          <div>
-            <DepositDropdown onActionSelect={handleDepositActionSelect} />
+          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
+            <div>Store</div>
+            <div>
+              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            </div>
           </div>
           <div>
             <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
           </div>
         </div>
-        <div>
+        <div className="flex gap-2">
+          <div>
+            <button className="bg-[#E53E3E] px-6 py-3.5 cursor-pointer text-white rounded-xl" onClick={() => setShowModal(true)}>
+              Add new post
+            </button>
+          </div>
           <div className="relative">
             <input
               type="text"
@@ -146,10 +145,16 @@ const Transaction = () => {
         </div>
       </div>
       <div>
-        <TransactionTable />
+        <SocialFeedTable />
       </div>
+
+      
+      <NewPost
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
     </div>
   );
 };
 
-export default Transaction;
+export default SocialFeed;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import ProductDetailsModal from "../../Modals/productDetailsModal";
 
 interface Product {
@@ -14,15 +14,20 @@ interface Product {
 interface ProductsTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  /** "All" | "General" | "Sponsored" from parent */
+  activeTab?: "All" | "General" | "Sponsored";
+  /** debounced search string from parent */
+  searchTerm?: string;
 }
 
 const ProductsTable: React.FC<ProductsTableProps> = ({
   title = "All Products",
   onRowSelect,
+  activeTab = "All",
+  searchTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-
   const [showModal, setShowModal] = useState(false);
 
   // Sample products data
@@ -38,7 +43,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     },
     {
       id: "2",
-      storeName: "Sasha Stores",
+      storeName: "Alex Stores",
       productName: "iPhone 16 pro max.....",
       price: "₦200,000",
       date: "18-07-2025/11:30AM",
@@ -47,7 +52,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     },
     {
       id: "3",
-      storeName: "Sasha Stores",
+      storeName: "Ford Stores",
       productName: "iPhone 16 pro max.....",
       price: "₦200,000",
       date: "18-07-2025/11:30AM",
@@ -56,7 +61,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     },
     {
       id: "4",
-      storeName: "Sasha Stores",
+      storeName: "Apple Stores",
       productName: "iPhone 16 pro max.....",
       price: "₦200,000",
       date: "18-07-2025/11:30AM",
@@ -65,35 +70,62 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     },
   ];
 
-  const handleSelectAll = () => {
-    const allIds = products.map((product) => product.id);
-    const newSelection = selectAll ? [] : allIds;
-    setSelectedRows(newSelection);
-    setSelectAll(!selectAll);
+  const visibleProducts = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
 
-    if (onRowSelect) {
-      onRowSelect(newSelection);
+    const tabMatch = (p: Product) =>
+      activeTab === "All"
+        ? true
+        : activeTab === "Sponsored"
+        ? p.sponsored
+        : !p.sponsored;
+
+    const searchMatch = (p: Product) => {
+      if (!q) return true;
+      return [p.storeName, p.productName, p.price, p.date]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    };
+
+    return products.filter((p) => tabMatch(p) && searchMatch(p));
+  }, [products, activeTab, searchTerm]);
+
+  // keep selectAll synced with currently visible rows
+  useEffect(() => {
+    const visIds = new Set(visibleProducts.map((p) => p.id));
+    const visibleSelected = selectedRows.filter((id) => visIds.has(id));
+    setSelectAll(
+      visibleProducts.length > 0 &&
+        visibleSelected.length === visibleProducts.length
+    );
+  }, [visibleProducts, selectedRows]);
+
+  // select all for visible rows (keeps selections from other views)
+  const handleSelectAll = () => {
+    const visIds = visibleProducts.map((p) => p.id);
+    if (selectAll) {
+      const remaining = selectedRows.filter((id) => !visIds.includes(id));
+      setSelectedRows(remaining);
+      onRowSelect?.(remaining);
+      setSelectAll(false);
+    } else {
+      const union = Array.from(new Set([...selectedRows, ...visIds]));
+      setSelectedRows(union);
+      onRowSelect?.(union);
+      setSelectAll(true);
     }
   };
 
   const handleRowSelect = (id: string) => {
-    const isSelected = selectedRows.includes(id);
-    const newSelection = isSelected
-      ? selectedRows.filter((rowId) => rowId !== id)
-      : [...selectedRows, id];
-
-    setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === products.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+    setSelectedRows((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
+      onRowSelect?.(next);
+      return next;
+    });
   };
-
-  //   const handleViewDetails = (product: Product) => {
-  //     console.log("View details for product:", product);
-  //     // Add your view details logic here
-  //   };
 
   return (
     <div className="border border-[#00000040] rounded-2xl mt-5">
@@ -107,7 +139,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
               <th className="p-4 font-normal">
                 <input
                   type="checkbox"
-                  checked={selectAll}
+                  checked={selectAll && visibleProducts.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5"
                 />
@@ -121,57 +153,66 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-t border-[#00000040] ">
-                <td className="p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(product.id)}
-                    onChange={() => handleRowSelect(product.id)}
-                    className="w-5 h-5"
-                  />
-                </td>
-                <td className="p-4 text-left">
-                  <span className="font-medium">{product.storeName}</span>
-                </td>
-                <td className="p-4 text-left">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={product.productImage}
-                      alt={product.productName}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <span className="font-medium">{product.productName}</span>
-                  </div>
-                </td>
-                <td className="p-4 text-left">
-                  <span className="font-semibold">{product.price}</span>
-                </td>
-                <td className="p-4 text-left">
-                  <span className="text-gray-600">{product.date}</span>
-                </td>
-                <td className="p-4 text-center">
-                  <div className="flex justify-center">
-                    <div
-                      className={`w-5 h-5 rounded-full ${
-                        product.sponsored ? "bg-[#008000]" : "bg-[#FF0000]"
-                      }`}
-                    />
-                  </div>
-                </td>
-                <td className="p-4 text-center">
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
-                  >
-                    View Details
-                  </button>
+            {visibleProducts.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">
+                  No results found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              visibleProducts.map((product) => (
+                <tr key={product.id} className="border-t border-[#00000040] ">
+                  <td className="p-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(product.id)}
+                      onChange={() => handleRowSelect(product.id)}
+                      className="w-5 h-5"
+                    />
+                  </td>
+                  <td className="p-4 text-left">
+                    <span className="font-medium">{product.storeName}</span>
+                  </td>
+                  <td className="p-4 text-left">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={product.productImage}
+                        alt={product.productName}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                      <span className="font-medium">{product.productName}</span>
+                    </div>
+                  </td>
+                  <td className="p-4 text-left">
+                    <span className="font-semibold">{product.price}</span>
+                  </td>
+                  <td className="p-4 text-left">
+                    <span className="text-gray-600">{product.date}</span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <div className="flex justify-center">
+                      <div
+                        className={`w-5 h-5 rounded-full ${
+                          product.sponsored ? "bg-[#008000]" : "bg-[#FF0000]"
+                        }`}
+                      />
+                    </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <button
+                      onClick={() => setShowModal(true)}
+                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
+                    >
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
+
       <ProductDetailsModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
