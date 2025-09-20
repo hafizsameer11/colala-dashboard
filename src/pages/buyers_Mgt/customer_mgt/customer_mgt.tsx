@@ -4,26 +4,23 @@ import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import UsersTable from "./usersTable";
 import AddUserModal from "../../../components/addUserModel";
 import { useState } from "react";
+import useDebouncedValue from "../../../hooks/useDebouncedValue";
 
 const customer_mgt = () => {
   const [showModal, setShowModal] = useState(false);
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 400);
 
   const handleUserSelection = (selectedIds: string[]) => {
-    // Handle selected user IDs
     console.log("Selected user IDs:", selectedIds);
-    // You can use this to enable/disable bulk actions or perform other operations
   };
 
   const handlePeriodChange = (period: string) => {
-    // Handle period change from PageHeader
     console.log("Period changed to:", period);
-    // Add your logic here to filter data based on selected period
   };
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Dashboard:", action);
-    // Add your custom logic here
   };
 
   return (
@@ -52,7 +49,6 @@ const customer_mgt = () => {
             </div>
 
             {/* Card 2 */}
-
             <div
               className="flex flex-row rounded-2xl w-90"
               style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -71,7 +67,6 @@ const customer_mgt = () => {
             </div>
 
             {/* Card 3 */}
-
             <div
               className="flex flex-row rounded-2xl w-90"
               style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -109,6 +104,8 @@ const customer_mgt = () => {
                     <input
                       type="text"
                       placeholder="Search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)} // <-- controlled input
                       className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                     />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -133,7 +130,11 @@ const customer_mgt = () => {
           </div>
 
           <div className="mt-5">
-            <UsersTable title="Users" onRowSelect={handleUserSelection} />
+            <UsersTable
+              title="Users"
+              onRowSelect={handleUserSelection}
+              searchQuery={debouncedQuery} // <-- pass debounced value
+            />
           </div>
         </div>
       </div>

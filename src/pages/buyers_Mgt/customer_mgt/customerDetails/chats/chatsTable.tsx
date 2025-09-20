@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import ChatsModel from "../../../../../components/chatsModel";
 
 interface Chat {
@@ -13,18 +13,20 @@ interface Chat {
 interface OrdersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  searchQuery?: string; // <-- NEW
 }
 
 const ChatsTable: React.FC<OrdersTableProps> = ({
   title = "Latest Chats",
   onRowSelect,
+  searchQuery = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
-  // Sample data based on the image
   const chats: Chat[] = [
     {
       id: "1",
@@ -84,38 +86,52 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
     },
   ];
 
+  // Case-insensitive filtering on multiple fields
+  const filteredChats = useMemo(() => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    if (!q) return chats;
+    return chats.filter((c) =>
+      [c.storeName, c.userName, c.lastMessage, c.chatDate].some((field) =>
+        field.toLowerCase().includes(q)
+      )
+    );
+  }, [searchQuery]);
+
+  // Reset selection when the visible list changes
+  useEffect(() => {
+    setSelectedRows([]);
+    setSelectAll(false);
+  }, [searchQuery]);
+
   const handleShowDetails = (chat: Chat) => {
     setSelectedChat(chat);
     setShowModal(true);
   };
 
   const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(chats.map((chat) => chat.id));
-    }
-    setSelectAll(!selectAll);
+    const visibleIds = filteredChats.map((chat) => chat.id);
+    const allSelected = visibleIds.every((id) => selectedRows.includes(id));
+    const newSelection = allSelected
+      ? selectedRows.filter((id) => !visibleIds.includes(id)) // unselect visible
+      : Array.from(new Set([...selectedRows, ...visibleIds])); // add visible
 
-    if (onRowSelect) {
-      onRowSelect(selectAll ? [] : chats.map((chat) => chat.id));
-    }
+    setSelectedRows(newSelection);
+    setSelectAll(!allSelected);
+    onRowSelect?.(newSelection);
   };
 
   const handleRowSelect = (chatId: string) => {
-    let newSelectedRows;
-    if (selectedRows.includes(chatId)) {
-      newSelectedRows = selectedRows.filter((id) => id !== chatId);
-    } else {
-      newSelectedRows = [...selectedRows, chatId];
-    }
+    const isSelected = selectedRows.includes(chatId);
+    const newSelection = isSelected
+      ? selectedRows.filter((id) => id !== chatId)
+      : [...selectedRows, chatId];
 
-    setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === chats.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelectedRows);
-    }
+    setSelectedRows(newSelection);
+    setSelectAll(
+      filteredChats.length > 0 &&
+        filteredChats.every((c) => newSelection.includes(c.id))
+    );
+    onRowSelect?.(newSelection);
   };
 
   return (
@@ -153,11 +169,11 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {chats.map((chat, index) => (
+            {filteredChats.map((chat, index) => (
               <tr
                 key={chat.id}
                 className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === chats.length - 1 ? "" : "border-b"
+                  index === filteredChats.length - 1 ? "" : "border-b"
                 }`}
               >
                 <td className="p-4">
@@ -190,10 +206,17 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
                 </td>
               </tr>
             ))}
+            {filteredChats.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-gray-500">
+                  No chats found for “{searchQuery}”.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-      {/* chats Model */}
+
       <ChatsModel isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );

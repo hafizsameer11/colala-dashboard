@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../../../../../components/orderDetails";
 
 interface Order {
@@ -20,6 +20,7 @@ interface LatestOrdersProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   activeTab?: string;
+  searchQuery?: string; // <-- NEW
 }
 
 const statusColors: Record<Order["status"], string> = {
@@ -38,6 +39,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   title = "Latest Orders",
   onRowSelect,
   activeTab = "All",
+  searchQuery = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -100,27 +102,40 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       status: "Completed",
     },
   ];
-  const [showModal, setShowModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Filter orders based on active tab
-  const filteredOrders =
-    activeTab === "All"
+  // 1) Filter by tab
+  const byTab = useMemo(() => {
+    return activeTab === "All"
       ? orders
-      : orders.filter((order) => order.status === activeTab);
+      : orders.filter((o) => o.status === activeTab);
+  }, [orders, activeTab]);
 
-  // Reset selected rows when tab changes
+  // 2) Filter by search (case-insensitive)
+  const filteredOrders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return byTab;
+    return byTab.filter((o) =>
+      [o.storeName, o.productName, o.price, o.orderDate].some((field) =>
+        field.toLowerCase().includes(q)
+      )
+    );
+  }, [byTab, searchQuery]);
+
+  // Reset selection when tab or search changes
   useEffect(() => {
     setSelectedRows([]);
     setSelectAll(false);
-  }, [activeTab]);
+  }, [activeTab, searchQuery]);
 
   const handleSelectAll = () => {
-    const allIds = filteredOrders.map((order) => order.id);
-    const newSelection = selectAll ? [] : allIds;
+    const visibleIds = filteredOrders.map((o) => o.id);
+    const allSelected = visibleIds.every((id) => selectedRows.includes(id));
+    const newSelection = allSelected
+      ? selectedRows.filter((id) => !visibleIds.includes(id))
+      : Array.from(new Set([...selectedRows, ...visibleIds]));
     setSelectedRows(newSelection);
-    setSelectAll(!selectAll);
-    if (onRowSelect) onRowSelect(newSelection);
+    setSelectAll(!allSelected);
+    onRowSelect?.(newSelection);
   };
 
   const handleRowSelect = (id: string) => {
@@ -129,9 +144,15 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       ? selectedRows.filter((rowId) => rowId !== id)
       : [...selectedRows, id];
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === filteredOrders.length);
-    if (onRowSelect) onRowSelect(newSelection);
+    setSelectAll(
+      filteredOrders.length > 0 &&
+        filteredOrders.every((o) => newSelection.includes(o.id))
+    );
+    onRowSelect?.(newSelection);
   };
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const handleShowDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -143,6 +164,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
         {title}
       </div>
+
       <div className="bg-white rounded-b-2xl overflow-hidden">
         <table className="w-full">
           <thead className="bg-[#F2F2F2]">
@@ -203,11 +225,17 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                 </td>
               </tr>
             ))}
+            {filteredOrders.length === 0 && (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">
+                  No orders found for “{searchQuery}”.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Order Details Modal */}
       <OrderDetails isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );

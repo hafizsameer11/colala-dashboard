@@ -2,9 +2,12 @@ import { useState } from "react";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
+import useDebouncedValue from "../../../../../hooks/useDebouncedValue";
 
 const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = [
     "All",
@@ -17,36 +20,30 @@ const Orders: React.FC = () => {
   ];
 
   const handleUserSelection = (selectedIds: string[]) => {
-    // Handle selected user IDs
     console.log("Selected user IDs:", selectedIds);
-    // You can use this to enable/disable bulk actions or perform other operations
   };
 
-  const TabButtons = () => {
-    return (
-      <div className="flex items-center border border-[#989898] rounded-lg p-2 w-fit bg-white">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-                isActive ? "px-8 bg-[#E53E3E] text-white" : "px-2.5 text-black"
-              }`}
-            >
-              {tab}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
+  const TabButtons = () => (
+    <div className="flex items-center border border-[#989898] rounded-lg p-2 w-fit bg-white">
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab;
+        return (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
+              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-2.5 text-black"
+            }`}
+          >
+            {tab}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
     console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
   };
 
   return (
@@ -126,6 +123,8 @@ const Orders: React.FC = () => {
             <input
               type="text"
               placeholder="Search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)} // <-- controlled + debounced
               className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -150,6 +149,7 @@ const Orders: React.FC = () => {
             title="Latest Orders"
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
+            searchQuery={debouncedQuery} // <-- pass debounced query
           />
         </div>
       </div>

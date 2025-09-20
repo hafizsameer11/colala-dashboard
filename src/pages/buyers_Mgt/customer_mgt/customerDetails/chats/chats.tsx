@@ -2,9 +2,12 @@ import images from "../../../../../constants/images";
 import { useState } from "react";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import ChatsTable from "./chatsTable";
+import useDebouncedValue from "../../../../../hooks/useDebouncedValue";
 
 const Chats = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [query, setQuery] = useState(""); // <-- add
+  const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = ["All", "Unread", "Dispute"];
 
@@ -99,7 +102,7 @@ const Chats = () => {
 
       <div className="flex flex-row mt-5 justify-between">
         <div className="flex flex-row gap-5">
-          <div >
+          <div>
             <TabButtons />
           </div>
           <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
@@ -118,6 +121,8 @@ const Chats = () => {
             <input
               type="text"
               placeholder="Search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -139,10 +144,9 @@ const Chats = () => {
         </div>
       </div>
 
-<div className="mt-5" >
-  <ChatsTable />
-</div>
-
+      <div className="mt-5">
+        <ChatsTable searchQuery={debouncedQuery} />
+      </div>
     </div>
   );
 };

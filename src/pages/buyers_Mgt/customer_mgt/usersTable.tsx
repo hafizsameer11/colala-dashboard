@@ -1,50 +1,35 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import images from "../../../constants/images";
+
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
 }
 
 const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
-
   const DotsActions = ["Block user", "Ban user"];
-
-  // Icons for each action (use your actual icon paths here)
   const actionIcons: Record<string, string> = {
-    "Block user": "/assets/layout/block.svg", // replace with your actual image paths
+    "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
   };
-
-  const handleDotsDropdownToggle = () => {
-    setIsDotsDropdownOpen(!isDotsDropdownOpen);
-  };
-
-  const handleDotsOptionSelect = (action: string) => {
-    setIsDotsDropdownOpen(false);
-
-    if (onActionSelect) {
-      onActionSelect(action);
-    }
-
-    console.log("Selected Dots action:", action);
-  };
-
   return (
     <div className="relative">
       <button
-        onClick={handleDotsDropdownToggle}
+        onClick={() => setIsDotsDropdownOpen((s) => !s)}
         className="w-10 h-10 cursor-pointer"
       >
         <img src={images.dots} alt="Dots" />
       </button>
-
       {isDotsDropdownOpen && (
         <div className="absolute z-10 mt-2 right-5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
           {DotsActions.map((action) => (
             <button
               key={action}
-              onClick={() => handleDotsOptionSelect(action)}
+              onClick={() => {
+                setIsDotsDropdownOpen(false);
+                onActionSelect?.(action);
+              }}
               className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
                 action === "Ban user" ? "text-[#FF0000]" : "text-black"
               } cursor-pointer font-medium`}
@@ -75,16 +60,19 @@ interface User {
 interface UsersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  searchQuery?: string; // <-- NEW
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
   title = "Users",
   onRowSelect,
+  searchQuery = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
 
+  // Mock data (unchanged)
   const users: User[] = [
     {
       id: "1",
@@ -137,15 +125,34 @@ const UsersTable: React.FC<UsersTableProps> = ({
     },
   ];
 
-  const handleSelectAll = () => {
-    const allIds = users.map((user) => user.id);
-    const newSelection = selectAll ? [] : allIds;
-    setSelectedRows(newSelection);
-    setSelectAll(!selectAll);
+  // Case-insensitive filtering on name, email, phone
+  const filteredUsers = useMemo(() => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) =>
+      [u.userName, u.email, u.phoneNumber].some((field) =>
+        field.toLowerCase().includes(q)
+      )
+    );
+  }, [users, searchQuery]);
 
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+  // Keep "Select All" in sync with filtered list
+  useEffect(() => {
+    setSelectAll(
+      filteredUsers.length > 0 &&
+        filteredUsers.every((u) => selectedRows.includes(u.id))
+    );
+  }, [filteredUsers, selectedRows]);
+
+  const handleSelectAll = () => {
+    const visibleIds = filteredUsers.map((u) => u.id);
+    const allSelected = visibleIds.every((id) => selectedRows.includes(id));
+    const newSelection = allSelected
+      ? selectedRows.filter((id) => !visibleIds.includes(id)) // unselect visible
+      : Array.from(new Set([...selectedRows, ...visibleIds])); // add visible
+    setSelectedRows(newSelection);
+    setSelectAll(!allSelected);
+    onRowSelect?.(newSelection);
   };
 
   const handleRowSelect = (id: string) => {
@@ -155,11 +162,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
       : [...selectedRows, id];
 
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === users.length);
-
-    if (onRowSelect) {
-      onRowSelect(newSelection);
-    }
+    setSelectAll(
+      filteredUsers.length > 0 &&
+        filteredUsers.every((u) => newSelection.includes(u.id))
+    );
+    onRowSelect?.(newSelection);
   };
 
   const handleCustomerDetails = (user: User) => {
@@ -192,7 +199,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr
                 key={user.id}
                 className="text-center border-t border-gray-200"
@@ -236,6 +243,13 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
               </tr>
             ))}
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">
+                  No users found for “{searchQuery}”.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
