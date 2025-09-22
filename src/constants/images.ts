@@ -120,6 +120,8 @@ const images = {
   banner: "/assets/layout/banner.png",
   bannerTest: "/assets/layout/admin.png", 
   disputes: "/assets/sidebar/disputes.svg",
+  link1: "/assets/layout/link1.svg",
+  share3: "/assets/layout/share3.svg",
 };
 
 export default images;

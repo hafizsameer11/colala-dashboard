@@ -188,7 +188,7 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose }) => {
             <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
               <img
                 className="cursor-pointer"
-                src={images.link}
+                src={images.link1}
                 alt="Attachment"
               />
             </div>
@@ -197,7 +197,7 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose }) => {
               className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2"
               onClick={handleSend}
             >
-              <img className="cursor-pointer" src={images.share2} alt="Send" />
+              <img className="cursor-pointer" src={images.share3} alt="Send" />
             </button>
           </div>
         </div>
