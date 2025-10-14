@@ -1,18 +1,24 @@
 import images from "../constants/images";
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ProductDetails from "./productDetails";
 import OrderOverview from "./orderOverview";
 import ProductCart from "./productCart";
+import { getOrderDetails } from "../utils/queries/users";
 
 interface OrderDetailsProps {
   isOpen: boolean;
   onClose: () => void;
+  userId?: string | number;
+  orderId?: string | number;
   order?: any; // Optional order data
 }
 
 const OrderDetails: React.FC<OrderDetailsProps> = ({
   isOpen,
   onClose,
+  userId,
+  orderId,
   order,
 }) => {
   const [activeTab, setActiveTab] = useState<
@@ -28,6 +34,17 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
   >("overview");
   // Quantity state for the counter
   const [quantity, setQuantity] = useState<number>(1);
+
+  // Fetch order details from API
+  const { data: orderDetailsData, isLoading, error } = useQuery({
+    queryKey: ['orderDetails', userId, orderId],
+    queryFn: () => getOrderDetails(userId!, orderId!),
+    enabled: !!userId && !!orderId && isOpen,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Use API data or fallback to passed order prop
+  const orderData = orderDetailsData?.data || order;
 
   if (!isOpen) return null;
 
@@ -145,177 +162,161 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
             {/* Regular Tab Content - Only show when not in cart view */}
             {!isCartView && (
               <>
-                {activeTab === "track order" && <OrderOverview />}
+                {activeTab === "track order" && <OrderOverview orderData={orderData} />}
                 {activeTab === "full order details" && !isProductDetails && (
                   <div className="mt-5">
-                    <div className="flex flex-row ">
-                      <div>
-                        <picture>
-                          <img
-                            className="w-35 h-35 rounded-l-2xl"
-                            src={images.iphone}
-                            alt=""
-                          />
-                        </picture>
+                    {isLoading ? (
+                      <div className="flex justify-center items-center h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
                       </div>
-                      <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
-                        <span className="text-black text-[17px]">
-                          Iphone 16 pro max - Black
-                        </span>
-                        <span className="text-[#E53E3E] font-bold text-[17px]">
-                          N2,500,000
-                        </span>
-                        <div className="flex flex-row justify-between items-center mt-3">
-                          <div>
-                            <span className="text-[#E53E3E] font-bold text-[17px]">
-                              Qty :1
+                    ) : error ? (
+                      <div className="flex justify-center items-center h-32">
+                        <div className="text-center text-red-500">
+                          <p className="text-sm">Error loading order details</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Product Items */}
+                        {orderData?.items?.map((item: any, index: number) => (
+                          <div key={index} className={`flex flex-row ${index > 0 ? 'mt-3' : ''}`}>
+                            <div>
+                              <picture>
+                                <img
+                                  className="w-35 h-35 rounded-l-2xl object-cover"
+                                  src={item.product?.images?.[0]?.path || images.iphone}
+                                  alt={item.product?.name || 'Product'}
+                                  onError={(e) => {
+                                    e.currentTarget.src = images.iphone;
+                                  }}
+                                />
+                              </picture>
+                            </div>
+                            <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
+                              <span className="text-black text-[17px]">
+                                {item.product?.name || 'Unknown Product'}
+                              </span>
+                              <span className="text-[#E53E3E] font-bold text-[17px]">
+                                ₦{item.total || '0.00'}
+                              </span>
+                              <div className="flex flex-row justify-between items-center mt-3">
+                                <div>
+                                  <span className="text-[#E53E3E] font-bold text-[17px]">
+                                    Qty: {item.quantity || 1}
+                                  </span>
+                                </div>
+                                <div>
+                                  <button
+                                    onClick={() => {
+                                      setActiveTab("full order details");
+                                      setIsProductDetails(true);
+                                      setProductTab("overview");
+                                    }}
+                                    className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
+                                  >
+                                    Product Details
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {!isLoading && !error && (
+                      <div className="w-full mt-3">
+                        <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+                          Order Details
+                        </div>
+                        <div className="border border-[#CDCDCD] rounded-b-2xl">
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
+                            <span className="text-[#00000080]">Order ID</span>
+                            <span>{orderData?.order_no || 'N/A'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
+                            <span className="text-[#00000080]">Store Name</span>
+                            <span>{orderData?.store?.name || 'N/A'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
+                            <span className="text-[#00000080]">No of items</span>
+                            <span>{orderData?.items?.length || 0}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-10 p-2">
+                            <span className="text-[#00000080]">
+                              Customer Name
                             </span>
+                            <span>{orderData?.customer?.name || 'N/A'}</span>
                           </div>
-                          <div>
-                            <button
-                              onClick={() => {
-                                setActiveTab("full order details");
-                                setIsProductDetails(true);
-                                setProductTab("overview");
-                              }}
-                              className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
-                            >
-                              Product Details
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-row mt-3">
-                      <div>
-                        <picture>
-                          <img
-                            className="w-35 h-35 rounded-l-2xl"
-                            src={images.iphone}
-                            alt=""
-                          />
-                        </picture>
-                      </div>
-                      <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
-                        <span className="text-black text-[17px]">
-                          Iphone 16 pro max - Black
-                        </span>
-                        <span className="text-[#E53E3E] font-bold text-[17px]">
-                          N2,500,000
-                        </span>
-                        <div className="flex flex-row justify-between items-center mt-3">
-                          <div>
-                            <span className="text-[#E53E3E] font-bold text-[17px]">
-                              Qty :1
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-12 p-2">
+                            <span className="text-[#00000080]">
+                              Status
                             </span>
+                            <span className="capitalize">{orderData?.status || 'N/A'}</span>
                           </div>
-                          <div>
-                            <button
-                              onClick={() => {
-                                setActiveTab("full order details");
-                                setIsProductDetails(true);
-                                setProductTab("overview");
-                              }}
-                              className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
-                            >
-                              Product Details
-                            </button>
+                          <div className="flex flex-row gap-28 p-2">
+                            <span className="text-[#00000080]">Date</span>
+                            <span>{orderData?.created_at || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="w-full mt-3">
-                      <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
-                        Order Details
-                      </div>
-                      <div className="border border-[#CDCDCD] rounded-b-2xl">
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
-                          <span className="text-[#00000080]">Order ID</span>
-                          <span>ORD-1234DFEKFK</span>
+                    {!isLoading && !error && (
+                      <div className="w-full mt-3">
+                        <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+                          Delivery Details
                         </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
-                          <span className="text-[#00000080]">Store Name</span>
-                          <span>Sasha Stores</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
-                          <span className="text-[#00000080]">No of items</span>
-                          <span>2</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-10 p-2">
-                          <span className="text-[#00000080]">
-                            Discount Code
-                          </span>
-                          <span>NEW123</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-12 p-2">
-                          <span className="text-[#00000080]">
-                            Loyalty Points
-                          </span>
-                          <span>200</span>
-                        </div>
-                        <div className="flex flex-row gap-28 p-2">
-                          <span className="text-[#00000080]">Date</span>
-                          <span>July 19,2025 - 07:22AM</span>
+                        <div className="border border-[#CDCDCD] rounded-b-2xl">
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2">
+                            <span className="text-[#00000080]">Phone Number</span>
+                            <span>{orderData?.customer?.phone || orderData?.delivery_address?.contact_phone || 'N/A'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-27 p-2">
+                            <span className="text-[#00000080]">State</span>
+                            <span>{orderData?.delivery_address?.state || 'N/A'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
+                            <span className="text-[#00000080]">LGA</span>
+                            <span>{orderData?.delivery_address?.local_government || 'N/A'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
+                            <span className="text-[#00000080]">Address</span>
+                            <span>{orderData?.delivery_address?.full_address || 'N/A'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="w-full mt-3">
-                      <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
-                        Delivery Details
-                      </div>
-                      <div className="border border-[#CDCDCD] rounded-b-2xl">
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2">
-                          <span className="text-[#00000080]">Phone Number</span>
-                          <span>0701234567</span>
+                    {!isLoading && !error && (
+                      <div className="w-full mt-3">
+                        <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+                          Price Details
                         </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-27 p-2">
-                          <span className="text-[#00000080]">State</span>
-                          <span>Lagos</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
-                          <span className="text-[#00000080]">LGA</span>
-                          <span>Ikeja</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
-                          <span className="text-[#00000080]">Address</span>
-                          <span>No 2, abcd street, ikeja</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-full mt-3">
-                      <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
-                        Price Details
-                      </div>
-                      <div className="border border-[#CDCDCD] rounded-b-2xl">
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-17 p-2">
-                          <span className="text-[#00000080]">Items Cost</span>
-                          <span className="font-bold">N2,500,000</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-3 p-2">
-                          <span className="text-[#00000080]">
-                            Coupon Discount
-                          </span>
-                          <span className="font-bold">-N5,000</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-7 p-2">
-                          <span className="text-[#00000080]">
-                            Points Discount
-                          </span>
-                          <span className="font-bold">-N5,000</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
-                          <span className="text-[#00000080]">Delivery Fee</span>
-                          <span className="font-bold">N10,000</span>
-                        </div>
-                        <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
-                          <span className="text-[#00000080]">Total</span>
-                          <span className="font-bold">N2,500,000</span>
+                        <div className="border border-[#CDCDCD] rounded-b-2xl">
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-17 p-2">
+                            <span className="text-[#00000080]">Items Cost</span>
+                            <span className="font-bold">₦{orderData?.pricing?.items_subtotal || '0.00'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-3 p-2">
+                            <span className="text-[#00000080]">
+                              Shipping Fee
+                            </span>
+                            <span className="font-bold">₦{orderData?.pricing?.shipping_fee || '0.00'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-7 p-2">
+                            <span className="text-[#00000080]">
+                              Discount
+                            </span>
+                            <span className="font-bold">-₦{orderData?.pricing?.discount || '0.00'}</span>
+                          </div>
+                          <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
+                            <span className="text-[#00000080]">Total</span>
+                            <span className="font-bold">₦{orderData?.pricing?.subtotal_with_shipping || '0.00'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="flex gap-3 pt-4">
                       <button
@@ -339,6 +340,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                     setProductTab={setProductTab}
                     quantity={quantity}
                     setQuantity={setQuantity}
+                    productData={orderData?.items?.[0]}
                   />
                 )}
               </>

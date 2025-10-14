@@ -1,14 +1,38 @@
 import React, { useMemo, useState, useEffect } from "react";
 import ProductDetailsModal from "../../Modals/productDetailsModal";
 
+interface ApiProduct {
+  id: number;
+  name: string;
+  price: string;
+  discount_price: string;
+  store_name: string;
+  seller_name: string;
+  status: string;
+  is_sold: number;
+  is_unavailable: number;
+  is_sponsored: boolean;
+  quantity: number;
+  reviews_count: number;
+  average_rating: number;
+  created_at: string;
+  formatted_date: string;
+  primary_image: string | null;
+}
+
 interface Product {
   id: string;
   storeName: string;
   productName: string;
   price: string;
+  discountPrice?: string;
   date: string;
   sponsored: boolean;
   productImage: string;
+  status: string;
+  quantity: number;
+  reviewsCount: number;
+  averageRating: number;
 }
 
 interface ProductsTableProps {
@@ -18,6 +42,13 @@ interface ProductsTableProps {
   activeTab?: "All" | "General" | "Sponsored";
   /** debounced search string from parent */
   searchTerm?: string;
+  products?: ApiProduct[];
+  pagination?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
+  onBulkAction?: (action: string) => void;
 }
 
 const ProductsTable: React.FC<ProductsTableProps> = ({
@@ -25,50 +56,36 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   onRowSelect,
   activeTab = "All",
   searchTerm = "",
+  products = [],
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  isLoading = false,
+  error,
+  onBulkAction,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // Sample products data
-  const products: Product[] = [
-    {
-      id: "1",
-      storeName: "Sasha Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: true,
-      productImage: "/assets/layout/iphone.png",
-    },
-    {
-      id: "2",
-      storeName: "Alex Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: false,
-      productImage: "/assets/layout/iphone.png",
-    },
-    {
-      id: "3",
-      storeName: "Ford Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: false,
-      productImage: "/assets/layout/iphone.png",
-    },
-    {
-      id: "4",
-      storeName: "Apple Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: false,
-      productImage: "/assets/layout/iphone.png",
-    },
-  ];
+  // Normalize API data to UI format
+  const normalizedProducts: Product[] = useMemo(() => {
+    return products.map((product: ApiProduct) => ({
+      id: product.id.toString(),
+      storeName: product.store_name,
+      productName: product.name,
+      price: `₦${parseFloat(product.price).toLocaleString()}`,
+      discountPrice: product.discount_price ? `₦${parseFloat(product.discount_price).toLocaleString()}` : undefined,
+      date: product.formatted_date,
+      sponsored: product.is_sponsored,
+      productImage: product.primary_image || "/assets/layout/itable.png",
+      status: product.status,
+      quantity: product.quantity,
+      reviewsCount: product.reviews_count,
+      averageRating: product.average_rating,
+    }));
+  }, [products]);
 
   const visibleProducts = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -88,8 +105,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
         .includes(q);
     };
 
-    return products.filter((p) => tabMatch(p) && searchMatch(p));
-  }, [products, activeTab, searchTerm]);
+    return normalizedProducts.filter((p) => tabMatch(p) && searchMatch(p));
+  }, [normalizedProducts, activeTab, searchTerm]);
 
   // keep selectAll synced with currently visible rows
   useEffect(() => {
@@ -127,6 +144,11 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     });
   };
 
+  const handleShowDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setShowModal(true);
+  };
+
   return (
     <div className="border border-[#00000040] rounded-2xl mt-5">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-[#00000040]">
@@ -153,10 +175,24 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {visibleProducts.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-red-500">
+                  <p className="text-sm">Error loading products</p>
+                </td>
+              </tr>
+            ) : visibleProducts.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
-                  No results found.
+                  No products found.
                 </td>
               </tr>
             ) : (
@@ -184,7 +220,12 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                     </div>
                   </td>
                   <td className="p-4 text-left">
-                    <span className="font-semibold">{product.price}</span>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-[#E53E3E]">{product.price}</span>
+                      {product.discountPrice && (
+                        <span className="text-sm text-gray-500 line-through">{product.discountPrice}</span>
+                      )}
+                    </div>
                   </td>
                   <td className="p-4 text-left">
                     <span className="text-gray-600">{product.date}</span>
@@ -200,7 +241,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                   </td>
                   <td className="p-4 text-center">
                     <button
-                      onClick={() => setShowModal(true)}
+                      onClick={() => handleShowDetails(product)}
                       className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
                     >
                       View Details
@@ -213,9 +254,33 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
         </table>
       </div>
 
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6 p-4">
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">
+            Page {currentPage} of {pagination.last_page}
+          </span>
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage + 1)}
+            disabled={currentPage === pagination.last_page}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       <ProductDetailsModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        product={selectedProduct}
       />
     </div>
   );

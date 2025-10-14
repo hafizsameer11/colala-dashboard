@@ -6,6 +6,8 @@ import AddNewProduct from "../Modals/addNewProduct";
 import ServiceModal from "../Modals/serviceModal";
 import ServicesTable from "./components/servicesTable";
 import PageHeader from "../../../components/PageHeader";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminProducts } from "../../../utils/queries/users";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -35,6 +37,19 @@ const Products_Services = () => {
   // search
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // API data fetching
+  const { data: productsData, isLoading, error } = useQuery({
+    queryKey: ['adminProducts', activeTab, currentPage],
+    queryFn: () => getAdminProducts(currentPage, activeTab === "All" ? undefined : activeTab.toLowerCase()),
+    keepPreviousData: true,
+  });
+
+  // Extract data with null checks
+  const products = productsData?.data?.products || [];
+  const statistics = productsData?.data?.statistics || {};
+  const pagination = productsData?.data?.pagination;
 
   interface ProductsDropdownProps {
     onProductSelect?: (product: "Products" | "Services") => void;
@@ -87,6 +102,18 @@ const Products_Services = () => {
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected:", action);
+    // Implement bulk actions here
+    if (action === "Export CSV") {
+      // Export products to CSV
+      console.log("Exporting products to CSV...");
+    } else if (action === "Export PDF") {
+      // Export products to PDF
+      console.log("Exporting products to PDF...");
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
   };
 
   const TabButtons = () => (
@@ -124,10 +151,9 @@ const Products_Services = () => {
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
                 <span className="font-semibold text-[15px]">All Products</span>
-                <span className="font-semibold text-2xl">10</span>
+                <span className="font-semibold text-2xl">{statistics.total_products || 0}</span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">+5%</span> increase from last
-                  month
+                  <span className="text-[#1DB61D]">Total</span> products
                 </span>
               </div>
             </div>
@@ -145,10 +171,9 @@ const Products_Services = () => {
                 <span className="font-semibold text-[15px]">
                   General Products
                 </span>
-                <span className="font-semibold text-2xl">2</span>
+                <span className="font-semibold text-2xl">{statistics.general_products || 0}</span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">+5%</span> increase from last
-                  month
+                  <span className="text-[#1DB61D]">General</span> products
                 </span>
               </div>
             </div>
@@ -166,10 +191,9 @@ const Products_Services = () => {
                 <span className="font-semibold text-[15px]">
                   Sponsored Products
                 </span>
-                <span className="font-semibold text-2xl">0</span>
+                <span className="font-semibold text-2xl">{statistics.sponsored_products || 0}</span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">+5%</span> increase from last
-                  month
+                  <span className="text-[#1DB61D]">Sponsored</span> products
                 </span>
               </div>
             </div>
@@ -241,6 +265,13 @@ const Products_Services = () => {
               <ProductsTable
                 activeTab={activeTab}
                 searchTerm={debouncedSearch}
+                products={products}
+                pagination={pagination}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                isLoading={isLoading}
+                error={error}
+                onBulkAction={handleBulkActionSelect}
               />
             </div>
           ) : (

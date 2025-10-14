@@ -4,16 +4,14 @@ import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import DepositDropdown from "../../../../../components/DepositsDropdown";
 import TransactionTable from "./transactionTable";
+import { useQuery } from "@tanstack/react-query";
+import { getUserTransactions } from "../../../../../utils/queries/users";
+import useDebouncedValue from "../../../../../hooks/useDebouncedValue";
+import Papa from 'papaparse';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-// tiny debounce hook
-function useDebouncedValue<T>(value: T, delay = 450) {
-  const [debounced, setDebounced] = useState<T>(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-}
+// Using the imported useDebouncedValue hook
 
 // normalize the deposit dropdown labels into our type filter
 function normalizeType(
@@ -26,7 +24,11 @@ function normalizeType(
   return "All";
 }
 
-const Transactions = () => {
+interface TransactionProps {
+  userId?: string;
+}
+
+const Transactions: React.FC<TransactionProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState<
     "All" | "Pending" | "Successful" | "Failed"
   >("All");
@@ -40,11 +42,21 @@ const Transactions = () => {
   // search
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTransactions, setSelectedTransactions] = useState<any[]>([]);
 
   // deposit/type filter
   const [typeFilter, setTypeFilter] = useState<
     "All" | "Deposit" | "Withdrawals" | "Payments"
   >("All");
+
+  // Fetch user transactions data from API
+  const { data: transactionsData, isLoading, error } = useQuery({
+    queryKey: ['userTransactions', userId, currentPage],
+    queryFn: () => getUserTransactions(userId!, currentPage),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  });
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -66,7 +78,79 @@ const Transactions = () => {
   );
 
   const handleBulkActionSelect = (action: string) => {
-    console.log("Bulk action selected in Orders:", action);
+    console.log("Bulk action selected in Transactions:", action);
+    
+    if (selectedTransactions.length === 0) {
+      alert("Please select transactions to perform this action");
+      return;
+    }
+
+    switch (action) {
+      case "Export as CSV":
+        // Export selected transactions to CSV
+        const csvData = selectedTransactions.map((transaction: any) => ({
+          'Transaction ID': transaction.id,
+          'TX ID': transaction.tx_id || 'N/A',
+          'Amount': transaction.amount || 'N/A',
+          'Type': transaction.type || 'N/A',
+          'Status': transaction.status || 'N/A',
+          'Date': transaction.tx_date || 'N/A',
+          'Created At': transaction.created_at || 'N/A'
+        }));
+        
+        const csv = Papa.unparse(csvData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        break;
+        
+      case "Export as PDF":
+        // Export selected transactions to PDF
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text('Transactions Report', 14, 22);
+        
+        const headers = ['Transaction ID', 'TX ID', 'Amount', 'Type', 'Status', 'Date'];
+        const tableData = selectedTransactions.map((transaction: any) => [
+          transaction.id,
+          transaction.tx_id || 'N/A',
+          transaction.amount || 'N/A',
+          transaction.type || 'N/A',
+          transaction.status || 'N/A',
+          transaction.tx_date || 'N/A'
+        ]);
+        
+        (doc as any).autoTable({
+          head: [headers],
+          body: tableData,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [229, 62, 62] }
+        });
+        
+        doc.save(`transactions_${new Date().toISOString().split('T')[0]}.pdf`);
+        break;
+        
+      case "Delete":
+        if (confirm(`Are you sure you want to delete ${selectedTransactions.length} transaction(s)?`)) {
+          console.log("Deleting transactions:", selectedTransactions);
+          // Add delete logic here
+        }
+        break;
+        
+      default:
+        console.log("Unknown action:", action);
+    }
+  };
+
+  const handleSelectedTransactionsChange = (transactions: any[]) => {
+    setSelectedTransactions(transactions);
   };
 
   // Make the deposit dropdown functional: set the type filter
@@ -93,10 +177,13 @@ const Transactions = () => {
               <span className="font-semibold text-[15px]">
                 All Transactions
               </span>
-              <span className="font-semibold text-2xl">10</span>
+              <span className="font-semibold text-2xl">
+                {transactionsData?.data?.summary_stats?.all_transactions?.count || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">
+                  +{transactionsData?.data?.summary_stats?.all_transactions?.increase || 0}%
+                </span> increase from last month
               </span>
             </div>
           </div>
@@ -112,10 +199,13 @@ const Transactions = () => {
               <span className="font-semibold text-[15px]">
                 Pending Transactions
               </span>
-              <span className="font-semibold text-2xl">2</span>
+              <span className="font-semibold text-2xl">
+                {transactionsData?.data?.summary_stats?.pending_transactions?.count || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">
+                  +{transactionsData?.data?.summary_stats?.pending_transactions?.increase || 0}%
+                </span> increase from last month
               </span>
             </div>
           </div>
@@ -131,10 +221,13 @@ const Transactions = () => {
               <span className="font-semibold text-[15px]">
                 Successful Transactions
               </span>
-              <span className="font-semibold text-2xl">0</span>
+              <span className="font-semibold text-2xl">
+                {transactionsData?.data?.summary_stats?.successful_transactions?.count || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">
+                  +{transactionsData?.data?.summary_stats?.successful_transactions?.increase || 0}%
+                </span> increase from last month
               </span>
             </div>
           </div>
@@ -152,7 +245,12 @@ const Transactions = () => {
             {/* TYPE FILTER (DepositDropdown) */}
             <DepositDropdown onActionSelect={handleDepositActionSelect} />
 
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              selectedOrders={selectedTransactions}
+              orders={transactionsData?.data?.transactions?.data || []}
+              dataType="transactions"
+            />
           </div>
 
           <div className="relative">
@@ -186,6 +284,13 @@ const Transactions = () => {
           statusFilter={activeTab}
           typeFilter={typeFilter}
           searchTerm={debouncedSearch}
+          transactions={transactionsData?.data?.transactions?.data || []}
+          pagination={transactionsData?.data?.transactions || null}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+          error={error}
+          userId={userId}
+          onSelectedTransactionsChange={handleSelectedTransactionsChange}
         />
       </div>
     </>

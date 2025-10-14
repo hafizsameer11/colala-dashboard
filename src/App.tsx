@@ -34,6 +34,7 @@ import Login from "./pages/auth/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Disputes from "./pages/general/disputes/disputes";
+import { QueryProvider } from "./providers/QueryProvider";
 
 // Component to handle initial route based on auth status
 const InitialRoute = () => {
@@ -87,34 +88,36 @@ function App() {
   ];
 
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Root route - redirects based on auth status */}
-          <Route path="/" element={<InitialRoute />} />
+    <QueryProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Root route - redirects based on auth status */}
+            <Route path="/" element={<InitialRoute />} />
 
-          {/* Login Route - Public */}
-          <Route path="/login" element={<Login />} />
+            {/* Login Route - Public */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Protected Routes with Layout */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            {protectedRoutes.map(({ path, element }) => (
-              <Route key={path} path={path} element={element} />
-            ))}
-          </Route>
+            {/* Protected Routes with Layout */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              {protectedRoutes.map(({ path, element }) => (
+                <Route key={path} path={path} element={element} />
+              ))}
+            </Route>
 
-          {/* Catch all route - redirect to root */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+            {/* Catch all route - redirect to root */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </QueryProvider>
   );
 }
 

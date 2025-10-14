@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { loginUser } from '../utils/mutations/auth';
+import Cookies from 'js-cookie';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -37,8 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check for existing authentication on app load
   useEffect(() => {
     const checkAuthStatus = () => {
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('userData');
+      const token = Cookies.get('authToken');
+      const userData = Cookies.get('userData');
       
       if (token && userData) {
         try {
@@ -47,8 +49,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsAuthenticated(true);
         } catch (error) {
           console.error('Error parsing user data:', error);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userData');
+          Cookies.remove('authToken');
+          Cookies.remove('userData');
         }
       }
       setLoading(false);
@@ -60,47 +62,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     setLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('AuthContext login check:', { 
-      inputEmail: email, 
-      inputPassword: password,
-      expectedEmail: 'admin@admin.com',
-      expectedPassword: 'admin',
-      emailMatch: email === 'admin@admin.com',
-      passwordMatch: password === 'admin'
-    }); // Debug log
-    
-    // Check credentials
-    if (email === 'admin@admin.com' && password === 'admin') {
-      const userData: User = {
-        email: 'admin@admin.com',
-        name: 'Administrator',
-        role: 'Admin'
-      };
+    try {
+      const response = await loginUser({ email, password });
       
-      // Store auth data
-      localStorage.setItem('authToken', 'dummy-jwt-token-' + Date.now());
-      localStorage.setItem('userData', JSON.stringify(userData));
+      console.log('Login response:', response); // Debug log
       
-      setUser(userData);
-      setIsAuthenticated(true);
-      setLoading(false);
-      return true;
-    } else {
+      if (response && response.status === 'success' && response.data && response.data.token) {
+        const userData: User = {
+          email: response.data.user?.email || email,
+          name: response.data.user?.full_name || response.data.user?.user_name || 'Administrator',
+          role: response.data.user?.role || 'Admin'
+        };
+        
+        // Store auth data in cookies
+        Cookies.set('authToken', response.data.token, { expires: 7 }); // 7 days
+        Cookies.set('userData', JSON.stringify(userData), { expires: 7 });
+        
+        setUser(userData);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return true;
+      } else {
+        console.log('Login failed - invalid response structure:', response);
+        setLoading(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       setLoading(false);
       return false;
     }
   };
 
   const logout = () => {
-    console.log('Logout function called'); // Debug log
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+    // Clear auth data
+    Cookies.remove('authToken');
+    Cookies.remove('userData');
     setUser(null);
     setIsAuthenticated(false);
-    console.log('Logout completed - isAuthenticated:', false); // Debug log
   };
 
   const value: AuthContextType = {

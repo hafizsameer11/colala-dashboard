@@ -1,124 +1,107 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../Modals/orderDetails";
 
+interface ApiOrder {
+  store_order_id: number;
+  order_number: string;
+  store_name: string;
+  seller_name: string;
+  customer_name: string;
+  status: string;
+  items_count: number;
+  total_amount: string;
+  created_at: string;
+  formatted_date: string;
+}
+
 interface Order {
   id: string;
+  orderNumber: string;
   storeName: string;
-  productName: string;
-  price: string;
+  sellerName: string;
+  customerName: string;
+  status: string;
+  itemsCount: number;
+  totalAmount: string;
   orderDate: string;
-  status:
-    | "Out for delivery"
-    | "Delivered"
-    | "Order Placed"
-    | "Uncompleted"
-    | "Disputed"
-    | "Completed";
+  formattedDate: string;
 }
 
 interface LatestOrdersProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   activeTab?: string;
-  searchTerm?: string; // ⬅️ NEW
+  searchTerm?: string;
+  orders?: ApiOrder[];
+  isLoading?: boolean;
+  error?: any;
+  pagination?: { current_page: number; last_page: number; total: number; per_page: number };
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  onStatusUpdate?: (storeOrderId: string, statusData: any) => void;
 }
 
-const statusColors: Record<Order["status"], string> = {
-  "Out for delivery":
+const statusColors: Record<string, string> = {
+  "out_for_delivery":
     "text-[#0000FF] border border-[#0000FF] bg-[#0000FF1A] rounded-lg",
-  Delivered: "text-[#800080] border border-[#800080] bg-[#8000801A] rounded-lg",
-  "Order Placed":
+  "delivered": "text-[#800080] border border-[#800080] bg-[#8000801A] rounded-lg",
+  "placed":
     "text-[#E53E3E] border border-[#E53E3E] bg-[#E53E3E1A] rounded-lg",
-  Uncompleted:
+  "pending":
     "text-[#000000] border border-[#000000] bg-[#0000001A] rounded-lg",
-  Disputed: "text-[#FF0000] border border-[#FF0000] bg-[#FF00001A] rounded-lg",
-  Completed: "text-[#008000] border border-[#008000] bg-[#0080001A] rounded-lg",
+  "disputed": "text-[#FF0000] border border-[#FF0000] bg-[#FF00001A] rounded-lg",
+  "completed": "text-[#008000] border border-[#008000] bg-[#0080001A] rounded-lg",
 };
 
 const LatestOrders: React.FC<LatestOrdersProps> = ({
   title = "Latest Orders",
   onRowSelect,
   activeTab = "All",
-  searchTerm = "", // ⬅️ NEW
+  searchTerm = "",
+  orders = [],
+  isLoading = false,
+  error,
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  onStatusUpdate,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const orders: Order[] = [
-    {
-      id: "1",
-      storeName: "Gadget Haven",
-      productName: "Samsung Galaxy S24 Ultra",
-      price: "₦1,950,500",
-      orderDate: "20-07-2025/09:15PM",
-      status: "Out for delivery",
-    },
-    {
-      id: "2",
-      storeName: "Jumia Electronics",
-      productName: "Sony WH-1000XM5 Headphones",
-      price: "₦420,000",
-      orderDate: "15-07-2025/10:05AM",
-      status: "Delivered",
-    },
-    {
-      id: "3",
-      storeName: "Tech Bros Inc.",
-      productName: "MacBook Air M3",
-      price: "₦1,750,000",
-      orderDate: "18-07-2025/12:30PM",
-      status: "Order Placed",
-    },
-    {
-      id: "4",
-      storeName: "Konga Deals",
-      productName: "Dell XPS 15 Laptop",
-      price: "₦2,250,000",
-      orderDate: "12-07-2025/06:55PM",
-      status: "Uncompleted",
-    },
-    {
-      id: "5",
-      storeName: "Slot Limited",
-      productName: "GoPro HERO12 Black",
-      price: "₦585,000",
-      orderDate: "10-07-2025/02:18PM",
-      status: "Order Placed",
-    },
-    {
-      id: "6",
-      storeName: "Pointek Online",
-      productName: "DJI Mini 4 Pro Drone",
-      price: "₦1,100,000",
-      orderDate: "05-06-2025/08:40AM",
-      status: "Disputed",
-    },
-    {
-      id: "7",
-      storeName: "Franko Trading",
-      productName: "Apple Watch Series 9",
-      price: "₦715,000",
-      orderDate: "28-05-2025/11:59PM",
-      status: "Completed",
-    },
-  ];
+  // Normalize API data to UI format
+  const normalizedOrders: Order[] = useMemo(() => {
+    return orders.map((order: ApiOrder) => ({
+      id: order.store_order_id.toString(),
+      orderNumber: order.order_number,
+      storeName: order.store_name,
+      sellerName: order.seller_name,
+      customerName: order.customer_name,
+      status: order.status,
+      itemsCount: order.items_count,
+      totalAmount: order.total_amount,
+      orderDate: order.created_at,
+      formattedDate: order.formatted_date,
+    }));
+  }, [orders]);
 
   // Combine tab filter + search filter
   const filteredOrders = useMemo(() => {
     const base =
       activeTab === "All"
-        ? orders
-        : orders.filter((o) => o.status === (activeTab as Order["status"]));
+        ? normalizedOrders
+        : normalizedOrders.filter((o) => o.status === activeTab);
     const q = searchTerm.trim().toLowerCase();
     if (!q) return base;
     return base.filter((o) =>
-      [o.storeName, o.productName, o.price, o.orderDate, o.status]
+      [o.storeName, o.sellerName, o.customerName, o.orderNumber, o.status]
         .join(" ")
         .toLowerCase()
         .includes(q)
     );
-  }, [orders, activeTab, searchTerm]);
+  }, [normalizedOrders, activeTab, searchTerm]);
 
   // Reset selection when tab or search changes
   useEffect(() => {
@@ -172,7 +155,19 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">
+                  Loading orders...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-red-500">
+                  Error loading orders. Please try again.
+                </td>
+              </tr>
+            ) : filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
                   No orders found.
@@ -193,21 +188,24 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                     />
                   </td>
                   <td className="p-3 text-left">{order.storeName}</td>
-                  <td className="p-3 text-left">{order.productName}</td>
-                  <td className="p-3 font-bold">{order.price}</td>
-                  <td className="p-3">{order.orderDate}</td>
+                  <td className="p-3 text-left">{order.customerName}</td>
+                  <td className="p-3 font-bold">₦{parseFloat(order.totalAmount).toLocaleString()}</td>
+                  <td className="p-3">{order.formattedDate}</td>
                   <td className="p-3">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        statusColors[order.status]
+                        statusColors[order.status] || statusColors["pending"]
                       }`}
                     >
-                      {order.status}
+                      {order.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </td>
                   <td className="p-3 space-x-2">
                     <button
-                      onClick={handleShowDetails}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowModal(true);
+                      }}
                       className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
                     >
                       Details
@@ -223,7 +221,35 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
         </table>
       </div>
 
-      <OrderDetails isOpen={showModal} onClose={() => setShowModal(false)} />
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">
+            Page {currentPage} of {pagination.last_page}
+          </span>
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage + 1)}
+            disabled={currentPage === pagination.last_page}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      <OrderDetails 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)}
+        orderId={selectedOrder?.id}
+        onStatusUpdate={onStatusUpdate}
+      />
     </div>
   );
 };

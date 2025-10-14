@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import DepositDropdown from "../../../components/DepositsDropdown";
 import TransactionTable from "../customer_mgt/customerDetails/transaction/transactionTable";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminTransactions } from "../../../utils/queries/users";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -28,13 +30,14 @@ function normalizeType(
 
 const Transactions = () => {
   const [activeTab, setActiveTab] = useState<
-    "All" | "Pending" | "Successful" | "Failed"
+    "All" | "pending" | "success" | "completed" | "failed"
   >("All");
-  const tabs: Array<"All" | "Pending" | "Successful" | "Failed"> = [
+  const tabs: Array<"All" | "pending" | "success" | "completed" | "failed"> = [
     "All",
-    "Pending",
-    "Successful",
-    "Failed",
+    "pending",
+    "success", 
+    "completed",
+    "failed",
   ];
 
   // search
@@ -45,6 +48,25 @@ const Transactions = () => {
   const [typeFilter, setTypeFilter] = useState<
     "All" | "Deposit" | "Withdrawals" | "Payments"
   >("All");
+
+  // pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // API data fetching
+  const { data: transactionsData, isLoading, error } = useQuery({
+    queryKey: ['adminTransactions', activeTab, typeFilter, currentPage],
+    queryFn: () => getAdminTransactions(currentPage, activeTab === "All" ? undefined : activeTab, typeFilter === "All" ? undefined : typeFilter.toLowerCase()),
+    keepPreviousData: true,
+  });
+
+  // Extract data
+  const transactions = transactionsData?.data?.transactions || [];
+  const statistics = transactionsData?.data?.statistics || {};
+  const pagination = transactionsData?.data?.pagination;
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -81,69 +103,82 @@ const Transactions = () => {
       <PageHeader title="Transactions" />
 
       <div className="p-5">
-        <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.transaction1} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                All Transactions
-              </span>
-              <span className="font-semibold text-2xl">10</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="text-center text-red-500">
+              <p className="text-sm">Error loading transaction statistics</p>
             </div>
           </div>
-
-          {/* Card 2 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.transaction1} alt="" />
+        ) : (
+          <div className="flex flex-row justify-between items-center">
+            {/* Card 1 - All Transactions */}
+            <div
+              className="flex flex-row rounded-2xl w-90"
+              style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+            >
+              <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+                <img className="w-9 h-9" src={images.transaction1} alt="" />
+              </div>
+              <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+                <span className="font-semibold text-[15px]">
+                  All Transactions
+                </span>
+                <span className="font-semibold text-2xl">
+                  {statistics.total_transactions || 0}
+                </span>
+                <span className="text-[#00000080] text-[13px]">
+                  <span className="text-[#1DB61D]">Total</span> transactions processed
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                Pending Transactions
-              </span>
-              <span className="font-semibold text-2xl">2</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
+
+            {/* Card 2 - Pending Transactions */}
+            <div
+              className="flex flex-row rounded-2xl w-90"
+              style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+            >
+              <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+                <img className="w-9 h-9" src={images.transaction1} alt="" />
+              </div>
+              <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+                <span className="font-semibold text-[15px]">
+                  Pending Transactions
+                </span>
+                <span className="font-semibold text-2xl">
+                  {statistics.pending_transactions || 0}
+                </span>
+                <span className="text-[#00000080] text-[13px]">
+                  <span className="text-[#1DB61D]">Pending</span> transactions
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3 - Successful Transactions */}
+            <div
+              className="flex flex-row rounded-2xl w-90"
+              style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+            >
+              <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+                <img className="w-9 h-9" src={images.transaction1} alt="" />
+              </div>
+              <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+                <span className="font-semibold text-[15px]">
+                  Successful Transactions
+                </span>
+                <span className="font-semibold text-2xl">
+                  {statistics.successful_transactions || 0}
+                </span>
+                <span className="text-[#00000080] text-[13px]">
+                  <span className="text-[#1DB61D]">Successful</span> transactions
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* Card 3 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.transaction1} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                Successful Transactions
-              </span>
-              <span className="font-semibold text-2xl">0</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
@@ -195,6 +230,12 @@ const Transactions = () => {
             statusFilter={activeTab}
             typeFilter={typeFilter}
             searchTerm={debouncedSearch}
+            transactions={transactions}
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            isLoading={isLoading}
+            error={error}
           />
         </div>
       </div>

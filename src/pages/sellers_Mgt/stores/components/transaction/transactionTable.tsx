@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import TransactionsModel from "../../../Modals/transactionsModel";
 
 interface Transaction {
@@ -13,11 +13,21 @@ interface Transaction {
 interface TransactionTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  transactions?: any[];
+  isLoading?: boolean;
+  error?: any;
+  pagination?: any;
+  onPageChange?: (page: number) => void;
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
   title = "Latest Transactions",
   onRowSelect,
+  transactions = [],
+  isLoading = false,
+  error,
+  pagination,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -25,65 +35,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [selectedTransactionTable, setSelectedTransactionTable] =
     useState<Transaction | null>(null);
 
-  // Sample data based on the image
-  const transactions: Transaction[] = [
-    {
-      id: "1",
-      reference: "zxcvbnmkljhgfdsA",
-      amount: "₦1,000",
-      type: "Deposit",
-      date: "18-07-2025/11:30AM",
-      status: "Successful",
-    },
-    {
-      id: "2",
-      reference: "poiuytrewqasdfgh",
-      amount: "₦12,750",
-      type: "Deposit",
-      date: "18-07-2025/09:05AM",
-      status: "Pending",
-    },
-    {
-      id: "3",
-      reference: "mnbvcxzlkjhgfdrp",
-      amount: "₦50,000",
-      type: "Deposit",
-      date: "17-07-2025/01:45PM",
-      status: "Successful",
-    },
-    {
-      id: "4",
-      reference: "asdfghzxcvbnqwe",
-      amount: "₦5,500",
-      type: "Deposit",
-      date: "19-07-2025/02:15PM",
-      status: "Failed",
-    },
-    {
-      id: "5",
-      reference: "qwaszxedcrfvtgby",
-      amount: "₦20,000",
-      type: "Deposit",
-      date: "20-07-2025/07:58PM",
-      status: "Successful",
-    },
-    {
-      id: "6",
-      reference: "qwertyuiopasdfgh",
-      amount: "₦2,500",
-      type: "Deposit",
-      date: "16-07-2025/08:22PM",
-      status: "Failed",
-    },
-    {
-      id: "7",
-      reference: "jhgfdsapoiuytrew",
-      amount: "₦10,000",
-      type: "Deposit",
-      date: "17-07-2025/10:00AM",
-      status: "Successful",
-    },
-  ];
+  // Normalize API data to match our interface
+  const normalizedTransactions: Transaction[] = useMemo(() => {
+    return transactions.map((tx: any) => ({
+      id: String(tx.id),
+      reference: tx.tx_id || 'N/A',
+      amount: tx.amount || 'N0',
+      type: tx.type || 'N/A',
+      date: tx.created_at || 'N/A',
+      status: tx.status === 'Completed' ? 'Successful' : tx.status === 'Pending' ? 'Pending' : 'Failed',
+    }));
+  }, [transactions]);
 
   const handleShowDetails = (transaction: Transaction) => {
     setSelectedTransactionTable(transaction);
@@ -94,13 +56,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     if (selectAll) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(transactions.map((transaction) => transaction.id));
+      setSelectedRows(normalizedTransactions.map((transaction) => transaction.id));
     }
     setSelectAll(!selectAll);
 
     if (onRowSelect) {
       onRowSelect(
-        selectAll ? [] : transactions.map((transaction) => transaction.id)
+        selectAll ? [] : normalizedTransactions.map((transaction) => transaction.id)
       );
     }
   };
@@ -114,7 +76,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     }
 
     setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === transactions.length);
+    setSelectAll(newSelectedRows.length === normalizedTransactions.length);
 
     if (onRowSelect) {
       onRowSelect(newSelectedRows);
@@ -167,11 +129,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {transactions.map((transaction, index) => (
+            {isLoading ? (
+              <tr><td colSpan={7} className="p-6 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E] mx-auto"></div></td></tr>
+            ) : error ? (
+              <tr><td colSpan={7} className="p-6 text-center text-red-500">Failed to load transactions</td></tr>
+            ) : normalizedTransactions.length === 0 ? (
+              <tr><td colSpan={7} className="p-6 text-center text-gray-500">No transactions</td></tr>
+            ) : normalizedTransactions.map((transaction, index) => (
               <tr
                 key={transaction.id}
                 className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === transactions.length - 1 ? "" : "border-b"
+                  index === normalizedTransactions.length - 1 ? "" : "border-b"
                 }`}
               >
                 <td className="p-4">
@@ -221,6 +189,25 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         onClose={() => setShowModal(false)}
         transaction={selectedTransactionTable}
       />
+
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <button onClick={() => onPageChange?.(pagination.current_page - 1)} disabled={pagination.current_page <= 1} className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, pagination.current_page - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              return (
+                <button key={pageNum} onClick={() => onPageChange?.(pageNum)} className={`px-3 py-2 text-sm font-medium rounded-md ${pagination.current_page === pageNum ? 'bg-[#E53E3E] text-white' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>{pageNum}</button>
+              );
+            })}
+            <button onClick={() => onPageChange?.(pagination.current_page + 1)} disabled={pagination.current_page >= pagination.last_page} className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

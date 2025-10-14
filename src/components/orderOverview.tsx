@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import images from "../constants/images";
 
+interface OrderOverviewProps {
+  orderData?: any;
+}
+
 // StatusDropdown component
 const StatusDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -65,20 +69,30 @@ interface TimelineItemProps {
   title: string;
   orderId: string;
   date: string;
+  isCompleted?: boolean;
 }
 
 const TimelineItem: React.FC<TimelineItemProps> = ({
   title,
   orderId,
   date,
+  isCompleted = false,
 }) => {
   return (
     <div className="flex flex-row mt-5 gap-3">
       <div>
-        <img className="w-8 h-8" src={images.tick} alt="" />
+        {isCompleted ? (
+          <img className="w-8 h-8" src={images.tick} alt="" />
+        ) : (
+          <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+          </div>
+        )}
       </div>
       <div className="flex-1">
-        <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
+        <div className={`text-white text-xl font-semibold p-2 rounded-t-2xl ${
+          isCompleted ? 'bg-[#E53E3E]' : 'bg-gray-400'
+        }`}>
           {title}
         </div>
         <div className="border border-[#CDCDCD] rounded-b-2xl">
@@ -96,34 +110,45 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   );
 };
 
-const OrderOverview: React.FC = () => {
-  const timelineData = [
-    {
-      title: "Order Placed",
-      orderId: "ORD-1234DFEKFK",
-      date: "July 19,2025 - 07:22AM",
-    },
-    {
-      title: "Out for delivery",
-      orderId: "ORD-1234DFEKFK",
-      date: "July 19,2025 - 07:22AM",
-    },
-    {
-      title: "Delivered",
-      orderId: "ORD-1234DFEKFK",
-      date: "July 19,2025 - 07:22AM",
-    },
-    {
-      title: "Funds in Escrow Wallet",
-      orderId: "ORD-1234DFEKFK",
-      date: "July 19,2025 - 07:22AM",
-    },
-    {
-      title: "Order Completed",
-      orderId: "ORD-1234DFEKFK",
-      date: "July 19,2025 - 07:22AM",
-    },
+const OrderOverview: React.FC<OrderOverviewProps> = ({ orderData }) => {
+  // Define the complete tracking timeline
+  const allTrackingSteps = [
+    { key: "pending", title: "Pending", order: 1 },
+    { key: "placed", title: "Order Placed", order: 2 },
+    { key: "out_for_delivery", title: "Out for delivery", order: 3 },
+    { key: "delivered", title: "Delivered", order: 4 },
+    { key: "escrow", title: "Funds in Escrow Wallet", order: 5 },
+    { key: "completed", title: "Order Completed", order: 6 },
   ];
+
+  // Get current order status
+  const currentStatus = orderData?.status || "pending";
+  
+  // Determine which steps to show based on current status
+  const getTimelineSteps = () => {
+    const currentStep = allTrackingSteps.find(step => step.key === currentStatus);
+    const currentOrder = currentStep?.order || 1;
+    
+    // Show steps up to current status, plus escrow if delivered or completed
+    const stepsToShow = allTrackingSteps.filter(step => {
+      if (step.order <= currentOrder) return true;
+      if (currentStatus === "delivered" && step.key === "escrow") return true;
+      if (currentStatus === "completed" && step.key === "escrow") return true;
+      return false;
+    });
+
+    return stepsToShow.map(step => {
+      const trackingEvent = orderData?.tracking?.find((event: any) => event.status === step.key);
+      return {
+        title: step.title,
+        orderId: orderData?.order_no || "N/A",
+        date: trackingEvent?.created_at || orderData?.created_at || "N/A",
+        isCompleted: step.order <= currentOrder || (step.key === "escrow" && (currentStatus === "delivered" || currentStatus === "completed"))
+      };
+    });
+  };
+
+  const timelineData = getTimelineSteps();
 
   return (
     <div className="mt-5">
@@ -142,6 +167,7 @@ const OrderOverview: React.FC = () => {
             title={item.title}
             orderId={item.orderId}
             date={item.date}
+            isCompleted={item.isCompleted}
           />
         ))}
       </div>

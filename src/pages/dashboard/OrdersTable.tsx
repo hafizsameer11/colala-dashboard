@@ -1,94 +1,65 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 interface Order {
-  id: string;
-  storeName: string;
-  buyerName: string;
-  productName: string;
-  price: string;
-  orderDate: string;
-  status:
-    | "Order Placed"
-    | "Delivered"
-    | "Completed"
-    | "Out for delivery"
-    | "Disputed";
+  id: string | number;
+  store_name?: string;
+  buyer_name?: string;
+  product_name?: string;
+  price?: string;
+  order_date?: string;
+  status?: string;
+  status_color?: string;
+  // Legacy fields for backward compatibility
+  storeName?: string;
+  buyerName?: string;
+  productName?: string;
+  orderDate?: string;
 }
 
 interface OrdersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  filterStatus?: string; // e.g., "All", "Delivered"
+  onSelectedOrdersChange?: (selectedOrders: Order[]) => void;
+  filterStatus?: string; // e.g., "All", "placed", "delivered"
   searchTerm?: string; // debounced term from parent
+  orders?: Order[]; // Real orders data from API
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({
   title = "Latest Orders",
   onRowSelect,
+  onSelectedOrdersChange,
   filterStatus = "All",
   searchTerm = "",
+  orders = [],
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
-  // Sample data (add a couple more statuses so tabs feel real)
-  const orders: Order[] = [
-    {
-      id: "1",
-      storeName: "Qamardeen Malik",
-      buyerName: "Alex Adewale",
-      productName: "iPhone 16 Pro Max",
-      price: "₦2,400,000",
-      orderDate: "21-07-2025/07:22AM",
-      status: "Order Placed",
-    },
-    {
-      id: "2",
-      storeName: "Sasha Stores",
-      buyerName: "Adam Sandler",
-      productName: "Galaxy S24 Ultra",
-      price: "₦1,950,000",
-      orderDate: "22-07-2025/05:40PM",
-      status: "Delivered",
-    },
-    {
-      id: "3",
-      storeName: "Tech World",
-      buyerName: "Sofia Rossi",
-      productName: "MacBook Air M3",
-      price: "₦3,100,000",
-      orderDate: "22-07-2025/10:12AM",
-      status: "Completed",
-    },
-    {
-      id: "4",
-      storeName: "Gadget Hub",
-      buyerName: "David Chen",
-      productName: "AirPods Pro 2",
-      price: "₦220,000",
-      orderDate: "23-07-2025/03:03PM",
-      status: "Out for delivery",
-    },
-    {
-      id: "5",
-      storeName: "Qamardeen Malik",
-      buyerName: "Emma Watson",
-      productName: "Apple Watch Ultra 2",
-      price: "₦980,000",
-      orderDate: "24-07-2025/11:05AM",
-      status: "Disputed",
-    },
-  ];
+  // Helper function to normalize order data
+  const normalizeOrder = (order: Order): Order => ({
+    id: order.id,
+    storeName: order.store_name || order.storeName || 'Unknown Store',
+    buyerName: order.buyer_name || order.buyerName || 'Unknown Buyer',
+    productName: order.product_name || order.productName || 'Unknown Product',
+    price: order.price || '₦0.00',
+    orderDate: order.order_date || order.orderDate || 'Unknown Date',
+    status: order.status || 'Unknown Status',
+  });
+
+  // Use real orders data or fallback to empty array
+  const normalizedOrders = orders.map(normalizeOrder);
 
   // FILTER + SEARCH (case-insensitive includes on key fields)
   const filteredOrders = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return orders
-      .filter((o) =>
-        filterStatus === "All"
-          ? true
-          : o.status === (filterStatus as Order["status"])
-      )
+    return normalizedOrders
+      .filter((o) => {
+        if (filterStatus === "All") {
+          return true;
+        }
+        return o.status?.toLowerCase() === filterStatus.toLowerCase();
+      })
       .filter((o) => {
         if (!term) return true;
         const haystack = [
@@ -103,7 +74,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           .toLowerCase();
         return haystack.includes(term);
       });
-  }, [orders, filterStatus, searchTerm]);
+  }, [normalizedOrders, filterStatus, searchTerm]);
 
   // when filter/search changes, reset select-all to reflect current view
   React.useEffect(() => {
@@ -114,14 +85,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   }, [filterStatus, searchTerm]); // eslint-disable-line
 
+  // Remove the problematic useEffect hooks that cause infinite loops
+  // We'll handle the selection in the event handlers instead
+
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedRows([]);
       onRowSelect?.([]);
+      if (onSelectedOrdersChange) {
+        onSelectedOrdersChange([]);
+      }
     } else {
       const visibleIds = filteredOrders.map((o) => o.id);
       setSelectedRows(visibleIds);
       onRowSelect?.(visibleIds);
+      if (onSelectedOrdersChange) {
+        onSelectedOrdersChange(filteredOrders);
+      }
     }
     setSelectAll(!selectAll);
   };
@@ -135,20 +115,28 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
     setSelectedRows(newSelectedRows);
     setSelectAll(newSelectedRows.length === filteredOrders.length);
+    
+    // Call parent functions directly
     onRowSelect?.(newSelectedRows);
+    if (onSelectedOrdersChange) {
+      const selectedOrders = filteredOrders.filter(order => 
+        newSelectedRows.includes(String(order.id))
+      );
+      onSelectedOrdersChange(selectedOrders);
+    }
   };
 
   const getStatusStyle = (status: Order["status"]) => {
-    switch (status) {
-      case "Order Placed":
+    switch (status?.toLowerCase()) {
+      case "placed":
         return "bg-[#E53E3E1A] text-[#E53E3E] border border-[#E53E3E]";
-      case "Delivered":
-        return "bg-[#8000801A] text-[#800080] border border-[#800080]";
-      case "Completed":
-        return "bg-[#0080001A] text-[#008000] border border-[#008000]";
-      case "Out for delivery":
+      case "pending":
         return "bg-[#1E90FF1A] text-[#1E90FF] border border-[#1E90FF]";
-      case "Disputed":
+      case "delivered":
+        return "bg-[#8000801A] text-[#800080] border border-[#800080]";
+      case "completed":
+        return "bg-[#0080001A] text-[#008000] border border-[#008000]";
+      case "disputed":
         return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]";
       default:
         return "bg-gray-100 text-gray-600 border border-gray-300";

@@ -9,7 +9,19 @@ interface FormData {
   approvalStatus: string;
 }
 
-const Basic: React.FC = () => {
+interface BasicProps {
+  editingPlan?: any;
+  onCreatePlan?: (planData: any) => void;
+  onUpdatePlan?: (planData: any) => void;
+  isLoading?: boolean;
+}
+
+const Basic: React.FC<BasicProps> = ({ 
+  editingPlan, 
+  onCreatePlan, 
+  onUpdatePlan, 
+  isLoading = false 
+}) => {
   const [formData, setFormData] = useState<FormData>({
     planName: "",
     monthlyPrice: "",
@@ -25,28 +37,37 @@ const Basic: React.FC = () => {
   const [errors, setErrors] = useState<{ approvalStatus?: string }>({});
   const approvalStatus = ["Approved", "Pending", "Rejected"];
 
-  // Load data from localStorage on component mount
+  // Initialize form with editing plan data
   useEffect(() => {
-    const savedData = localStorage.getItem("standardPlanData");
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setFormData(parsedData);
-      } catch (error) {
-        console.error("Error loading saved data:", error);
-      }
+    if (editingPlan) {
+      setFormData({
+        planName: editingPlan.name || "",
+        monthlyPrice: editingPlan.price || "",
+        benefits: editingPlan.features ? Object.values(editingPlan.features) : ["", "", ""],
+        approvalStatus: "Approved", // Default for existing plans
+      });
     }
-  }, []);
-
-  // Save data to localStorage whenever formData changes
-  useEffect(() => {
-    localStorage.setItem("standardPlanData", JSON.stringify(formData));
-  }, [formData]);
+  }, [editingPlan]);
 
   const handleSave = () => {
-    // Handle save logic for Standard plan
-    console.log("Standard plan saved:", formData);
-    // You can add additional save logic here
+    const planData = {
+      name: formData.planName,
+      price: parseFloat(formData.monthlyPrice) || 0,
+      currency: "NGN",
+      duration_days: 30,
+      features: formData.benefits.reduce((acc, benefit, index) => {
+        if (benefit.trim()) {
+          acc[`feature${index + 1}`] = benefit.trim();
+        }
+        return acc;
+      }, {} as Record<string, string>),
+    };
+
+    if (editingPlan) {
+      onUpdatePlan?.(planData);
+    } else {
+      onCreatePlan?.(planData);
+    }
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
@@ -211,9 +232,10 @@ const Basic: React.FC = () => {
 
       <button
         onClick={handleSave}
-        className="bg-[#E53E3E] text-white w-full py-3.5 cursor-pointer rounded-lg hover:bg-[#D32F2F] transition-colors mt-5"
+        disabled={isLoading}
+        className="bg-[#E53E3E] text-white w-full py-3.5 cursor-pointer rounded-lg hover:bg-[#D32F2F] transition-colors mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Save
+        {isLoading ? 'Saving...' : (editingPlan ? 'Update Plan' : 'Create Plan')}
       </button>
     </div>
   );

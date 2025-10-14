@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LevelDropdown from "../../../components/levelDropdown";
 import PageHeader from "../../../components/PageHeader";
 import StoreKYCTable from "./components/storeKYCTable";
+import { getAdminStores } from "../../../utils/queries/users";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -30,6 +32,20 @@ const StoreKYC = () => {
   // search (debounced)
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+  
+  // pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Fetch stores data
+  const { data: storesData, isLoading, error } = useQuery({
+    queryKey: ['adminStores', activeTab, selectedLevel, currentPage],
+    queryFn: () => getAdminStores(currentPage, activeTab, selectedLevel),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const stores = storesData?.data?.stores || [];
+  const statistics = storesData?.data?.statistics || {};
+  const pagination = storesData?.data?.pagination || {};
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -38,7 +54,7 @@ const StoreKYC = () => {
         return (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
               isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
             }`}
@@ -59,6 +75,17 @@ const StoreKYC = () => {
     else if (level === "Level 1") setSelectedLevel(1);
     else if (level === "Level 2") setSelectedLevel(2);
     else if (level === "Level 3") setSelectedLevel(3);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Reset pagination when tab changes
+  const handleTabChange = (tab: "All" | "Pending" | "Successful" | "Rejected") => {
+    setActiveTab(tab);
+    setCurrentPage(1);
   };
 
   return (
@@ -77,7 +104,7 @@ const StoreKYC = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Stores</span>
-              <span className="font-semibold text-2xl">1000</span>
+              <span className="font-semibold text-2xl">{statistics.total_stores || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -95,7 +122,7 @@ const StoreKYC = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Pending KYC</span>
-              <span className="font-semibold text-2xl">800</span>
+              <span className="font-semibold text-2xl">{statistics.pending_kyc || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -113,7 +140,7 @@ const StoreKYC = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Approved KYC</span>
-              <span className="font-semibold text-2xl">200</span>
+              <span className="font-semibold text-2xl">{statistics.approved_kyc || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -166,9 +193,16 @@ const StoreKYC = () => {
         {/* table with filters */}
         <div>
           <StoreKYCTable
+            stores={stores}
+            statistics={statistics}
+            pagination={pagination}
             levelFilter={selectedLevel}
             statusFilter={activeTab}
             searchTerm={debouncedSearch}
+            isLoading={isLoading}
+            error={error}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
           />
         </div>
       </div>

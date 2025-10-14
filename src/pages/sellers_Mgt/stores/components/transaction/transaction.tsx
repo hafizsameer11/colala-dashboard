@@ -3,10 +3,25 @@ import { useState } from "react";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import DepositDropdown from "../../../../../components/DepositsDropdown";
 import TransactionTable from "./transactionTable";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerTransactions } from "../../../../../utils/queries/users";
 
 const Transaction = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const { storeId } = useParams<{ storeId: string }>();
   const tabs = ["All", "Pending", "Successful", "Failed"];
+
+  const { data: transactionsData, isLoading, error } = useQuery({
+    queryKey: ['sellerTransactions', storeId, currentPage],
+    queryFn: () => getSellerTransactions(storeId!, currentPage),
+    enabled: !!storeId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const transactions = transactionsData?.data?.data || [];
+  const pagination = transactionsData?.data;
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -51,7 +66,7 @@ const Transaction = () => {
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
             <span className="font-semibold text-[15px]">All Transactions</span>
-            <span className="font-semibold text-2xl">10</span>
+            <span className="font-semibold text-2xl">{pagination?.total || 0}</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
               month
@@ -72,7 +87,7 @@ const Transaction = () => {
             <span className="font-semibold text-[15px]">
               Pending Transactions
             </span>
-            <span className="font-semibold text-2xl">2</span>
+            <span className="font-semibold text-2xl">{transactions.filter(t => t.status === 'Pending').length}</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
               month
@@ -93,7 +108,7 @@ const Transaction = () => {
             <span className="font-semibold text-[15px]">
               Successful Transactions
             </span>
-            <span className="font-semibold text-2xl">0</span>
+            <span className="font-semibold text-2xl">{transactions.filter(t => t.status === 'Completed').length}</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
               month
@@ -146,7 +161,13 @@ const Transaction = () => {
         </div>
       </div>
       <div>
-        <TransactionTable />
+        <TransactionTable 
+          transactions={transactions}
+          isLoading={isLoading}
+          error={error}
+          pagination={pagination}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

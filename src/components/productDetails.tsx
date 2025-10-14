@@ -9,6 +9,7 @@ interface ProductDetailsProps {
   setProductTab: (tab: "overview" | "description" | "reviews") => void;
   quantity: number;
   setQuantity: (quantity: number) => void;
+  productData?: any;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({
@@ -16,39 +17,50 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   setProductTab,
   quantity,
   setQuantity,
+  productData,
 }) => {
   return (
     <div className="mt-5">
       {/* Video Section */}
-      <div className="relative rounded-2xl overflow-hidden">
-        <img
-          src={images.ivideo}
-          alt="Product video thumbnail"
-          className="w-full h-auto object-cover rounded-2xl"
-        />
-        <button
-          type="button"
-          className="absolute inset-0 flex items-center justify-center cursor-pointer"
-          aria-label="Play product video"
-        >
-          <span className="bg-[#000000CC] rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
-            <img className="w-8 h-8" src={images.video} alt="Play" />
-          </span>
-        </button>
-      </div>
+      {productData?.compelete?.product?.video && (
+        <div className="relative rounded-2xl overflow-hidden">
+          <img
+            src={`https://colala.hmstech.xyz/storage/${productData.compelete.product.video}`}
+            alt="Product video thumbnail"
+            className="w-full h-auto object-cover rounded-2xl"
+            onError={(e) => {
+              e.currentTarget.src = images.ivideo;
+            }}
+          />
+          <button
+            type="button"
+            className="absolute inset-0 flex items-center justify-center cursor-pointer"
+            aria-label="Play product video"
+          >
+            <span className="bg-[#000000CC] rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
+              <img className="w-8 h-8" src={images.video} alt="Play" />
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Product Images */}
-      <div className="flex flex-row mt-5 gap-3">
-        <div>
-          <img src={images.i1} alt="" />
+      {productData?.compelete?.images && productData.compelete.images.length > 0 && (
+        <div className="flex flex-row mt-5 gap-3">
+          {productData.compelete.images.slice(0, 3).map((image: any, index: number) => (
+            <div key={index}>
+              <img 
+                src={`https://colala.hmstech.xyz/storage/${image.path}`}
+                alt={`Product image ${index + 1}`}
+                className="w-full h-auto object-cover rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.src = images[`i${index + 1}` as keyof typeof images] || images.i1;
+                }}
+              />
+            </div>
+          ))}
         </div>
-        <div>
-          <img src={images.i2} alt="" />
-        </div>
-        <div>
-          <img src={images.i3} alt="" />
-        </div>
-      </div>
+      )}
 
       {/* Tab Buttons */}
       <div className="flex gap-2 pt-4">
@@ -90,15 +102,19 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       {/* Tab Content */}
       <div className="mt-5">
         {productTab === "overview" && (
-          <ProductOverview quantity={quantity} setQuantity={setQuantity} />
+          <ProductOverview 
+            quantity={quantity} 
+            setQuantity={setQuantity} 
+            productData={productData}
+          />
         )}
 
         {productTab === "description" && (
-          <ProductDescription />
+          <ProductDescription productData={productData} />
         )}
 
         {productTab === "reviews" && (
-          <ProductReviews />
+          <ProductReviews productData={productData} />
         )}
       </div>
     </div>

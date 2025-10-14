@@ -1,0 +1,4410 @@
+{
+	"info": {
+		"_postman_id": "9a3638d6-92e2-42c4-b15e-7fc1f95035fd",
+		"name": "Colala API",
+		"description": "For seller use same route in case of  \nChats\n\nFeed",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38646127",
+		"_collection_link": "https://hmstech-4596.postman.co/workspace/HMSTECH-Workspace~d2c07da4-4c10-4856-8b37-d4b8a8dbfefe/collection/38646127-9a3638d6-92e2-42c4-b15e-7fc1f95035fd?action=share&source=collection_link&creator=38646127"
+	},
+	"item": [
+
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Categories",
+					"item": [
+						{
+							"name": "get Categories",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/categories",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"categories"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "create",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "title",
+											"value": "Services",
+											"type": "text"
+										},
+										{
+											"key": "color",
+											"value": "#FFFF0033",
+											"type": "text"
+										},
+										{
+											"key": "image",
+											"type": "file",
+											"src": "postman-cloud:///1f096541-8bc5-43a0-b258-047dde867f0b"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/create-category",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"create-category"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Subcategory",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "title",
+											"value": "Car",
+											"type": "text"
+										},
+										{
+											"key": "color",
+											"value": "#C7E1E1",
+											"type": "text"
+										},
+										{
+											"key": "image",
+											"type": "file",
+											"src": "postman-cloud:///1f095493-1fe0-4e50-9c0a-7a4a8f40215d"
+										},
+										{
+											"key": "parent_id",
+											"value": "17",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/create-category",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"create-category"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Subcategory Category",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "title",
+											"value": "Kia",
+											"type": "text"
+										},
+										{
+											"key": "color",
+											"value": "#C7E1E1",
+											"type": "text"
+										},
+										{
+											"key": "image",
+											"type": "file",
+											"src": "postman-cloud:///1f095493-1fe0-4e50-9c0a-7a4a8f40215d"
+										},
+										{
+											"key": "parent_id",
+											"value": "18",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/create-category",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"create-category"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Category",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "title",
+											"value": "New Title",
+											"type": "text"
+										},
+										{
+											"key": "image",
+											"type": "file",
+											"src": "postman-cloud:///1f095493-1fe0-4e50-9c0a-7a4a8f40215d"
+										},
+										{
+											"key": "color",
+											"value": "red",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/update-category/1",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"update-category",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Brands",
+					"item": [
+						{
+							"name": "Get All Brands",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/brands",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"brands"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Brand",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name",
+											"value": "Brand Name",
+											"type": "text"
+										},
+										{
+											"key": "description",
+											"value": "This is the description",
+											"type": "text"
+										},
+										{
+											"key": "logo",
+											"type": "file",
+											"src": "postman-cloud:///1f09cdfa-30a3-42c0-8cf8-41649a61f538"
+										},
+										{
+											"key": "status",
+											"value": "active",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/brands",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"brands"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Brand",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name",
+											"value": "Brand Namess",
+											"type": "text"
+										},
+										{
+											"key": "description",
+											"value": "This is the descriptions",
+											"type": "text"
+										},
+										{
+											"key": "logo",
+											"type": "file",
+											"src": "postman-cloud:///1f095493-1fe0-4e50-9c0a-7a4a8f40215d"
+										},
+										{
+											"key": "status",
+											"value": "active",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/brands/1",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"brands",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Brand",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colala_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/brands/1",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"brands",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Temp",
+					"item": [
+						{
+							"name": "Dashboard",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/dashboard",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"dashboard"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Buyer Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/buyer-stats",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"buyer-stats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Seller Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/seller-stats",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"seller-stats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Site Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/site-stats",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"site-stats"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Temp",
+					"item": [
+						{
+							"name": "Get All Users",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/stats",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"stats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Search",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/search",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"search"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Bulk",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"user_ids\": [1,2],\r\n    \"action\": \"activate\"//activate,deactivate,delete\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/bulk-action",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"bulk-action"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Profile",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/profile",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Order",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/orders",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"orders"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User - Order Detail data",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/orders/10/details",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"orders",
+										"10",
+										"details"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update User Order Status",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"status\": \"order_placed\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/orders/10/status",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"orders",
+										"10",
+										"status"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User All Chat",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/chats",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"chats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Chat Filter",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/chats/filter",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"chats",
+										"filter"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User - Chat - Bulk action",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"chat_ids\": [\"28\"],\r\n    \"action\": \"mark_read\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/chats/bulk-action",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"chats",
+										"bulk-action"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Chat Detail",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/chats/28/details",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"chats",
+										"28",
+										"details"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Send Message To Chat",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"message\": \"abc\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/chats/28/send",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"chats",
+										"28",
+										"send"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "User Transaction",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/transactions",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"transactions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Bulk Action User Transactions",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"transaction_ids\": [1,2],\r\n    \"action\": \"approve\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{Colal_live_starting}}/api/admin/users/3/transactions/bulk-action",
+									"host": [
+										"{{Colal_live_starting}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"users",
+										"3",
+										"transactions",
+										"bulk-action"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Dashboard & Overview",
+					"item": [
+						{
+							"name": "Get Dashboard Data",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/dashboard",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"dashboard"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Buyer Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Colal_Seller_Tokken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/buyer-stats",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"buyer-stats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Seller Stats",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/seller-stats",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"seller-stats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Site Stats",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/site-stats",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"site-stats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Latest Chats",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/latest-chats",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"latest-chats"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Latest Orders",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/latest-orders?status=all&search=",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"latest-orders"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "all",
+											"description": "Filter by status: all, pending, processing, completed, etc."
+										},
+										{
+											"key": "search",
+											"value": "",
+											"description": "Search term for orders"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Filter Orders",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/admin/orders/filter?status=all&search=",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"orders",
+										"filter"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "all",
+											"description": "Filter by status"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"description": "Search term"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Bulk Action on Orders",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"order_ids\": [1, 2, 3],\n  \"action\": \"update_status\",\n  \"new_status\": \"completed\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/admin/orders/bulk-action",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"orders",
+										"bulk-action"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Buyer Part",
+					"item": [
+						{
+							"name": "Order Management",
+							"item": [
+								{
+									"name": "Get All Orders",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/orders?status",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders"
+											],
+											"query": [
+												{
+													"key": "status",
+													"value": null
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Order Details",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/orders/1/details",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"1",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update Order Status",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"status\": \"completed\",\n  \"notes\": \"Order completed successfully\",\n  \"delivery_code\": \"DEL123\"\n}"
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/orders/1/status",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"1",
+												"status"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Order Tracking",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/orders/1/tracking",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"1",
+												"tracking"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Bulk Action on Orders",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"action\": \"update_status\",\n  \"order_ids\": [1, 2, 3],\n  \"status\": \"completed\"\n}"
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/orders/bulk-action",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Order Statistics",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/orders/statistics",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"statistics"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "User Management (Buyers)",
+							"item": [
+								{
+									"name": "Get All Users",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Stats",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/stats",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"stats"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Search Users",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/search?search=john",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"search"
+											],
+											"query": [
+												{
+													"key": "search",
+													"value": "john",
+													"description": "Search term (minimum 2 characters)"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Bulk Action on Users",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"user_ids\": [1, 2, 3],\n  \"action\": \"activate\"\n}"
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/users/bulk-action",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Profile",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/3/profile",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"3",
+												"profile"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Orders",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/3/orders",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"3",
+												"orders"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Order Filter",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/users/3/orders/filter",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"users",
+												"3",
+												"orders",
+												"filter"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Order Bulk action",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"order_ids\": [\"1\"],\r\n    \"action\": \"update_status\",\r\n    \"new_status\": \"active\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/users/3/orders/bulk-action",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"users",
+												"3",
+												"orders",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Order Details",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/orders/55/detaila",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"55",
+												"detaila"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update Order Status",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"status\": \"completed\",\n  \"notes\": \"Order completed successfully\",\n  \"delivery_code\": \"DEL123\"\n}"
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/orders/5/status",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"orders",
+												"5",
+												"status"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Chats",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/chats",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"chats"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Chat Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/users/3/chats/28/details",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"users",
+												"3",
+												"chats",
+												"28",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "User Chat Filter",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/users/3/chats/filter",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"users",
+												"3",
+												"chats",
+												"filter"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Transactions",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/transactions",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"transactions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "User Transaction Filter",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/users/55/transactions/filter",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"users",
+												"55",
+												"transactions",
+												"filter"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Bulk Action User Transactions",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transaction_ids\": [1,2],\r\n    \"action\": \"approve\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/users/3/transactions/bulk-action",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"users",
+												"3",
+												"transactions",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "User Transaction Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin//users/55/transactions/1/details",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"",
+												"users",
+												"55",
+												"transactions",
+												"1",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Posts",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Post Filter",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts/filter",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts",
+												"filter"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Post Bulk Action",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"post_ids\": [\"1\",\"2\"],\r\n    \"action\": \"approve\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts/bulk-action",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Post Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts/1/details",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts",
+												"1",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Post Comments",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts/1/comments",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts",
+												"1",
+												"comments"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Delete Post Comment",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts/1/comments/1",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts",
+												"1",
+												"comments",
+												"1"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Delete Post",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/users/55/posts/1",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"55",
+												"posts",
+												"1"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Create New User",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "formdata",
+											"formdata": [
+												{
+													"key": "full_name",
+													"value": "John Doe",
+													"description": "User's full name",
+													"type": "text"
+												},
+												{
+													"key": "user_name",
+													"value": "johndoe",
+													"description": "Username",
+													"type": "text"
+												},
+												{
+													"key": "email",
+													"value": "john@example.com",
+													"description": "Email address",
+													"type": "text"
+												},
+												{
+													"key": "phone",
+													"value": "+1234567890",
+													"description": "Phone number",
+													"type": "text"
+												},
+												{
+													"key": "password",
+													"value": "password123",
+													"description": "Password (min 6 characters)",
+													"type": "text"
+												},
+												{
+													"key": "country",
+													"value": "Nigeria",
+													"description": "Country",
+													"type": "text"
+												},
+												{
+													"key": "state",
+													"value": "Lagos",
+													"description": "State",
+													"type": "text"
+												},
+												{
+													"key": "role",
+													"value": "buyer",
+													"description": "User role: buyer or seller",
+													"type": "text"
+												},
+												{
+													"key": "referral_code",
+													"value": "REF123",
+													"description": "Referral code (optional)",
+													"type": "text"
+												},
+												{
+													"key": "profile_picture",
+													"description": "Profile picture (image file)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/unnamed.png"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/users",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update User",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "formdata",
+											"formdata": [
+												{
+													"key": "full_name",
+													"value": "John Doe Updated",
+													"description": "Updated full name",
+													"type": "text"
+												},
+												{
+													"key": "email",
+													"value": "john.updated@example.com",
+													"description": "Updated email",
+													"type": "text"
+												},
+												{
+													"key": "phone",
+													"value": "+1234567891",
+													"description": "Updated phone",
+													"type": "text"
+												},
+												{
+													"key": "password",
+													"value": "newpassword123",
+													"description": "New password (optional)",
+													"type": "text"
+												},
+												{
+													"key": "role",
+													"value": "buyer",
+													"description": "User role",
+													"type": "text"
+												},
+												{
+													"key": "is_active",
+													"value": "true",
+													"description": "Active status",
+													"type": "text"
+												},
+												{
+													"key": "country",
+													"value": "Nigeria",
+													"description": "Country",
+													"type": "text"
+												},
+												{
+													"key": "state",
+													"value": "Lagos",
+													"description": "State",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/users/3",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"3"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Delete User",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/users/3",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"users",
+												"3"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Buyer Order Related",
+							"item": [
+								{
+									"name": "Buyer Order Filter",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-orders/filter",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-orders",
+												"filter"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Buyer Order",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-orders",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-orders"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Order Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-orders/1/details",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-orders",
+												"1",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Bulk Action",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"order_ids\": [\"1\"],\r\n    \"action\": \"update_status\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-orders/bulk-action",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-orders",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Order Change Status",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"status\": \"pending\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-orders/1/status",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-orders",
+												"1",
+												"status"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Order Tracking History",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-orders/1/tracking",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-orders",
+												"1",
+												"tracking"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Buyer Transactions",
+							"item": [
+								{
+									"name": "Buyer - Transactions",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-transactions",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-transactions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Transactions",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-transactions/filter",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-transactions",
+												"filter"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Bulk Action",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"transaction_ids\": [\"1\"],\r\n    \"action\":\"reject\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-transactions/bulk-action",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-transactions",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Transaction Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-transactions/1/details",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-transactions",
+												"1",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Transaction Status",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"status\": \"successful\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-transactions/1/status",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-transactions",
+												"1",
+												"status"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Buyer Analytics",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/admin/buyer-transactions/analytics",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"buyer-transactions",
+												"analytics"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Seller Part",
+					"item": [
+						{
+							"name": "User Management (Seller)",
+							"item": [
+								{
+									"name": "Get All Users",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/seller-users",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"seller-users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Stats",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/seller-users/stats",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"seller-users",
+												"stats"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Search Users",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/seller-users/search?search=john",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"seller-users",
+												"search"
+											],
+											"query": [
+												{
+													"key": "search",
+													"value": "john"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Bulk Action on Users",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"user_ids\": [1, 2, 3],\n  \"action\": \"activate\"\n}"
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/seller-users/bulk-action",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"seller-users",
+												"bulk-action"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User Profile",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/seller-users/54/details",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"seller-users",
+												"54",
+												"details"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Seller User Transactions",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/seller-users/54/transactions",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"seller-users",
+												"54",
+												"transactions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Toggle Seller",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"action\": \"unblock\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/seller-users/54/toggle-block",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"seller-users",
+												"54",
+												"toggle-block"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Remove Seller",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "DELETE",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"action\": \"unblock\"\r\n}"
+										},
+										"url": {
+											"raw": "{{Colal_live_starting}}/api/admin/seller-users/54/remove",
+											"host": [
+												"{{Colal_live_starting}}"
+											],
+											"path": [
+												"api",
+												"admin",
+												"seller-users",
+												"54",
+												"remove"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Seller Creation (3-Level Onboarding) Copy",
+							"item": [
+								{
+									"name": "Level 1 Complete (Basic + Media + Categories + Social)",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "formdata",
+											"formdata": [
+												{
+													"key": "store_name",
+													"value": "My Store",
+													"description": "Store name",
+													"type": "text"
+												},
+												{
+													"key": "store_email",
+													"value": "store33@example.com",
+													"description": "Store email",
+													"type": "text"
+												},
+												{
+													"key": "store_phone",
+													"value": "+1234567890",
+													"description": "Store phone",
+													"type": "text"
+												},
+												{
+													"key": "password",
+													"value": "password123",
+													"description": "Password (min 8 characters)",
+													"type": "text"
+												},
+												{
+													"key": "store_location",
+													"value": "Lagos, Nigeria",
+													"description": "Store location",
+													"type": "text"
+												},
+												{
+													"key": "referral_code",
+													"value": "REF123",
+													"description": "Referral code (optional)",
+													"type": "text"
+												},
+												{
+													"key": "profile_image",
+													"description": "Store profile image (jpeg,png,jpg,gif, max 2MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/Banne.jpg"
+												},
+												{
+													"key": "banner_image",
+													"description": "Store banner image (jpeg,png,jpg,gif, max 2MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/Store.jpeg"
+												},
+												{
+													"key": "show_phone_on_profile",
+													"value": "1",
+													"description": "Show phone on profile",
+													"type": "text"
+												},
+												{
+													"key": "categories[]",
+													"value": "1",
+													"description": "Array of category IDs",
+													"type": "text"
+												},
+												{
+													"key": "categories[]",
+													"value": "2",
+													"type": "text"
+												},
+												{
+													"key": "social_links[0][type]",
+													"value": "instagram",
+													"description": "JSON array of social links",
+													"type": "text"
+												},
+												{
+													"key": "social_links[0][url]",
+													"value": "https://instagram.com/mystore",
+													"type": "text"
+												},
+												{
+													"key": "social_links[1][type]",
+													"value": "facebook",
+													"type": "text"
+												},
+												{
+													"key": "social_links[1][url]",
+													"value": "https://facebook.com/mystore",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/create-seller/level1/complete",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"create-seller",
+												"level1",
+												"complete"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Level 2 Complete (Business Details + Documents)",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "formdata",
+											"formdata": [
+												{
+													"key": "store_id",
+													"value": "1",
+													"description": "Store ID",
+													"type": "text"
+												},
+												{
+													"key": "business_name",
+													"value": "My Business Ltd",
+													"description": "Business name",
+													"type": "text"
+												},
+												{
+													"key": "business_type",
+													"value": "Limited Liability Company",
+													"description": "Business type",
+													"type": "text"
+												},
+												{
+													"key": "nin_number",
+													"value": "12345678901",
+													"description": "NIN number",
+													"type": "text"
+												},
+												{
+													"key": "cac_number",
+													"value": "RC123456789",
+													"description": "CAC number (optional)",
+													"type": "text"
+												},
+												{
+													"key": "nin_document",
+													"description": "NIN document (pdf,jpeg,png,jpg, max 5MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/Banne.jpg"
+												},
+												{
+													"key": "cac_document",
+													"description": "CAC document (pdf,jpeg,png,jpg, max 5MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/Banne.jpg"
+												},
+												{
+													"key": "utility_bill",
+													"description": "Utility bill (pdf,jpeg,png,jpg, max 5MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/Banne.jpg"
+												},
+												{
+													"key": "store_video",
+													"description": "Store video (mp4,avi,mov, max 10MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/birthday.mp4"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/create-seller/level2/complete",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"create-seller",
+												"level2",
+												"complete"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Level 3 Complete (Physical Store + Utility + Address + Delivery + Theme)",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "formdata",
+											"formdata": [
+												{
+													"key": "store_id",
+													"value": "1",
+													"description": "Store ID",
+													"type": "text"
+												},
+												{
+													"key": "has_physical_store",
+													"value": "true",
+													"description": "Has physical store",
+													"type": "text"
+												},
+												{
+													"key": "store_video",
+													"description": "Store video (mp4,avi,mov, max 10MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/birthday.mp4"
+												},
+												{
+													"key": "utility_bill",
+													"description": "Utility bill (pdf,jpeg,png,jpg, max 5MB)",
+													"type": "file",
+													"src": "/C:/Users/abuba/Pictures/Banne.jpg"
+												},
+												{
+													"key": "theme_color",
+													"value": "#FF5733",
+													"description": "Theme color (hex format)",
+													"type": "text"
+												},
+												{
+													"key": "addresses",
+													"value": "[{\"state\":\"Lagos\",\"local_government\":\"Ikeja\",\"full_address\":\"123 Main Street, Ikeja\",\"is_main\":true,\"opening_hours\":{}}]",
+													"description": "JSON array of addresses",
+													"type": "text"
+												},
+												{
+													"key": "delivery_pricing",
+													"value": "[{\"state\":\"Lagos\",\"local_government\":\"Ikeja\",\"variant\":\"Standard\",\"price\":500,\"is_free\":false}]",
+													"description": "JSON array of delivery pricing",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/create-seller/level3/complete",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"create-seller",
+												"level3",
+												"complete"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Store Data Retrival",
+							"item": [
+								{
+									"name": "Addresses",
+									"item": [
+										{
+											"name": "Get All Store Address",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/create-seller/addresses",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"create-seller",
+														"addresses"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Update Store Address",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\",\r\n    \"state\": \"USA\",\r\n    \"local_government\": \"Usa\",\r\n    \"full_address\": \"asd\",\r\n    \"is_main\": 1\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/create-seller/addresses/1",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"create-seller",
+														"addresses",
+														"1"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Delete Address Store",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "DELETE",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/create-seller/addresses/1",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"create-seller",
+														"addresses",
+														"1"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Delivery Pricing",
+									"item": [
+										{
+											"name": "Store Delivery Pricing",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/create-seller/delivery-pricing",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"create-seller",
+														"delivery-pricing"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Update Store Delivery Pricing",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\",\r\n    \"state\": \"USA\",\r\n    \"local_government\": \"Usa\",\r\n    \"variant\":\"avx\",\r\n    \"price\": \"999\",\r\n    \"is_free\": 1\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/create-seller/delivery-pricing/1",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"create-seller",
+														"delivery-pricing",
+														"1"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Delete Store Delivery Pricing",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "DELETE",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/create-seller/delivery-pricing/1",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"create-seller",
+														"delivery-pricing",
+														"1"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Tabs Data",
+									"item": [
+										{
+											"name": "Seller Details",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}"
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Orders Data",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/orders",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"orders"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Chats",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/chats",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"chats"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Transactions",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/transactions",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"transactions"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Social Feed",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/social-feed",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"social-feed"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Products",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/products",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"products"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Get Announcemnts",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/announcements",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"announcements"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Activities",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"store_id\": \"1\"\r\n}"
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/activities",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"activities"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Update Wallet",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"action\": \"topup\",\r\n    \"amount\": \"100\",\r\n    \"description\": \"This is the descriptions\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/wallet",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"wallet"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Seller Toggle",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"action\": \"unblock\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1/toggle-block",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1",
+														"toggle-block"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Delete Seller",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{Colal_Seller_Tokken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "DELETE",
+												"header": [],
+												"url": {
+													"raw": "{{base_url}}/admin/seller-details/1",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"admin",
+														"seller-details",
+														"1"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Set Approval Status",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"store_id\": 1,\n  \"approval_status\": \"approved\"\n}"
+										},
+										"url": {
+											"raw": "{{base_url}}/admin/create-seller/set-approval-status",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"create-seller",
+												"set-approval-status"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Seller Progress",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/create-seller/progress?store_id=1",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"create-seller",
+												"progress"
+											],
+											"query": [
+												{
+													"key": "store_id",
+													"value": "1",
+													"description": "Store ID"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get All Categories",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{Colal_Seller_Tokken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{base_url}}/admin/create-seller/categories",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"admin",
+												"create-seller",
+												"categories"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "New Request",
+							"request": {
+								"method": "GET",
+								"header": []
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+		
+	]
+}

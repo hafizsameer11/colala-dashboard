@@ -1,11 +1,15 @@
-const ProductDescription = () => {
+interface ProductDescriptionProps {
+  productData?: any;
+}
+
+const ProductDescription: React.FC<ProductDescriptionProps> = ({ productData }) => {
   return (
     <div className="mt-5 max-w-md mx-auto bg-white">
       {/* Product Name Section */}
       <div className="mb-5">
         <h3 className="text-sm font-medium text-[#00000080] mb-2">Product Name</h3>
         <h2 className="text-lg font-semibold text-[#000000]">
-          Iphone 12 pro max
+          {productData?.compelete?.product?.name || 'Product Name'}
         </h2>
       </div>
 
@@ -13,7 +17,7 @@ const ProductDescription = () => {
       <div className="mb-5 border-t border-b border-[#00000080] pt-3 pb-3">
         <h3 className="text-sm font-medium text-[#00000080] mb-2">Description</h3>
         <p className="text-[#000000] text-lg font-semibold leading-relaxed">
-          Very clean iphone 12 pro max, out of the box, factory unlocked
+          {productData?.compelete?.product?.description || 'No description available'}
         </p>
       </div>
 

@@ -1,5 +1,7 @@
 import images from "../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminProductDetails } from "../../../utils/queries/users";
 import Overview from "./overview";
 import Description from "./description";
 import Review from "./review";
@@ -8,11 +10,13 @@ import ProductStats from "./productStats";
 interface ProductDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  product?: any;
 }
 
 const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   isOpen,
   onClose,
+  product,
 }) => {
   const [activeTab, setActiveTab] = useState<
     "Product Details" | "Product Stats"
@@ -23,44 +27,103 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   >("overview");
 
   const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const tabs = ["Product Details", "Product Stats"];
+
+  // Reset selected image when product changes
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [product?.id]);
+
+  // Fetch product details
+  const { data: productDetails, isLoading, error } = useQuery({
+    queryKey: ['adminProductDetails', product?.id],
+    queryFn: () => getAdminProductDetails(product!.id),
+    enabled: isOpen && !!product?.id,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const productInfo = productDetails?.data?.product_info;
+  const storeInfo = productDetails?.data?.store_info;
+  const images = productDetails?.data?.images || [];
+  const variants = productDetails?.data?.variants || [];
+  const reviews = productDetails?.data?.reviews || [];
+  const statistics = productDetails?.data?.statistics;
+  const reviewsCount = productDetails?.data?.reviews_count || 0;
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "Product Details":
         return (
           <div className="">
-            {/* Video Section */}
-            <div className="relative rounded-2xl overflow-hidden">
-              <img
-                src={images.ivideo}
-                alt="Product video thumbnail"
-                className="w-full h-auto object-cover rounded-2xl"
-              />
-              <button
-                type="button"
-                className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                aria-label="Play product video"
-              >
-                <span className="bg-[#000000CC] rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
-                  <img className="w-8 h-8" src={images.video} alt="Play" />
-                </span>
-              </button>
-            </div>
+            {isLoading ? (
+              <div className="text-center py-8">Loading product details...</div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-500">Failed to load product details</div>
+            ) : (
+              <>
+                {/* Video Section */}
+                {productInfo?.video && (
+                  <div className="relative rounded-2xl overflow-hidden">
+                    <video
+                      src={productInfo.video}
+                      className="w-full h-auto object-cover rounded-2xl"
+                      controls
+                    />
+                  </div>
+                )}
 
-            {/* Product Images */}
-            <div className="flex flex-row mt-5 gap-3">
-              <div>
-                <img src={images.i1} alt="" />
-              </div>
-              <div>
-                <img src={images.i2} alt="" />
-              </div>
-              <div>
-                <img src={images.i3} alt="" />
-              </div>
-            </div>
+                {/* Main Product Image */}
+                {images.length > 0 && (
+                  <div className="mt-5">
+                    <div className="relative w-full h-80 mb-4 rounded-2xl overflow-hidden">
+                      <img 
+                        src={images[selectedImageIndex]?.url} 
+                        alt={`Product image ${selectedImageIndex + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMjAwTDI1MCAyNTBMMjAwIDMwMEwxNTAgMjUwTDIwMCAyMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Thumbnail Images */}
+                    <div className="flex flex-row gap-3">
+                      {images.map((img: any, index: number) => (
+                        <div 
+                          key={img.id || index} 
+                          className={`relative cursor-pointer transition-all duration-200 ${
+                            selectedImageIndex === index 
+                              ? 'ring-2 ring-red-500 ring-offset-2' 
+                              : 'hover:ring-2 hover:ring-gray-300'
+                          }`}
+                          onClick={() => setSelectedImageIndex(index)}
+                        >
+                          <img 
+                            src={img.url} 
+                            alt={`Product thumbnail ${index + 1}`}
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEw1MCA1MEw0MCA2MEwzMCA1MEw0MCA0MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show placeholder if no images */}
+                {images.length === 0 && (
+                  <div className="mt-5">
+                    <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
+                      <span className="text-gray-400 text-lg">No Product Images</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Tab Buttons */}
             <div className="flex gap-2 pt-4">
@@ -102,17 +165,34 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             {/* Tab Content */}
             <div className="mt-5">
               {productTab === "overview" && (
-                <Overview quantity={quantity} setQuantity={setQuantity} />
+                <Overview 
+                  quantity={quantity} 
+                  setQuantity={setQuantity}
+                  productInfo={productInfo}
+                  storeInfo={storeInfo}
+                  images={images}
+                  variants={variants}
+                />
               )}
 
-              {productTab === "description" && <Description />}
+              {productTab === "description" && (
+                <Description 
+                  productInfo={productInfo}
+                  variants={variants}
+                />
+              )}
 
-              {productTab === "reviews" && <Review />}
+              {productTab === "reviews" && (
+                <Review 
+                  reviews={reviews}
+                  statistics={statistics}
+                />
+              )}
             </div>
           </div>
         );
       case "Product Stats":
-        return <ProductStats />;
+        return <ProductStats statistics={statistics} />;
       default:
         return null;
     }
@@ -132,7 +212,14 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 className="p-2 rounded-md  cursor-pointer"
                 aria-label="Close"
               >
-                <img className="w-7 h-7" src={images.close} alt="Close" />
+                <img 
+                  className="w-7 h-7" 
+                  src={images.close} 
+                  alt="Close" 
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDdMMjEgMjFMMjEgN0wyMSAyMVoiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTcgN0wyMSAyMSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMjEgN0w3IDIxIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPg==';
+                  }}
+                />
               </button>
             </div>
           </div>

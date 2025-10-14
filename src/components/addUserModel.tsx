@@ -1,5 +1,7 @@
 import images from "../constants/images";
 import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createUser } from "../utils/mutations/users";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -10,14 +12,48 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<"profile" | "address">("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
+  
+  const queryClient = useQueryClient();
+
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      // Invalidate and refetch users list
+      queryClient.invalidateQueries({ queryKey: ['usersList'] });
+      queryClient.invalidateQueries({ queryKey: ['userStats'] });
+      onClose();
+      // Reset form
+      setFormData({
+        user_name: "",
+        full_name: "",
+        email: "",
+        phone: "",
+        password: "",
+        country: "",
+        state: "",
+        role: "buyer",
+        referral_code: "",
+        profile_picture: null,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error creating user:', error);
+    },
+  });
 
   // Form state
   const [formData, setFormData] = useState({
-    username: "",
-    fullName: "",
+    user_name: "",
+    full_name: "",
     email: "",
-    phoneNumber: "",
+    phone: "",
     password: "",
+    country: "",
+    state: "",
+    role: "buyer" as "buyer" | "seller",
+    referral_code: "",
+    profile_picture: null as File | null,
   });
 
   // Address form state
@@ -28,12 +64,22 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     fullAddress: "",
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    
+    if (type === 'file') {
+      const file = (e.target as HTMLInputElement).files?.[0] || null;
+      console.log('File selected:', file); // Debug log
+      setFormData((prev) => ({
+        ...prev,
+        [name]: file,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleAddressInputChange = (
@@ -57,10 +103,19 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Add your form submission logic here
-    // You can call an API, validate the data, etc.
-    onClose(); // Close modal after submission
+    
+    // Validate required fields
+    if (!formData.full_name || !formData.user_name || !formData.email || !formData.phone || !formData.password || !formData.country || !formData.state) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    // Debug log to check form data
+    console.log('Form data being submitted:', formData);
+    console.log('Profile picture file:', formData.profile_picture);
+    
+    // Create user
+    createUserMutation.mutate(formData);
   };
 
   if (!isOpen) return null;
@@ -110,10 +165,29 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
               <div className="mt-5">
                 {/* Profile tab content goes here */}
                 <div className="flex justify-center items-center mt-10 mb-10">
-                  <div className="bg-[#EDEDED] rounded-full w-25 h-25 flex justify-center items-center cursor-pointer">
-                    <button className="flex justify-center items-center cursor-pointer">
-                      <img src={images.img} alt="" />
-                    </button>
+                  <div className="bg-[#EDEDED] rounded-full w-25 h-25 flex justify-center items-center cursor-pointer relative hover:bg-gray-300 transition-colors group">
+                    {formData.profile_picture ? (
+                      <img
+                        src={URL.createObjectURL(formData.profile_picture)}
+                        alt="Profile preview"
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <img src={images.img} alt="Upload image" />
+                        <span className="text-xs text-gray-500 mt-1 group-hover:text-gray-700">
+                          Click to upload
+                        </span>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="profile_picture_placeholder"
+                      name="profile_picture"
+                      onChange={handleInputChange}
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
                   </div>
                 </div>
 
@@ -122,16 +196,16 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                     {/* Username */}
                     <div>
                       <label
-                        htmlFor="username"
+                        htmlFor="user_name"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Username
                       </label>
                       <input
                         type="text"
-                        id="username"
-                        name="username"
-                        value={formData.username}
+                        id="user_name"
+                        name="user_name"
+                        value={formData.user_name}
                         onChange={handleInputChange}
                         placeholder="Enter username"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
@@ -142,16 +216,16 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                     {/* Full Name */}
                     <div>
                       <label
-                        htmlFor="fullName"
+                        htmlFor="full_name"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Full Name
                       </label>
                       <input
                         type="text"
-                        id="fullName"
-                        name="fullName"
-                        value={formData.fullName}
+                        id="full_name"
+                        name="full_name"
+                        value={formData.full_name}
                         onChange={handleInputChange}
                         placeholder="Enter full name"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
@@ -182,16 +256,16 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                     {/* Phone Number */}
                     <div>
                       <label
-                        htmlFor="phoneNumber"
+                        htmlFor="phone"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Phone Number
                       </label>
                       <input
                         type="tel"
-                        id="phoneNumber"
-                        name="phoneNumber"
-                        value={formData.phoneNumber}
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
                         onChange={handleInputChange}
                         placeholder="Enter phone number"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
@@ -259,13 +333,127 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                       </div>
                     </div>
 
+                    {/* Country */}
+                    <div>
+                      <label
+                        htmlFor="country"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Country
+                      </label>
+                      <input
+                        type="text"
+                        id="country"
+                        name="country"
+                        value={formData.country}
+                        onChange={handleInputChange}
+                        placeholder="Enter country"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
+                        required
+                      />
+                    </div>
+
+                    {/* State */}
+                    <div>
+                      <label
+                        htmlFor="state"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        placeholder="Enter state"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
+                        required
+                      />
+                    </div>
+
+                    {/* Role */}
+                    <div>
+                      <label
+                        htmlFor="role"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Role
+                      </label>
+                      <select
+                        id="role"
+                        name="role"
+                        value={formData.role}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
+                        required
+                      >
+                        <option value="buyer">Buyer</option>
+                        <option value="seller">Seller</option>
+                      </select>
+                    </div>
+
+                    {/* Referral Code */}
+                    <div>
+                      <label
+                        htmlFor="referral_code"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Referral Code (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        id="referral_code"
+                        name="referral_code"
+                        value={formData.referral_code}
+                        onChange={handleInputChange}
+                        placeholder="Enter referral code"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
+                      />
+                    </div>
+
+                    {/* Profile Picture Info */}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600">
+                        Click the image above to upload a profile picture (Optional)
+                      </p>
+                      {formData.profile_picture && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-500">
+                            Selected: {formData.profile_picture.name}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, profile_picture: null }));
+                              // Reset file input
+                              const fileInput = document.getElementById('profile_picture_placeholder') as HTMLInputElement;
+                              if (fileInput) fileInput.value = '';
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800 underline"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Add User Button */}
                     <div className="mt-6">
                       <button
                         type="submit"
-                        className="w-full bg-[#E53E3E] text-white py-3 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer"
+                        disabled={createUserMutation.isPending}
+                        className="w-full bg-[#E53E3E] text-white py-3 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                       >
-                        Add User
+                        {createUserMutation.isPending ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                            Creating User...
+                          </>
+                        ) : (
+                          "Add User"
+                        )}
                       </button>
                     </div>
                   </form>

@@ -1,5 +1,7 @@
 import PageHeader from "../../../components/PageHeader";
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminOrders, updateOrderStatus } from "../../../utils/queries/users";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
@@ -16,20 +18,56 @@ function useDebouncedValue<T>(value: T, delay = 450) {
 const orders_Mgt = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 450);
+
+  const queryClient = useQueryClient();
 
   const tabs = [
     "All",
-    "Order Placed",
-    "Out for delivery",
-    "Delivered",
-    "Completed",
-    "Disputed",
-    "Uncompleted",
+    "placed",
+    "out_for_delivery", 
+    "delivered",
+    "completed",
+    "disputed",
+    "pending",
   ];
+
+  // Fetch orders data
+  const { data: ordersData, isLoading, error } = useQuery({
+    queryKey: ['adminOrders', activeTab, currentPage],
+    queryFn: () => getAdminOrders(currentPage, activeTab === "All" ? undefined : activeTab),
+    keepPreviousData: true,
+  });
+
+  // Update order status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ storeOrderId, statusData }: { storeOrderId: string; statusData: any }) => 
+      updateOrderStatus(storeOrderId, statusData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update order status:', error);
+      alert('Failed to update order status. Please try again.');
+    },
+  });
+
+  // Extract data
+  const orders = ordersData?.data?.orders || [];
+  const statistics = ordersData?.data?.statistics || {};
+  const pagination = ordersData?.data?.pagination;
 
   const handleUserSelection = (selectedIds: string[]) => {
     console.log("Selected user IDs:", selectedIds);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
+
+  const handleStatusUpdate = (storeOrderId: string, statusData: any) => {
+    updateStatusMutation.mutate({ storeOrderId, statusData });
   };
 
   const TabButtons = () => {
@@ -72,10 +110,11 @@ const orders_Mgt = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-2xl">
+                {isLoading ? "..." : statistics.total_orders || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Active</span> orders across all stores
               </span>
             </div>
           </div>
@@ -90,11 +129,12 @@ const orders_Mgt = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-[15px]">Out for Delivery</span>
+              <span className="font-semibold text-2xl">
+                {isLoading ? "..." : statistics.out_for_delivery || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Active</span> delivery orders
               </span>
             </div>
           </div>
@@ -109,11 +149,12 @@ const orders_Mgt = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-[15px]">Delivered</span>
+              <span className="font-semibold text-2xl">
+                {isLoading ? "..." : statistics.delivered || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Completed</span> deliveries
               </span>
             </div>
           </div>
@@ -161,7 +202,14 @@ const orders_Mgt = () => {
             title="Latest Orders"
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
-            searchTerm={debouncedSearch} // ⬅️ pass debounced search
+            searchTerm={debouncedSearch}
+            orders={orders}
+            isLoading={isLoading}
+            error={error}
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            onStatusUpdate={handleStatusUpdate}
           />
         </div>
       </div>

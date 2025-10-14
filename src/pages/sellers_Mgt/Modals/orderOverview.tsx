@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import images from "../../../constants/images";
 
+interface OrderOverviewProps {
+  orderData?: any;
+}
+
 // StatusDropdown component
 const StatusDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -65,12 +69,16 @@ interface TimelineItemProps {
   title: string;
   orderId: string;
   date: string;
+  deliveryCode?: string;
+  notes?: string;
 }
 
 const TimelineItem: React.FC<TimelineItemProps> = ({
   title,
   orderId,
   date,
+  deliveryCode,
+  notes,
 }) => {
   return (
     <div className="flex flex-row mt-5 gap-3">
@@ -86,18 +94,38 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
             <span className="text-[#00000080]">Order ID</span>
             <span>{orderId}</span>
           </div>
-          <div className="flex flex-row gap-15 p-2">
+          <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
             <span className="text-[#00000080]">Date</span>
             <span>{date}</span>
           </div>
+          {deliveryCode && (
+            <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
+              <span className="text-[#00000080]">Delivery Code</span>
+              <span className="font-semibold text-blue-600">{deliveryCode}</span>
+            </div>
+          )}
+          {notes && (
+            <div className="flex flex-row gap-15 p-2">
+              <span className="text-[#00000080]">Notes</span>
+              <span className="text-sm">{notes}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const OrderOverview: React.FC = () => {
-  const timelineData = [
+interface OrderOverviewProps { orderData?: any }
+const OrderOverview: React.FC<OrderOverviewProps> = ({ orderData }) => {
+  const timelineData = (orderData?.tracking || []).map((t: any) => ({
+    title: t.status?.replaceAll('_',' ') || 'Status',
+    orderId: orderData?.order_no || 'N/A',
+    date: t.created_at || 'N/A',
+    deliveryCode: t.delivery_code || null,
+    notes: t.notes || null,
+  }));
+  const fallbackTimeline = [
     {
       title: "Order Placed",
       orderId: "ORD-1234DFEKFK",
@@ -136,7 +164,7 @@ const OrderOverview: React.FC = () => {
         </div>
 
         {/* Timeline */}
-        {timelineData.map((item, index) => (
+        {(timelineData.length ? timelineData : fallbackTimeline).map((item, index) => (
           <TimelineItem
             key={index}
             title={item.title}

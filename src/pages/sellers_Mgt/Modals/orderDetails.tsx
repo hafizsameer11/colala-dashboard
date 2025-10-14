@@ -1,14 +1,18 @@
 import images from "../../../constants/images";
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminOrderDetails } from "../../../utils/queries/users";
 import ProductDetails from "../../../components/productDetails";
 import OrderOverview from "./orderOverview";
 
 interface OrderDetailsProps {
   isOpen: boolean;
   onClose: () => void;
+  orderId?: string;
+  onStatusUpdate?: (storeOrderId: string, statusData: any) => void;
 }
 
-const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
+const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, onStatusUpdate }) => {
   const [activeTab, setActiveTab] = useState<
     "track order" | "full order details"
   >("track order");
@@ -20,6 +24,34 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
   >("overview");
   // Quantity state for the counter
   const [quantity, setQuantity] = useState<number>(1);
+  // Status update form
+  const [showStatusUpdate, setShowStatusUpdate] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [deliveryCode, setDeliveryCode] = useState("");
+  const [statusNotes, setStatusNotes] = useState("");
+
+  const { data: orderDetails, isLoading, error } = useQuery({
+    queryKey: ['adminOrderDetails', orderId],
+    queryFn: () => getAdminOrderDetails(orderId!),
+    enabled: !!isOpen && !!orderId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const d = orderDetails?.data;
+
+  const handleStatusUpdate = () => {
+    if (newStatus && onStatusUpdate && orderId) {
+      onStatusUpdate(orderId, {
+        status: newStatus,
+        notes: statusNotes,
+        delivery_code: deliveryCode,
+      });
+      setShowStatusUpdate(false);
+      setNewStatus("");
+      setDeliveryCode("");
+      setStatusNotes("");
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -97,49 +129,128 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
+          {/* Status Update Section */}
+          {d && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold">Order Status Management</h3>
+                <button
+                  onClick={() => setShowStatusUpdate(!showStatusUpdate)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                >
+                  {showStatusUpdate ? 'Cancel' : 'Update Status'}
+                </button>
+              </div>
+              
+              <div className="mb-3">
+                <span className="text-sm text-gray-600">Current Status: </span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  d.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                  d.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
+                  d.status === 'placed' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {d.status?.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+
+              {showStatusUpdate && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      New Status
+                    </label>
+                    <select
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="out_for_delivery">Out for Delivery</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="completed">Completed</option>
+                      <option value="disputed">Disputed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Delivery Code (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryCode}
+                      onChange={(e) => setDeliveryCode(e.target.value)}
+                      placeholder="Enter delivery code"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notes (Optional)
+                    </label>
+                    <textarea
+                      value={statusNotes}
+                      onChange={(e) => setStatusNotes(e.target.value)}
+                      placeholder="Enter status update notes"
+                      rows={3}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={handleStatusUpdate}
+                    disabled={!newStatus}
+                    className="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Update Status
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tab Content */}
           <div className="">
-            {activeTab === "track order" && <OrderOverview />}
+            {activeTab === "track order" && <OrderOverview orderData={d} />}
             {activeTab === "full order details" && !isProductDetails && (
               <div className="mt-5">
-                <div className="flex flex-row ">
-                  <div>
-                    <picture>
-                      <img
-                        className="w-35 h-35 rounded-l-2xl"
-                        src={images.iphone}
-                        alt=""
-                      />
-                    </picture>
-                  </div>
-                  <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
-                    <span className="text-black text-[17px]">
-                      Iphone 16 pro max - Black
-                    </span>
-                    <span className="text-[#E53E3E] font-bold text-[17px]">
-                      N2,500,000
-                    </span>
-                    <div className="flex flex-row justify-between items-center mt-3">
-                      <div>
-                        <span className="text-[#E53E3E] font-bold text-[17px]">
-                          Qty :1
-                        </span>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => {
-                            setActiveTab("full order details");
-                            setIsProductDetails(true);
-                            setProductTab("overview");
-                          }}
-                          className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
-                        >
-                          Product Details
-                        </button>
+                {(d?.items || []).map((item: any, idx: number) => (
+                  <div key={idx} className={`flex flex-row ${idx>0?'mt-3':''}`}>
+                    <div>
+                      <picture>
+                        <img
+                          className="w-35 h-35 rounded-l-2xl object-cover"
+                          src={item?.complete?.images?.[0]?.path || item?.product?.images?.[0]?.path || images.iphone}
+                          alt={item?.complete?.product?.name || item?.product?.name || 'Product'}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = images.iphone; }}
+                        />
+                      </picture>
+                    </div>
+                    <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
+                      <span className="text-black text-[17px]">{item?.complete?.product?.name || item?.product?.name || 'N/A'}</span>
+                      <span className="text-[#E53E3E] font-bold text-[17px]">₦{item?.total || item?.complete?.product?.price || '0.00'}</span>
+                      <div className="flex flex-row justify-between items-center mt-3">
+                        <div>
+                          <span className="text-[#E53E3E] font-bold text-[17px]">Qty : {item?.quantity ?? 1}</span>
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => { setActiveTab("full order details"); setIsProductDetails(true); setProductTab("overview"); }}
+                            className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
+                          >
+                            Product Details
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
                 <div className="flex flex-row mt-3">
                   <div>
                     <picture>
@@ -184,29 +295,18 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
                     Order Details
                   </div>
                   <div className="border border-[#CDCDCD] rounded-b-2xl">
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
-                      <span className="text-[#00000080]">Order ID</span>
-                      <span>ORD-1234DFEKFK</span>
-                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2"><span className="text-[#00000080]">Order ID</span><span>{d?.order_no || 'N/A'}</span></div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
                       <span className="text-[#00000080]">Store Name</span>
-                      <span>Sasha Stores</span>
+                      <span>{d?.store?.name || 'N/A'}</span>
                     </div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
                       <span className="text-[#00000080]">No of items</span>
-                      <span>2</span>
-                    </div>
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-10 p-2">
-                      <span className="text-[#00000080]">Discount Code</span>
-                      <span>NEW123</span>
-                    </div>
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-12 p-2">
-                      <span className="text-[#00000080]">Loyalty Points</span>
-                      <span>200</span>
+                      <span>{d?.items?.length || 0}</span>
                     </div>
                     <div className="flex flex-row gap-28 p-2">
                       <span className="text-[#00000080]">Date</span>
-                      <span>July 19,2025 - 07:22AM</span>
+                      <span>{d?.created_at || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -216,21 +316,18 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
                     Delivery Details
                   </div>
                   <div className="border border-[#CDCDCD] rounded-b-2xl">
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2">
-                      <span className="text-[#00000080]">Phone Number</span>
-                      <span>0701234567</span>
-                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2"><span className="text-[#00000080]">Phone Number</span><span>{d?.customer?.phone || d?.delivery_address?.contact_phone || 'N/A'}</span></div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-27 p-2">
                       <span className="text-[#00000080]">State</span>
-                      <span>Lagos</span>
+                      <span>{d?.delivery_address?.state || 'N/A'}</span>
                     </div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
                       <span className="text-[#00000080]">LGA</span>
-                      <span>Ikeja</span>
+                      <span>{d?.delivery_address?.local_government || 'N/A'}</span>
                     </div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
                       <span className="text-[#00000080]">Address</span>
-                      <span>No 2, abcd street, ikeja</span>
+                      <span>{d?.delivery_address?.full_address || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -240,26 +337,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
                     Price Details
                   </div>
                   <div className="border border-[#CDCDCD] rounded-b-2xl">
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-17 p-2">
-                      <span className="text-[#00000080]">Items Cost</span>
-                      <span className="font-bold">N2,500,000</span>
-                    </div>
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-3 p-2">
-                      <span className="text-[#00000080]">Coupon Discount</span>
-                      <span className="font-bold">-N5,000</span>
-                    </div>
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-7 p-2">
-                      <span className="text-[#00000080]">Points Discount</span>
-                      <span className="font-bold">-N5,000</span>
-                    </div>
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
-                      <span className="text-[#00000080]">Delivery Fee</span>
-                      <span className="font-bold">N10,000</span>
-                    </div>
-                    <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
-                      <span className="text-[#00000080]">Total</span>
-                      <span className="font-bold">N2,500,000</span>
-                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-17 p-2"><span className="text-[#00000080]">Items Cost</span><span className="font-bold">₦{d?.pricing?.items_subtotal || '0.00'}</span></div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-3 p-2"><span className="text-[#00000080]">Shipping Fee</span><span className="font-bold">₦{d?.pricing?.shipping_fee || '0.00'}</span></div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-7 p-2"><span className="text-[#00000080]">Discount</span><span className="font-bold">-₦{d?.pricing?.discount || '0.00'}</span></div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2"><span className="text-[#00000080]">Total</span><span className="font-bold">₦{d?.pricing?.subtotal_with_shipping || '0.00'}</span></div>
                   </div>
                 </div>
 
@@ -285,6 +366,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose }) => {
                 setProductTab={setProductTab}
                 quantity={quantity}
                 setQuantity={setQuantity}
+                productData={{ compelete: d?.items?.[0]?.complete || d?.items?.[0] }}
               />
             )}
           </div>

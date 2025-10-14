@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import images from "../constants/images";
+import { useQuery } from "@tanstack/react-query";
+import { getTransactionDetails } from "../utils/queries/users";
 
 interface Transaction {
   id: string;
@@ -14,23 +16,44 @@ interface TransactionsModelProps {
   isOpen: boolean;
   onClose: () => void;
   transaction?: Transaction | null;
+  userId?: string | number;
 }
 
 const TransactionsModel: React.FC<TransactionsModelProps> = ({
   isOpen,
   onClose,
   transaction,
+  userId,
 }) => {
+  // Fetch transaction details from API
+  const { data: transactionDetails, isLoading, error } = useQuery({
+    queryKey: ['transactionDetails', userId, transaction?.id],
+    queryFn: () => getTransactionDetails(userId!, transaction!.id),
+    enabled: !!userId && !!transaction?.id && isOpen,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   if (!isOpen) return null;
 
-  // Default values if no transaction is provided
-  const txData = transaction || {
+  // Use API data if available, otherwise fallback to passed transaction or default
+  const apiData = transactionDetails?.data;
+  const txData = apiData ? {
+    id: apiData.id,
+    reference: apiData.tx_id || apiData.reference || "N/A",
+    amount: apiData.amount?.formatted || apiData.amount || "N/A",
+    type: apiData.type || "Unknown",
+    date: apiData.time || apiData.tx_date || apiData.created_at || "N/A",
+    status: apiData.status || "Unknown",
+    channel: apiData.channel || "N/A",
+    description: apiData.description || "N/A",
+    user: apiData.user || null,
+  } : transaction || {
     id: "",
-    reference: "12dj4w0ickwkdcskd",
-    amount: "₦20,000",
-    type: "Withdrawal",
-    date: "18-07-2025/11:30AM",
-    status: "Successful" as const,
+    reference: "N/A",
+    amount: "N/A",
+    type: "Unknown",
+    date: "N/A",
+    status: "Unknown" as const,
   };
 
   // Helper function to render status section
@@ -104,6 +127,34 @@ const TransactionsModel: React.FC<TransactionsModelProps> = ({
         return "text-[#000]";
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">
+        <div className="bg-white w-[500px] relative h-full overflow-y-auto flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">
+        <div className="bg-white w-[500px] relative h-full overflow-y-auto flex items-center justify-center">
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading transaction details</p>
+            <button
+              onClick={onClose}
+              className="mt-4 bg-[#E53E3E] text-white px-4 py-2 rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">

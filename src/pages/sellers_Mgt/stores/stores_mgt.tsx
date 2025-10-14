@@ -7,6 +7,8 @@ import SavedAddressModal from "../Modals/savedAddressModal";
 import AddAddressModal from "../Modals/addAddressModal";
 import DeliveryPricing from "../Modals/deliveryPricing";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerUsers } from "../../../utils/queries/users";
 import LevelDropdown from "../../../components/levelDropdown";
 import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
 import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
@@ -36,6 +38,19 @@ const stores_mgt = () => {
   const [selectedLevel, setSelectedLevel] = useState<number | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
+
+  // Fetch seller users
+  const { data: sellerData, isLoading, error } = useQuery({
+    queryKey: ['sellerUsers', currentPage, selectedLevel, debouncedSearch],
+    queryFn: () => getSellerUsers(currentPage, selectedLevel, debouncedSearch),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const summary = sellerData?.data?.summary_stats;
+  const usersPage = sellerData?.data?.users;
+  const users = usersPage?.data || [];
 
   // Delivery pricing entries (unchanged)
   const [deliveryPricingEntries, setDeliveryPricingEntries] = useState<
@@ -105,10 +120,10 @@ const stores_mgt = () => {
                 <img className="w-9 h-9" src={images.Users} alt="" />
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">Total Users</span>
-                <span className="font-semibold text-2xl">1,500</span>
+                <span className="font-semibold text-[15px]">Total Stores</span>
+                <span className="font-semibold text-2xl">{summary?.total_stores?.count ?? 0}</span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">+5%</span> increase from last
+                  <span className="text-[#1DB61D]">+{summary?.total_stores?.increase ?? 0}%</span> increase from last
                   month
                 </span>
               </div>
@@ -124,10 +139,10 @@ const stores_mgt = () => {
                 <img className="w-9 h-9" src={images.Users} alt="" />
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">Total Users</span>
-                <span className="font-semibold text-2xl">1,500</span>
+                <span className="font-semibold text-[15px]">Active Stores</span>
+                <span className="font-semibold text-2xl">{summary?.active_stores?.count ?? 0}</span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">+5%</span> increase from last
+                  <span className="text-[#1DB61D]">+{summary?.active_stores?.increase ?? 0}%</span> increase from last
                   month
                 </span>
               </div>
@@ -143,10 +158,10 @@ const stores_mgt = () => {
                 <img className="w-9 h-9" src={images.Users} alt="" />
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">Total Users</span>
-                <span className="font-semibold text-2xl">1,500</span>
+                <span className="font-semibold text-[15px]">New Stores</span>
+                <span className="font-semibold text-2xl">{summary?.new_stores?.count ?? 0}</span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">+5%</span> increase from last
+                  <span className="text-[#1DB61D]">+{summary?.new_stores?.increase ?? 0}%</span> increase from last
                   month
                 </span>
               </div>
@@ -157,7 +172,12 @@ const stores_mgt = () => {
             <div className="flex flex-row justify-between">
               <div className="flex flex-row gap-3">
                 <div>
-                  <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+                  <BulkActionDropdown 
+                    onActionSelect={handleBulkActionSelect}
+                    dataType="users"
+                    orders={users}
+                    selectedOrders={selectedUsers}
+                  />
                 </div>
                 <div>
                   <LevelDropdown onLevelSelect={handleLevelActionSelect} />
@@ -206,8 +226,17 @@ const stores_mgt = () => {
             <StoresTable
               title="Stores"
               onRowSelect={handleUserSelection}
+              onSelectedUsersChange={setSelectedUsers}
               levelFilter={selectedLevel}
               searchTerm={debouncedSearch}
+              users={users}
+              pagination={usersPage}
+              currentPage={usersPage?.current_page || currentPage}
+              onPageChange={(page) => {
+                if (page !== currentPage) setCurrentPage(page);
+              }}
+              isLoading={isLoading}
+              error={error}
             />
           </div>
         </div>

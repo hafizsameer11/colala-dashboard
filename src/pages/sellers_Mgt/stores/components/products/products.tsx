@@ -1,17 +1,37 @@
 import images from "../../../../../constants/images";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import ProductsTable from "./productsTable";
 import AddNewProduct from "../../../Modals/addNewProduct";
 import ServiceModal from "../../../Modals/serviceModal";
 import ServicesTable from "./servicesTable";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerProducts } from "../../../../../utils/queries/users";
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "General", "Sponsored"];
+  const tabs = ["All", "General", "Sponsored"]; 
   const [showModal, setShowModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedProductType, setSelectedProductType] = useState("Products");
+  const { storeId } = useParams<{ storeId: string }>();
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const { data: productsResp, isLoading, error } = useQuery({
+    queryKey: ["sellerProducts", storeId, currentPage],
+    queryFn: () => getSellerProducts(storeId!, currentPage),
+    enabled: !!storeId,
+    keepPreviousData: true,
+  });
+
+  const summaryStats = productsResp?.data?.summary_stats;
+  const products = productsResp?.data?.products?.data ?? [];
+  const pagination = productsResp?.data?.products;
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
 
   interface ProductsDropdownProps {
     onProductSelect?: (product: string) => void;
@@ -115,10 +135,9 @@ const Products = () => {
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
             <span className="font-semibold text-[15px]">All Products</span>
-            <span className="font-semibold text-2xl">10</span>
+            <span className="font-semibold text-2xl">{summaryStats?.all_products?.count ?? 0}</span>
             <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
-              month
+              <span className="text-[#1DB61D]">+{summaryStats?.all_products?.increase ?? 0}%</span> increase
             </span>
           </div>
         </div>
@@ -134,10 +153,9 @@ const Products = () => {
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
             <span className="font-semibold text-[15px]">General Products</span>
-            <span className="font-semibold text-2xl">2</span>
+            <span className="font-semibold text-2xl">{summaryStats?.general_products?.count ?? 0}</span>
             <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
-              month
+              <span className="text-[#1DB61D]">+{summaryStats?.general_products?.increase ?? 0}%</span> increase
             </span>
           </div>
         </div>
@@ -155,10 +173,9 @@ const Products = () => {
             <span className="font-semibold text-[15px]">
               Sponsored Products
             </span>
-            <span className="font-semibold text-2xl">0</span>
+            <span className="font-semibold text-2xl">{summaryStats?.sponsored_products?.count ?? 0}</span>
             <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
-              month
+              <span className="text-[#1DB61D]">+{summaryStats?.sponsored_products?.increase ?? 0}%</span> increase
             </span>
           </div>
         </div>
@@ -233,7 +250,17 @@ const Products = () => {
       {/* Conditional Table Rendering */}
       {selectedProductType === "Products" && (
         <div className="mt-5">
-          <ProductsTable />
+          <ProductsTable
+            title={`${activeTab} Products`}
+            products={products}
+            isLoading={isLoading}
+            error={error as any}
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            activeTab={activeTab}
+            userId={storeId}
+          />
         </div>
       )}
 

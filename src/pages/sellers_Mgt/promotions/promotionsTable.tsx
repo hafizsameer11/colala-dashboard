@@ -1,23 +1,55 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PromotionsModal from "../Modals/promotionsModal";
 
-interface Submission {
+interface ApiPromotion {
+  id: number;
+  product_name: string | null;
+  product_image: string | null;
+  store_name: string;
+  seller_name: string;
+  amount: number;
+  duration: number;
+  status: string;
+  reach: number;
+  impressions: number;
+  clicks: number;
+  cpc: string;
+  created_at: string;
+  formatted_date: string;
+  status_color: string;
+}
+
+interface Promotion {
   id: string;
   storeName: string;
+  sellerName: string;
   product: string;
+  productImage: string | null;
   amount: string;
   duration: string;
   date: string;
-  status: "Approved" | "Pending" | "Rejected";
-  productImage?: string;
+  status: string;
+  statusColor: string;
+  reach: number;
+  impressions: number;
+  clicks: number;
+  cpc: string;
 }
 
 interface PromotionsTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  activeTab: "All" | "Pending" | "Approved" | "Rejected";
+  activeTab: "All" | "running" | "paused" | "scheduled" | "completed";
   /** debounced */
   searchTerm?: string;
+  promotions?: ApiPromotion[];
+  pagination?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
+  onStatusUpdate?: (promotionId: number | string, statusData: any) => void;
+  onExtendPromotion?: (promotionId: number | string, extendData: any) => void;
 }
 
 const PromotionsTable: React.FC<PromotionsTableProps> = ({
@@ -25,113 +57,67 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
   onRowSelect,
   activeTab,
   searchTerm = "",
+  promotions = [],
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  isLoading = false,
+  error,
+  onStatusUpdate,
+  onExtendPromotion,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
 
-  // Sample data
-  const submissions: Submission[] = [
-    {
-      id: "1",
-      storeName: "Gadget Hub",
-      product: "Samsung Odyssey G9...",
-      amount: "₦1,800,000",
-      duration: "5 Days",
-      date: "10-07-2025/11:00AM",
-      status: "Approved",
-      productImage: "/assets/layout/itable.png",
-    },
-    {
-      id: "2",
-      storeName: "Sasha Stores",
-      product: "Anker Power Bank 737",
-      amount: "₦95,000",
-      duration: "2 Days",
-      date: "05-07-2025/06:15PM",
-      status: "Approved",
-      productImage: "/assets/layout/itable.png",
-    },
-    {
-      id: "3",
-      storeName: "Game Zone",
-      product: "Sony Playstation 5 Slim",
-      amount: "₦850,000",
-      duration: "30 Days",
-      date: "08-07-2025/09:45AM",
-      status: "Approved",
-      productImage: "/assets/layout/itable.png",
-    },
-    {
-      id: "4",
-      storeName: "Home Theatre Kings",
-      product: 'LG 65" OLED TV',
-      amount: "₦2,750,000",
-      duration: "60 Days",
-      date: "01-07-2025/12:00PM",
-      status: "Approved",
-      productImage: "/assets/layout/itable.png",
-    },
-    {
-      id: "5",
-      storeName: "Emeka Electronics",
-      product: "Macbook Pro 14 inch",
-      amount: "₦3,500,000",
-      duration: "15 Days",
-      date: "12-07-2025/02:30PM",
-      status: "Approved",
-      productImage: "/assets/layout/itable.png",
-    },
-    {
-      id: "6",
-      storeName: "Emeka Electronics",
-      product: "Google Pixel 9 Pro",
-      amount: "₦1,950,000",
-      duration: "22 Days",
-      date: "28-06-2025/08:50AM",
-      status: "Rejected",
-      productImage: "/assets/layout/itable.png",
-    },
-    {
-      id: "7",
-      storeName: "Sasha Stores",
-      product: "Iphone 16 pro max.....",
-      amount: "₦2,000",
-      duration: "20 Days",
-      date: "14-07-2025/10:00AM",
-      status: "Pending",
-      productImage: "/assets/layout/itable.png",
-    },
-  ];
+  // Normalize API data to UI format
+  const normalizedPromotions: Promotion[] = useMemo(() => {
+    return promotions.map((promo: ApiPromotion) => ({
+      id: promo.id.toString(),
+      storeName: promo.store_name,
+      sellerName: promo.seller_name,
+      product: promo.product_name || "No Product",
+      productImage: promo.product_image,
+      amount: `₦${promo.amount.toLocaleString()}`,
+      duration: `${promo.duration} Days`,
+      date: promo.formatted_date,
+      status: promo.status,
+      statusColor: promo.status_color,
+      reach: promo.reach,
+      impressions: promo.impressions,
+      clicks: promo.clicks,
+      cpc: promo.cpc,
+    }));
+  }, [promotions]);
 
-  const handleModalOpen = () => setIsModalOpen(true);
 
-  // Filter by tab + search
-  const filteredSubmissions = useMemo(() => {
-    const q = (searchTerm || "").trim().toLowerCase();
-    return submissions.filter((s) => {
-      const statusOk = activeTab === "All" ? true : s.status === activeTab;
-      if (!q) return statusOk;
+  const handleModalOpen = (promotion: Promotion) => {
+    setSelectedPromotion(promotion);
+    setIsModalOpen(true);
+  };
 
-      const haystack = [
-        s.storeName,
-        s.product,
-        s.amount,
-        s.duration,
-        s.date,
-        s.status,
-      ]
-        .filter(Boolean)
+  // Filter promotions based on activeTab and searchTerm
+  const visiblePromotions = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    const statusOk = (promo: Promotion) =>
+      activeTab === "All" ? true : promo.status === activeTab;
+
+    const searchOk = (promo: Promotion) => {
+      if (!q) return true;
+      return [promo.storeName, promo.sellerName, promo.product, promo.amount, promo.status]
         .join(" ")
-        .toLowerCase();
+        .toLowerCase()
+        .includes(q);
+    };
 
-      return statusOk && haystack.includes(q);
-    });
-  }, [activeTab, searchTerm]);
+    return normalizedPromotions.filter((promo) => statusOk(promo) && searchOk(promo));
+  }, [normalizedPromotions, activeTab, searchTerm]);
 
   // Select All should affect only visible rows
   const handleSelectAll = () => {
-    const visibleIds = filteredSubmissions.map((s) => s.id);
+    const visibleIds = visiblePromotions.map((p) => p.id);
     if (selectAll) {
       // unselect only visible
       const remaining = selectedRows.filter((id) => !visibleIds.includes(id));
@@ -159,22 +145,24 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
 
   // Keep selectAll checkbox in sync with the current filtered view
   useEffect(() => {
-    const visibleIds = new Set(filteredSubmissions.map((s) => s.id));
+    const visibleIds = new Set(visiblePromotions.map((p) => p.id));
     const visibleSelected = selectedRows.filter((id) => visibleIds.has(id));
     setSelectAll(
-      filteredSubmissions.length > 0 &&
-        visibleSelected.length === filteredSubmissions.length
+      visiblePromotions.length > 0 &&
+        visibleSelected.length === visiblePromotions.length
     );
-  }, [filteredSubmissions, selectedRows]);
+  }, [visiblePromotions, selectedRows]);
 
-  const getStatusStyle = (status: Submission["status"]) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case "Approved":
+      case "running":
         return "bg-[#0080001A] text-[#008000] border border-[#008000]";
-      case "Pending":
-        return "bg-[#AAAAAA1A] text-[#FFA500] border border-[#FFA500]";
-      case "Rejected":
-        return "bg-[#FF00001A] text-[#FF0000] border border-[#FF0000]";
+      case "paused":
+        return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]";
+      case "scheduled":
+        return "bg-[#0066CC1A] text-[#0066CC] border border-[#0066CC]";
+      case "completed":
+        return "bg-[#0080001A] text-[#008000] border border-[#008000]";
       default:
         return "bg-gray-100 text-gray-600 border border-gray-300";
     }
@@ -192,7 +180,7 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
               <th className="text-center p-3 font-normal text-[14px] w-12">
                 <input
                   type="checkbox"
-                  checked={selectAll && filteredSubmissions.length > 0}
+                  checked={selectAll && visiblePromotions.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                 />
@@ -217,37 +205,51 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredSubmissions.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="p-6 text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-red-500">
+                  <p className="text-sm">Error loading promotions</p>
+                </td>
+              </tr>
+            ) : visiblePromotions.length === 0 ? (
               <tr>
                 <td colSpan={8} className="p-6 text-center text-gray-500">
-                  No submissions found.
+                  No promotions found.
                 </td>
               </tr>
             ) : (
-              filteredSubmissions.map((submission, index) => (
+              visiblePromotions.map((promotion, index) => (
                 <tr
-                  key={submission.id}
+                  key={promotion.id}
                   className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
-                    index === filteredSubmissions.length - 1 ? "" : "border-b"
+                    index === visiblePromotions.length - 1 ? "" : "border-b"
                   }`}
                 >
                   <td className="p-4 text-center">
                     <input
                       type="checkbox"
-                      checked={selectedRows.includes(submission.id)}
-                      onChange={() => handleRowSelect(submission.id)}
+                      checked={selectedRows.includes(promotion.id)}
+                      onChange={() => handleRowSelect(promotion.id)}
                       className="w-5 h-5 border border-gray-300 rounded cursor-pointer mx-auto"
                     />
                   </td>
                   <td className="p-4 text-[14px] text-black text-left">
-                    {submission.storeName}
+                    {promotion.storeName}
                   </td>
                   <td className="p-4 text-[14px] text-black text-left">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                         <img
-                          src={submission.productImage}
-                          alt={submission.product}
+                          src={promotion.productImage || "/assets/layout/itable.png"}
+                          alt={promotion.product}
                           className="w-full h-full object-cover rounded-lg"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
@@ -257,30 +259,36 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
                           }}
                         />
                       </div>
-                      <span className="text-left">{submission.product}</span>
+                      <span className="text-left">{promotion.product}</span>
                     </div>
                   </td>
                   <td className="p-4 text-[14px] text-black font-semibold text-center">
-                    {submission.amount}
+                    {promotion.amount}
                   </td>
                   <td className="p-4 text-[14px] text-black text-center">
-                    {submission.duration}
+                    {promotion.duration}
                   </td>
                   <td className="p-4 text-[14px] font-semibold text-black text-center">
-                    {submission.date}
+                    {promotion.date}
                   </td>
                   <td className="p-4 text-center">
                     <span
-                      className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
-                        submission.status
-                      )}`}
+                      className={`px-3 py-1 rounded-md text-[12px] font-medium ${
+                        promotion.status === "running"
+                          ? "bg-green-100 text-green-800"
+                          : promotion.status === "paused"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : promotion.status === "scheduled"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
                     >
-                      {submission.status}
+                      {promotion.status.toUpperCase()}
                     </span>
                   </td>
                   <td className="p-4 text-center">
                     <button
-                      onClick={handleModalOpen}
+                      onClick={() => handleModalOpen(promotion)}
                       className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
                     >
                       View Details
@@ -293,9 +301,35 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
         </table>
       </div>
 
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">
+            Page {currentPage} of {pagination.last_page}
+          </span>
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage + 1)}
+            disabled={currentPage === pagination.last_page}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       <PromotionsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        promotion={selectedPromotion}
+        onStatusUpdate={onStatusUpdate}
+        onExtendPromotion={onExtendPromotion}
       />
     </div>
   );

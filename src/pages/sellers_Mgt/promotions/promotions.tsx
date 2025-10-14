@@ -3,6 +3,8 @@ import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { useState, useEffect } from "react";
 import PromotionsTable from "./promotionsTable";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminPromotions, updatePromotionStatus, extendPromotion } from "../../../utils/queries/users";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -16,17 +18,62 @@ function useDebouncedValue<T>(value: T, delay = 450) {
 
 const Promotions = () => {
   const [activeTab, setActiveTab] = useState<
-    "All" | "Pending" | "Approved" | "Rejected"
+    "All" | "running" | "paused" | "scheduled" | "completed"
   >("All");
-  const tabs: Array<"All" | "Pending" | "Approved" | "Rejected"> = [
+  const tabs: Array<"All" | "running" | "paused" | "scheduled" | "completed"> = [
     "All",
-    "Pending",
-    "Approved",
-    "Rejected",
+    "running",
+    "paused",
+    "scheduled",
+    "completed",
   ];
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // API data fetching
+  const { data: promotionsData, isLoading, error } = useQuery({
+    queryKey: ['adminPromotions', activeTab, currentPage],
+    queryFn: () => getAdminPromotions(currentPage, activeTab === "All" ? undefined : activeTab),
+    keepPreviousData: true,
+  });
+
+  const queryClient = useQueryClient();
+
+  // Extract data
+  const promotions = promotionsData?.data?.promotions || [];
+  const statistics = promotionsData?.data?.statistics || {};
+  const pagination = promotionsData?.data?.pagination;
+
+  // Mutations
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ promotionId, statusData }: { promotionId: number | string; statusData: any }) => 
+      updatePromotionStatus(promotionId, statusData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPromotions'] });
+    },
+  });
+
+  const extendPromotionMutation = useMutation({
+    mutationFn: ({ promotionId, extendData }: { promotionId: number | string; extendData: any }) => 
+      extendPromotion(promotionId, extendData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPromotions'] });
+    },
+  });
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
+
+  const handleStatusUpdate = (promotionId: number | string, statusData: any) => {
+    updateStatusMutation.mutate({ promotionId, statusData });
+  };
+
+  const handleExtendPromotion = (promotionId: number | string, extendData: any) => {
+    extendPromotionMutation.mutate({ promotionId, extendData });
+  };
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -69,10 +116,9 @@ const Promotions = () => {
               <span className="font-semibold text-[15px]">
                 Promotion Revenue
               </span>
-              <span className="font-semibold text-2xl">N100,000</span>
+              <span className="font-semibold text-2xl">N{statistics.total_revenue || "0"}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Total</span> promotion revenue
               </span>
             </div>
           </div>
@@ -86,12 +132,11 @@ const Promotions = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">
-                Promoted Products
+                Total Promotions
               </span>
-              <span className="font-semibold text-2xl">800</span>
+              <span className="font-semibold text-2xl">{statistics.total_promotions || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Total</span> promotions
               </span>
             </div>
           </div>
@@ -105,12 +150,11 @@ const Promotions = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">
-                Pending Approval
+                Active Promotions
               </span>
-              <span className="font-semibold text-2xl">200</span>
+              <span className="font-semibold text-2xl">{statistics.active_promotions || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Active</span> promotions
               </span>
             </div>
           </div>
@@ -158,7 +202,18 @@ const Promotions = () => {
 
         {/* Table with filters */}
         <div>
-          <PromotionsTable activeTab={activeTab} searchTerm={debouncedSearch} />
+          <PromotionsTable 
+            activeTab={activeTab} 
+            searchTerm={debouncedSearch}
+            promotions={promotions}
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            isLoading={isLoading}
+            error={error}
+            onStatusUpdate={handleStatusUpdate}
+            onExtendPromotion={handleExtendPromotion}
+          />
         </div>
       </div>
     </div>

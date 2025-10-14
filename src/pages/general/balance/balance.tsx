@@ -3,11 +3,14 @@ import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
+import { useQuery } from "@tanstack/react-query";
+import { getBalanceData } from "../../../utils/queries/users";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
 const Balance = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const [currentPage, setCurrentPage] = useState(1);
   const tabs: Tab[] = ["All", "Buyers", "Sellers"];
 
   // Debounced search
@@ -17,6 +20,17 @@ const Balance = () => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Fetch balance data
+  const { data: balanceData, isLoading, error } = useQuery({
+    queryKey: ['balanceData', currentPage],
+    queryFn: () => getBalanceData(currentPage),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const statistics = balanceData?.data?.statistics;
+  const users = balanceData?.data?.users || [];
+  const pagination = balanceData?.data?.pagination;
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -67,7 +81,9 @@ const Balance = () => {
                 <div className="text-white font-semibold text-lg">
                   Total Shopping wallet balance
                 </div>
-                <div className="text-white font-bold text-3xl">N20,000,000</div>
+                <div className="text-white font-bold text-3xl">
+                  ₦{statistics?.total_shopping_balance || "0"}
+                </div>
               </div>
             </div>
             <div className="flex flex-row justify-between mt-6 pt-4 ">
@@ -75,13 +91,17 @@ const Balance = () => {
                 <div className="text-lg text-[#FFFFFF80]">
                   Buyer App Balance
                 </div>
-                <div className="text-2xl text-white font-bold">N10,000,000</div>
+                <div className="text-2xl text-white font-bold">
+                  ₦{statistics?.buyer_shopping_balance || "0"}
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-lg text-[#FFFFFF80]">
                   Seller App Balance
                 </div>
-                <div className="text-2xl text-white font-bold">N10,000,000</div>
+                <div className="text-2xl text-white font-bold">
+                  ₦{statistics?.seller_shopping_balance || "0"}
+                </div>
               </div>
             </div>
           </div>
@@ -103,7 +123,9 @@ const Balance = () => {
                 <div className="text-white font-semibold text-lg">
                   Total Escrow wallet balance
                 </div>
-                <div className="text-white font-bold text-3xl">N10,000,000</div>
+                <div className="text-white font-bold text-3xl">
+                  ₦{statistics?.total_escrow_balance || "0"}
+                </div>
               </div>
             </div>
             <div className="flex flex-row justify-between mt-6 pt-4 ">
@@ -111,13 +133,17 @@ const Balance = () => {
                 <div className="text-lg text-[#FFFFFF80]">
                   Buyer App Balance
                 </div>
-                <div className="text-2xl text-white font-bold">N5,000,000</div>
+                <div className="text-2xl text-white font-bold">
+                  ₦{statistics?.buyer_escrow_balance || "0"}
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-lg text-[#FFFFFF80]">
                   Seller App Balance
                 </div>
-                <div className="text-2xl text-white font-bold">N5,000,000</div>
+                <div className="text-2xl text-white font-bold">
+                  ₦{statistics?.seller_escrow_balance || "0"}
+                </div>
               </div>
             </div>
           </div>
@@ -139,7 +165,9 @@ const Balance = () => {
                 <div className="text-white font-semibold text-lg">
                   Total points balance
                 </div>
-                <div className="text-white font-bold text-3xl">100,000</div>
+                <div className="text-white font-bold text-3xl">
+                  {statistics?.total_loyalty_points || "0"}
+                </div>
               </div>
             </div>
             <div className="flex flex-row justify-between mt-6 pt-4 ">
@@ -147,13 +175,17 @@ const Balance = () => {
                 <div className="text-lg text-[#FFFFFF80]">
                   Buyer App Balance
                 </div>
-                <div className="text-2xl text-white font-bold">50,000</div>
+                <div className="text-2xl text-white font-bold">
+                  {statistics?.buyer_loyalty_points || "0"}
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-lg text-[#FFFFFF80]">
                   Seller App Balance
                 </div>
-                <div className="text-2xl text-white font-bold">50,000</div>
+                <div className="text-2xl text-white font-bold">
+                  {statistics?.seller_loyalty_points || "0"}
+                </div>
               </div>
             </div>
           </div>
@@ -199,6 +231,12 @@ const Balance = () => {
             onRowSelect={handleUserSelection}
             filterType={activeTab}
             searchTerm={debouncedSearch}
+            users={users}
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            isLoading={isLoading}
+            error={error}
           />
         </div>
       </div>

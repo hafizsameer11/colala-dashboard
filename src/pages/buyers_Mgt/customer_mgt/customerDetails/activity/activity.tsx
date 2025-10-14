@@ -5,11 +5,31 @@ import AddUserModal from "../../../../../components/addUserModel";
 
 interface ActivityProps {
   userData: {
-    id?: string;
-    userName: string;
-    email: string;
-    phoneNumber: string;
-    walletBalance: string;
+    id?: string | number;
+    full_name?: string;
+    user_name?: string;
+    email?: string;
+    phone?: string;
+    country?: string;
+    state?: string;
+    profile_picture?: string | null;
+    last_login?: string;
+    account_created_at?: string;
+    loyalty_points?: number;
+    is_blocked?: boolean;
+    wallet?: {
+      shopping_balance?: string;
+      escrow_balance?: string;
+    };
+    recent_activities?: Array<{
+      id: number;
+      description: string;
+      created_at: string;
+    }>;
+    // Legacy fields for backward compatibility
+    userName?: string;
+    phoneNumber?: string;
+    walletBalance?: string;
   };
 }
 
@@ -109,7 +129,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 Shopping Wallet Balance
               </span>
               <span className="text-4xl font-semibold">
-                {userData.walletBalance}
+                ₦{userData.wallet?.shopping_balance || userData.walletBalance || '0'}
               </span>
               <div className="flex flex-row gap-5 ">
                 <div>
@@ -126,7 +146,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             </div>
             <div className="bg-[#731313] text-white rounded-bl-2xl p-5 flex flex-col gap-5 w-[350px]">
               <span className="text-xl font-normal">Escrow Wallet Balance</span>
-              <span className="text-4xl font-semibold">N25,000</span>
+              <span className="text-4xl font-semibold">₦{userData.wallet?.escrow_balance || '0'}</span>
             </div>
           </div>
           <div
@@ -134,37 +154,47 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
             <div className="ml-5 mt-10">
-              <img className="w-20 h-20" src={images.admin} alt="" />
+              <img 
+                className="w-20 h-20 rounded-full object-cover" 
+                src={userData.profile_picture 
+                  ? `https://colala.hmstech.xyz/storage/${userData.profile_picture}` 
+                  : images.admin
+                } 
+                alt="Profile" 
+                onError={(e) => {
+                  e.currentTarget.src = images.admin;
+                }}
+              />
             </div>
             <div className=" flex flex-row p-5 gap-14">
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Name</span>
-                <span className="text-white">{userData.userName}</span>
+                <span className="text-white">{userData.full_name || userData.userName || 'Unknown'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">Email</span>
-                <span className="text-white">{userData.email}</span>
+                <span className="text-white">{userData.email || 'No email'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Phone Number
                 </span>
-                <span className="text-white">{userData.phoneNumber}</span>
+                <span className="text-white">{userData.phone || userData.phoneNumber || 'No phone'}</span>
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Location</span>
-                <span className="text-white">Lagos, Nigeria</span>
+                <span className="text-white">{userData.state || 'Unknown'}, {userData.country || 'Unknown'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">Last Login</span>
-                <span className="text-white">23/02/25 - 11:22 AM</span>
+                <span className="text-white">{userData.last_login || 'Never'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Account Creation
                 </span>
-                <span className="text-white">10/02/25 - 07:21 AM</span>
+                <span className="text-white">{userData.account_created_at || 'Unknown'}</span>
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Username</span>
-                <span className="text-white">Maleekfrenzy</span>
+                <span className="text-white">{userData.user_name || 'Unknown'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Loyalty Points
                 </span>
                 <div className="text-white flex flex-row gap-2">
-                  <span className="font-bold">200</span>
+                  <span className="font-bold">{userData.loyalty_points || 0}</span>
                   <span
                     className="cursor-pointer underline"
                     onClick={() => setShowModal(true)}
@@ -232,60 +262,30 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">
-                      User Account created
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">User logged in</td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">
-                      User ordered a product
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">
-                      User funded wallet
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
+                  {userData.recent_activities && userData.recent_activities.length > 0 ? (
+                    userData.recent_activities.map((activity) => (
+                      <tr key={activity.id} className="hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                          />
+                        </td>
+                        <td className="py-3 px-4 text-gray-800">
+                          {activity.description}
+                        </td>
+                        <td className="py-3 px-4 text-center text-gray-600">
+                          {activity.created_at}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 px-4 text-center text-gray-500">
+                        No recent activities found
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

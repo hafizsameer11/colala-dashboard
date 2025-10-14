@@ -1,24 +1,35 @@
 import React, { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../../components/PageHeader";
 import Activity from "./activity/activity";
 import Orders from "./orders/orders";
 import Chats from "./chats/chats";
 import Transaction from "./transaction/transaction";
 import SocialFeed from "./socialFeed/socialFeed";
+import { getUserProfile } from "../../../../utils/queries/users";
 
 const CustomerDetails: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { state } = useLocation();
   const [activeTab, setActiveTab] = useState("Activity");
 
-  // Extract the user from the state (fallback in case it's missing)
-  const userData = state || {
+  // Fetch user profile data from API
+  const { data: profileData, isLoading, error } = useQuery({
+    queryKey: ['userProfile', userId],
+    queryFn: () => getUserProfile(userId!),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Extract the user data from API response or fallback to state/local data
+  const userData = profileData?.data || state || {
     id: userId,
-    userName: "Unknown",
+    full_name: "Unknown",
+    user_name: "Unknown",
     email: "No email",
-    phoneNumber: "No phone number",
-    walletBalance: "₦0",
+    phone: "No phone number",
+    wallet: { shopping_balance: "₦0", escrow_balance: "₦0" },
   };
 
   const tabs = ["Activity", "Orders", "Chats", "Transactions", "Social Feed"];
@@ -47,15 +58,34 @@ const CustomerDetails: React.FC = () => {
   );
 
   const renderTabContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E]"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center text-red-500">
+            <p className="text-lg font-semibold">Error loading user profile</p>
+            <p className="text-sm">{error.message}</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "Activity":
         return <Activity userData={userData} />;
       case "Orders":
-        return <Orders />;
+        return <Orders userId={userId} />;
       case "Chats":
-        return <Chats />;
+        return <Chats userId={userId} />;
       case "Transactions":
-        return <Transaction />;
+        return <Transaction userId={userId} />;
       case "Social Feed":
         return <SocialFeed />;
       default:

@@ -1,32 +1,65 @@
 import React, { useMemo, useState, useEffect } from "react";
-import TransactionsModel from "../../../../../components/transactionsModel";
+import BuyerTransactionDetails from "../../../../../components/buyerTransactionDetails";
+
+interface ApiTransaction {
+  id: number;
+  tx_id: string;
+  amount: number;
+  amount_formatted: string;
+  status: string;
+  type: string;
+  user_name: string;
+  user_email: string;
+  created_at: string;
+  formatted_date: string;
+  status_color: string;
+}
 
 interface Transaction {
   id: string;
   reference: string;
   amount: string;
-  type: "Withdrawals" | "Payments" | "Deposit";
+  type: string;
   date: string;
-  status: "Successful" | "Pending" | "Failed";
+  status: string;
+  userName: string;
+  userEmail: string;
+  statusColor: string;
 }
 
 interface TransactionTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  onSelectedTransactionsChange?: (selectedTransactions: any[]) => void;
   /** Status filter from tabs */
-  statusFilter?: "All" | "Pending" | "Successful" | "Failed";
+  statusFilter?: "All" | "pending" | "success" | "completed" | "failed";
   /** Type filter from DepositDropdown */
   typeFilter?: "All" | "Deposit" | "Withdrawals" | "Payments";
   /** Debounced search string */
   searchTerm?: string;
+  transactions?: ApiTransaction[];
+  pagination?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
+  userId?: string | number;
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
   title = "Latest Transactions",
   onRowSelect,
+  onSelectedTransactionsChange,
   statusFilter = "All",
   typeFilter = "All",
   searchTerm = "",
+  transactions = [],
+  pagination = null,
+  currentPage = 1,
+  onPageChange,
+  isLoading = false,
+  error = null,
+  userId,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -34,64 +67,20 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [selectedTransactionTable, setSelectedTransactionTable] =
     useState<Transaction | null>(null);
 
-  const transactions: Transaction[] = [
-    {
-      id: "1",
-      reference: "zxcvbnmkljhgfdsA",
-      amount: "₦1,000",
-      type: "Withdrawals",
-      date: "18-07-2025/11:30AM",
-      status: "Successful",
-    },
-    {
-      id: "2",
-      reference: "poiuytrewqasdfgh",
-      amount: "₦12,750",
-      type: "Payments",
-      date: "18-07-2025/09:05AM",
-      status: "Pending",
-    },
-    {
-      id: "3",
-      reference: "mnbvcxzlkjhgfdrp",
-      amount: "₦50,000",
-      type: "Withdrawals",
-      date: "17-07-2025/01:45PM",
-      status: "Successful",
-    },
-    {
-      id: "4",
-      reference: "asdfghzxcvbnqwe",
-      amount: "₦5,500",
-      type: "Deposit",
-      date: "19-07-2025/02:15PM",
-      status: "Failed",
-    },
-    {
-      id: "5",
-      reference: "qwaszxedcrfvtgby",
-      amount: "₦20,000",
-      type: "Payments",
-      date: "20-07-2025/07:58PM",
-      status: "Successful",
-    },
-    {
-      id: "6",
-      reference: "qwertyuiopasdfgh",
-      amount: "₦2,500",
-      type: "Deposit",
-      date: "16-07-2025/08:22PM",
-      status: "Failed",
-    },
-    {
-      id: "7",
-      reference: "jhgfdsapoiuytrew",
-      amount: "₦10,000",
-      type: "Deposit",
-      date: "17-07-2025/10:00AM",
-      status: "Successful",
-    },
-  ];
+  // Normalize API data to UI format
+  const normalizedTransactions: Transaction[] = useMemo(() => {
+    return transactions.map((tx: ApiTransaction) => ({
+      id: tx.id.toString(),
+      reference: tx.tx_id,
+      amount: tx.amount_formatted,
+      type: tx.type,
+      date: tx.formatted_date,
+      status: tx.status,
+      userName: tx.user_name,
+      userEmail: tx.user_email,
+      statusColor: tx.status_color,
+    }));
+  }, [transactions]);
 
   const visibleTxs = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -99,19 +88,25 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     const statusOk = (t: Transaction) =>
       statusFilter === "All" ? true : t.status === statusFilter;
 
-    const typeOk = (t: Transaction) =>
-      typeFilter === "All" ? true : t.type === typeFilter;
+    const typeOk = (t: Transaction) => {
+      if (typeFilter === "All") return true;
+      const normalizedType = t.type.toLowerCase();
+      if (typeFilter === "Deposit") return normalizedType.includes("deposit");
+      if (typeFilter === "Withdrawals") return normalizedType.includes("withdraw");
+      if (typeFilter === "Payments") return normalizedType.includes("payment") || normalizedType.includes("order");
+      return true;
+    };
 
     const searchOk = (t: Transaction) => {
       if (!q) return true;
-      return [t.reference, t.amount, t.type, t.date, t.status]
+      return [t.reference, t.amount, t.type, t.date, t.status, t.userName, t.userEmail]
         .join(" ")
         .toLowerCase()
         .includes(q);
     };
 
-    return transactions.filter((t) => statusOk(t) && typeOk(t) && searchOk(t));
-  }, [transactions, statusFilter, typeFilter, searchTerm]);
+    return normalizedTransactions.filter((t) => statusOk(t) && typeOk(t) && searchOk(t));
+  }, [normalizedTransactions, statusFilter, typeFilter, searchTerm]);
 
   // keep the header checkbox in sync with visible rows
   useEffect(() => {
@@ -135,11 +130,27 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       setSelectedRows(remaining);
       onRowSelect?.(remaining);
       setSelectAll(false);
+      
+      // Call onSelectedTransactionsChange with actual transaction objects
+      if (onSelectedTransactionsChange) {
+        const selectedTransactions = normalizedTransactions.filter(transaction => 
+          remaining.includes(transaction.id)
+        );
+        onSelectedTransactionsChange(selectedTransactions);
+      }
     } else {
       const union = Array.from(new Set([...selectedRows, ...visIds]));
       setSelectedRows(union);
       onRowSelect?.(union);
       setSelectAll(true);
+      
+      // Call onSelectedTransactionsChange with actual transaction objects
+      if (onSelectedTransactionsChange) {
+        const selectedTransactions = normalizedTransactions.filter(transaction => 
+          union.includes(transaction.id)
+        );
+        onSelectedTransactionsChange(selectedTransactions);
+      }
     }
   };
 
@@ -149,6 +160,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         ? prev.filter((id) => id !== transactionId)
         : [...prev, transactionId];
       onRowSelect?.(next);
+      
+      // Call onSelectedTransactionsChange with actual transaction objects
+      if (onSelectedTransactionsChange) {
+        const selectedTransactions = normalizedTransactions.filter(transaction => 
+          next.includes(transaction.id)
+        );
+        onSelectedTransactionsChange(selectedTransactions);
+      }
+      
       return next;
     });
   };
@@ -198,7 +218,21 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {visibleTxs.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-red-500">
+                  <p className="text-sm">Error loading transactions</p>
+                </td>
+              </tr>
+            ) : visibleTxs.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
                   No transactions found.
@@ -227,7 +261,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     {transaction.amount}
                   </td>
                   <td className="p-4 text-[14px] text-black text-center">
-                    {transaction.type}
+                    <span className="text-sm">
+                      {transaction.type.replace(/_/g, ' ').toUpperCase()}
+                    </span>
                   </td>
                   <td className="p-4 text-[14px] font-semibold text-black text-center">
                     {transaction.date}
@@ -256,10 +292,34 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </table>
       </div>
 
-      <TransactionsModel
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">
+            Page {currentPage} of {pagination.last_page}
+          </span>
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage + 1)}
+            disabled={currentPage === pagination.last_page}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      <BuyerTransactionDetails
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         transaction={selectedTransactionTable}
+        transactionId={selectedTransactionTable?.id}
       />
     </div>
   );

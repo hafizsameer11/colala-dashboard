@@ -1,13 +1,25 @@
 import React, { useMemo, useState, useEffect } from "react";
 
 interface User {
-  id: string;
-  userName: string;
-  shoppingBalance: string;
-  escrowBalance: string;
-  pointsBalance: string;
-  userType: "Buyer" | "Seller";
-  userImage?: string;
+  id: number;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  role: string | null;
+  shopping_balance: number;
+  reward_balance: number;
+  referral_balance: number;
+  loyalty_points: number;
+  escrow_balance: number;
+  created_at: string;
+  formatted_date: string;
+}
+
+interface Pagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 interface UsersTableProps {
@@ -15,6 +27,12 @@ interface UsersTableProps {
   onRowSelect?: (selectedIds: string[]) => void;
   filterType?: "All" | "Buyers" | "Sellers";
   searchTerm?: string;
+  users?: User[];
+  pagination?: Pagination;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
@@ -22,74 +40,21 @@ const UsersTable: React.FC<UsersTableProps> = ({
   onRowSelect,
   filterType = "All",
   searchTerm = "",
+  users = [],
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  isLoading = false,
+  error,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
-  const users: User[] = [
-    {
-      id: "1",
-      userName: "Ibrahim Musa",
-      shoppingBalance: "₦250,000",
-      escrowBalance: "₦250,000",
-      pointsBalance: "800",
-      userType: "Buyer",
-    },
-    {
-      id: "2",
-      userName: "Emeka Okafor",
-      shoppingBalance: "₦1,200,000",
-      escrowBalance: "₦950,000",
-      pointsBalance: "1500",
-      userType: "Seller",
-    },
-    {
-      id: "3",
-      userName: "Funmilayo Adekunle",
-      shoppingBalance: "₦50,000",
-      escrowBalance: "₦45,000",
-      pointsBalance: "210",
-      userType: "Buyer",
-    },
-    {
-      id: "4",
-      userName: "Fatima Bello",
-      shoppingBalance: "₦88,000",
-      escrowBalance: "₦88,000",
-      pointsBalance: "420",
-      userType: "Buyer",
-    },
-    {
-      id: "5",
-      userName: "Chiamaka Nwosu",
-      shoppingBalance: "₦75,500",
-      escrowBalance: "₦50,000",
-      pointsBalance: "350",
-      userType: "Seller",
-    },
-    {
-      id: "6",
-      userName: "Tunde Ojo",
-      shoppingBalance: "₦310,000",
-      escrowBalance: "₦200,000",
-      pointsBalance: "650",
-      userType: "Buyer",
-    },
-    {
-      id: "7",
-      userName: "Adebayo Williams",
-      shoppingBalance: "₦100,000",
-      escrowBalance: "₦100,000",
-      pointsBalance: "500",
-      userType: "Buyer",
-    },
-  ];
-
   // Tab filter
   const matchesTab = (u: User) => {
     if (filterType === "All") return true;
-    if (filterType === "Buyers") return u.userType === "Buyer";
-    if (filterType === "Sellers") return u.userType === "Seller";
+    if (filterType === "Buyers") return u.role === "buyer";
+    if (filterType === "Sellers") return u.role === "seller";
     return true;
   };
 
@@ -100,11 +65,13 @@ const UsersTable: React.FC<UsersTableProps> = ({
     return users.filter(matchesTab).filter((u) => {
       if (!term) return true;
       const haystack = [
-        u.userName,
-        u.shoppingBalance,
-        u.escrowBalance,
-        u.pointsBalance,
-        u.userType,
+        u.full_name,
+        u.email,
+        u.phone || "",
+        u.role || "",
+        u.shopping_balance.toString(),
+        u.escrow_balance.toString(),
+        u.loyalty_points.toString(),
       ]
         .join(" ")
         .toLowerCase();
@@ -116,7 +83,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   useEffect(() => {
     setSelectAll(false);
     setSelectedRows((prev) =>
-      prev.filter((id) => filteredUsers.some((u) => u.id === id))
+      prev.filter((id) => filteredUsers.some((u) => u.id.toString() === id))
     );
   }, [filterType, searchTerm]); // eslint-disable-line
 
@@ -125,7 +92,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
       setSelectedRows([]);
       onRowSelect?.([]);
     } else {
-      const visibleIds = filteredUsers.map((u) => u.id);
+      const visibleIds = filteredUsers.map((u) => u.id.toString());
       setSelectedRows(visibleIds);
       onRowSelect?.(visibleIds);
     }
@@ -144,6 +111,34 @@ const UsersTable: React.FC<UsersTableProps> = ({
     );
     onRowSelect?.(newSelection);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="border border-gray-300 rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="border border-gray-300 rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8 text-center text-red-500">
+          <p>Error loading users data</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
@@ -183,8 +178,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 <td className="p-3">
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(user.id)}
-                    onChange={() => handleRowSelect(user.id)}
+                    checked={selectedRows.includes(user.id.toString())}
+                    onChange={() => handleRowSelect(user.id.toString())}
                     className="w-5 h-5"
                   />
                 </td>
@@ -194,14 +189,24 @@ const UsersTable: React.FC<UsersTableProps> = ({
                     alt="User"
                     className="w-8 h-8 rounded-full"
                   />
-                  <span>{user.userName}</span>
+                  <span>{user.full_name}</span>
                 </td>
                 <td className="p-3 text-left font-semibold">
-                  {user.shoppingBalance}
+                  ₦{user.shopping_balance.toLocaleString()}
                 </td>
-                <td className="p-3 font-semibold">{user.escrowBalance}</td>
-                <td className="p-3 font-semibold">{user.pointsBalance}</td>
-                <td className="p-3">{user.userType}</td>
+                <td className="p-3 font-semibold">₦{user.escrow_balance.toLocaleString()}</td>
+                <td className="p-3 font-semibold">{user.loyalty_points.toLocaleString()}</td>
+                <td className="p-3">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    user.role === 'buyer' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : user.role === 'seller' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {user.role || 'No Role'}
+                  </span>
+                </td>
                 <td className="p-3 flex items-center justify-start gap-2">
                   <button className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer">
                     User Details
@@ -216,13 +221,59 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   colSpan={7}
                   className="p-6 text-center text-sm text-gray-500"
                 >
-                  No users found{searchTerm ? ` for “${searchTerm}”` : ""}
+                  No users found{searchTerm ? ` for "${searchTerm}"` : ""}
                   {filterType !== "All" ? ` in ${filterType}` : ""}.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        {pagination && pagination.last_page > 1 && (
+          <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {((currentPage - 1) * pagination.per_page) + 1} to {Math.min(currentPage * pagination.per_page, pagination.total)} of {pagination.total} results
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+                const pageNum = Math.max(1, Math.min(pagination.last_page - 4, currentPage - 2)) + i;
+                if (pageNum > pagination.last_page) return null;
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange?.(pageNum)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      currentPage === pageNum
+                        ? 'bg-[#E53E3E] text-white'
+                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              <button
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= pagination.last_page}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

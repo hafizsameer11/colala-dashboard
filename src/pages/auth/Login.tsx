@@ -40,7 +40,7 @@ const Login = () => {
       console.log('Login successful, navigating to dashboard'); // Debug log
       navigate('/dashboard');
     } else {
-      setError("Invalid email or password. Use admin@admin.com / admin");
+      setError("Invalid email or password. Please check your credentials.");
     }
   };
 

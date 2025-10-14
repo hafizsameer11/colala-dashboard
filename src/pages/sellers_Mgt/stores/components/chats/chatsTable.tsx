@@ -1,88 +1,49 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import ChatsModel from "../../../Modals/chatsModel";
 
-interface Chat {
+interface ChatUi {
   id: string;
   storeName: string;
   userName: string;
   lastMessage: string;
   chatDate: string;
-  other: string;
 }
 
-interface OrdersTableProps {
+export interface OrdersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  chats?: any[];
+  isLoading?: boolean;
+  error?: any;
+  pagination?: any;
+  onPageChange?: (page: number) => void;
+  userId?: string;
 }
 
 const ChatsTable: React.FC<OrdersTableProps> = ({
   title = "Latest Chats",
   onRowSelect,
+  chats = [],
+  isLoading = false,
+  error,
+  pagination,
+  onPageChange,
+  userId,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [selectedChat, setSelectedChat] = useState<ChatUi | null>(null);
 
-  // Sample data based on the image
-  const chats: Chat[] = [
-    {
-      id: "1",
-      storeName: "Pet Paradise",
-      userName: "David Chen",
-      lastMessage: "What are the ingredients in your gr...",
-      chatDate: "20-07-2025/07:58PM",
-      other: "View Chat",
-    },
-    {
-      id: "2",
-      storeName: "Fitness Forward",
-      userName: "Sofia Rossi",
-      lastMessage: "I'd like to return the yoga mat I...",
-      chatDate: "20-07-2025/07:21PM",
-      other: "View Chat",
-    },
-    {
-      id: "3",
-      storeName: "Fresh Blooms Co.",
-      userName: "Elena Petrova",
-      lastMessage: "Can I change the delivery address for...",
-      chatDate: "20-07-2025/08:50PM",
-      other: "View Chat",
-    },
-    {
-      id: "4",
-      storeName: "AutoPro Parts",
-      userName: "Kenji Tanaka",
-      lastMessage: "Is this compatible with a 2023 Hon...",
-      chatDate: "20-07-2025/08:45PM",
-      other: "View Chat",
-    },
-    {
-      id: "5",
-      storeName: "Gadget Haven",
-      userName: "Qamar Malik",
-      lastMessage: "I need this delivered to my location...",
-      chatDate: "20-07-2025/09:15PM",
-      other: "View Chat",
-    },
-    {
-      id: "6",
-      storeName: "Artisan Coffee Roasters",
-      userName: "Liam O'Connell",
-      lastMessage: "Do you offer a subscription servi...",
-      chatDate: "20-07-2025/06:45PM",
-      other: "View Chat",
-    },
-    {
-      id: "7",
-      storeName: "The Book Nook",
-      userName: "Fatima Al-Sayed",
-      lastMessage: "My order seems to be delayed, any...",
-      chatDate: "20-07-2025/08:32PM",
-      other: "View Chat",
-    },
-  ];
+  const normalizedChats: ChatUi[] = useMemo(() => {
+    return (chats || []).map((c: any) => ({
+      id: String(c.id),
+      storeName: c.store_name || 'N/A',
+      userName: c.customer_name || 'N/A',
+      lastMessage: typeof c.last_message === 'object' ? (c.last_message?.message || 'N/A') : (c.last_message || 'N/A'),
+      chatDate: c.updated_at || c.created_at || 'N/A',
+    }));
+  }, [chats]);
 
   const handleShowDetails = (chat: Chat) => {
     setSelectedChat(chat);
@@ -93,12 +54,12 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
     if (selectAll) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(chats.map((chat) => chat.id));
+      setSelectedRows(normalizedChats.map((chat) => chat.id));
     }
     setSelectAll(!selectAll);
 
     if (onRowSelect) {
-      onRowSelect(selectAll ? [] : chats.map((chat) => chat.id));
+      onRowSelect(selectAll ? [] : normalizedChats.map((chat) => chat.id));
     }
   };
 
@@ -111,7 +72,7 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
     }
 
     setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === chats.length);
+    setSelectAll(newSelectedRows.length === normalizedChats.length);
 
     if (onRowSelect) {
       onRowSelect(newSelectedRows);
@@ -153,11 +114,17 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {chats.map((chat, index) => (
+            {isLoading ? (
+              <tr><td colSpan={6} className="p-6 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E] mx-auto"></div></td></tr>
+            ) : error ? (
+              <tr><td colSpan={6} className="p-6 text-center text-red-500">Failed to load chats</td></tr>
+            ) : normalizedChats.length === 0 ? (
+              <tr><td colSpan={6} className="p-6 text-center text-gray-500">No chats</td></tr>
+            ) : normalizedChats.map((chat, index) => (
               <tr
                 key={chat.id}
                 className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === chats.length - 1 ? "" : "border-b"
+                  index === normalizedChats.length - 1 ? "" : "border-b"
                 }`}
               >
                 <td className="p-4">
@@ -194,7 +161,31 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
         </table>
       </div>
       {/* chats Model */}
-      <ChatsModel isOpen={showModal} onClose={() => setShowModal(false)} />
+      <ChatsModel 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)} 
+        userId={userId}
+        chatId={selectedChat?.id}
+      />
+
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <button onClick={() => onPageChange?.(pagination.current_page - 1)} disabled={pagination.current_page <= 1} className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, pagination.current_page - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              return (
+                <button key={pageNum} onClick={() => onPageChange?.(pageNum)} className={`px-3 py-2 text-sm font-medium rounded-md ${pagination.current_page === pageNum ? 'bg-[#E53E3E] text-white' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>{pageNum}</button>
+              );
+            })}
+            <button onClick={() => onPageChange?.(pagination.current_page + 1)} disabled={pagination.current_page >= pagination.last_page} className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

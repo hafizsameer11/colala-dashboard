@@ -49,110 +49,110 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
 };
 
 interface User {
-  id: string;
-  userName: string;
+  id: number;
+  full_name: string;
   email: string;
-  phoneNumber: string;
-  walletBalance: string;
+  phone?: string;
+  profile_picture?: string;
+  role: string;
+  is_active: number;
+  wallet_balance: string;
+  created_at: string;
+  // Legacy fields for backward compatibility
+  userName?: string;
+  phoneNumber?: string;
+  walletBalance?: string;
   userImage?: string;
 }
 
 interface UsersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  searchQuery?: string; // <-- NEW
+  onSelectedUsersChange?: (selectedUsers: User[]) => void;
+  searchQuery?: string;
+  users?: User[];
+  pagination?: any;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
   title = "Users",
   onRowSelect,
+  onSelectedUsersChange,
   searchQuery = "",
+  users = [],
+  pagination = null,
+  onPageChange,
+  isLoading = false,
+  error = null,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
 
-  // Mock data (unchanged)
-  const users: User[] = [
-    {
-      id: "1",
-      userName: "Adebayo Williams",
-      email: "adebayo.w@outlook.com",
-      phoneNumber: "09098765432",
-      walletBalance: "₦15,750",
-    },
-    {
-      id: "2",
-      userName: "Halima Abubakar",
-      email: "halima.abubakar@protonmail.com",
-      phoneNumber: "08056781234",
-      walletBalance: "₦110,300",
-    },
-    {
-      id: "3",
-      userName: "Chidinma Okoro",
-      email: "chidinma.okoro@yahoo.com",
-      phoneNumber: "08021234567",
-      walletBalance: "₦42,500",
-    },
-    {
-      id: "4",
-      userName: "Fatima Bello",
-      email: "fatima.bello@icloud.com",
-      phoneNumber: "08181122334",
-      walletBalance: "₦78,000",
-    },
-    {
-      id: "5",
-      userName: "Emeka Eze",
-      email: "emeka.eze.ng@gmail.com",
-      phoneNumber: "07065557788",
-      walletBalance: "₦5,200",
-    },
-    {
-      id: "6",
-      userName: "Tunde Ogunsola",
-      email: "tunde.ogunsola@live.com",
-      phoneNumber: "09034445566",
-      walletBalance: "₦33,999",
-    },
-    {
-      id: "7",
-      userName: "Tunde Ogunsola",
-      email: "tunde.ogunsola@live.com",
-      phoneNumber: "09034445566",
-      walletBalance: "₦33,999",
-    },
-  ];
+  // Helper function to normalize user data from API
+  const normalizeUser = (user: User): User => ({
+    id: user.id,
+    full_name: user.full_name || 'Unknown User',
+    email: user.email || 'No email',
+    phone: user.phone || 'No phone',
+    profile_picture: user.profile_picture,
+    role: user.role || 'buyer',
+    is_active: user.is_active || 0,
+    wallet_balance: user.wallet_balance || '0.00',
+    created_at: user.created_at || 'Unknown date',
+    // Legacy fields for backward compatibility
+    userName: user.full_name || 'Unknown User',
+    phoneNumber: user.phone || 'No phone',
+    walletBalance: user.wallet_balance || '₦0.00',
+    userImage: user.profile_picture,
+  });
+
+  // Use real users data or fallback to empty array
+  const normalizedUsers = users.map(normalizeUser);
+
 
   // Case-insensitive filtering on name, email, phone
   const filteredUsers = useMemo(() => {
     const q = (searchQuery || "").trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) =>
-      [u.userName, u.email, u.phoneNumber].some((field) =>
+    if (!q) return normalizedUsers;
+    return normalizedUsers.filter((u) =>
+      [u.full_name, u.email, u.phone || ''].some((field) =>
         field.toLowerCase().includes(q)
       )
     );
-  }, [users, searchQuery]);
+  }, [normalizedUsers, searchQuery]);
 
   // Keep "Select All" in sync with filtered list
   useEffect(() => {
     setSelectAll(
       filteredUsers.length > 0 &&
-        filteredUsers.every((u) => selectedRows.includes(u.id))
+        filteredUsers.every((u) => selectedRows.includes(String(u.id)))
     );
   }, [filteredUsers, selectedRows]);
 
+  // Remove the problematic useEffect hooks that cause infinite loops
+  // We'll handle the selection in the event handlers instead
+
   const handleSelectAll = () => {
-    const visibleIds = filteredUsers.map((u) => u.id);
+    const visibleIds = filteredUsers.map((u) => String(u.id));
     const allSelected = visibleIds.every((id) => selectedRows.includes(id));
     const newSelection = allSelected
       ? selectedRows.filter((id) => !visibleIds.includes(id)) // unselect visible
       : Array.from(new Set([...selectedRows, ...visibleIds])); // add visible
     setSelectedRows(newSelection);
     setSelectAll(!allSelected);
+    
+    // Call parent functions directly
     onRowSelect?.(newSelection);
+    if (onSelectedUsersChange) {
+      const selectedUsers = filteredUsers.filter(user => 
+        newSelection.includes(String(user.id))
+      );
+      onSelectedUsersChange(selectedUsers);
+    }
   };
 
   const handleRowSelect = (id: string) => {
@@ -164,9 +164,17 @@ const UsersTable: React.FC<UsersTableProps> = ({
     setSelectedRows(newSelection);
     setSelectAll(
       filteredUsers.length > 0 &&
-        filteredUsers.every((u) => newSelection.includes(u.id))
+        filteredUsers.every((u) => newSelection.includes(String(u.id)))
     );
+    
+    // Call parent functions directly
     onRowSelect?.(newSelection);
+    if (onSelectedUsersChange) {
+      const selectedUsers = filteredUsers.filter(user => 
+        newSelection.includes(String(user.id))
+      );
+      onSelectedUsersChange(selectedUsers);
+    }
   };
 
   const handleCustomerDetails = (user: User) => {
@@ -199,7 +207,22 @@ const UsersTable: React.FC<UsersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((user) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-red-500">
+                  <p className="text-sm">Error loading users</p>
+                </td>
+              </tr>
+            ) : (
+              filteredUsers.map((user) => (
               <tr
                 key={user.id}
                 className="text-center border-t border-gray-200"
@@ -207,22 +230,29 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 <td className="p-3">
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(user.id)}
-                    onChange={() => handleRowSelect(user.id)}
+                    checked={selectedRows.includes(String(user.id))}
+                    onChange={() => handleRowSelect(String(user.id))}
                     className="w-5 h-5"
                   />
                 </td>
                 <td className="p-3 text-left flex items-center justify-start gap-2">
                   <img
-                    src="/assets/layout/admin.png"
+                    src={user.profile_picture 
+                      ? `https://colala.hmstech.xyz/storage/${user.profile_picture}` 
+                      : "/assets/layout/admin.png"
+                    }
                     alt="User"
-                    className="w-8 h-8 rounded-full"
+                    className="w-8 h-8 rounded-full object-cover"
+                    onError={(e) => {
+                      // Fallback to dummy image if API image fails to load
+                      e.currentTarget.src = "/assets/layout/admin.png";
+                    }}
                   />
-                  <span>{user.userName}</span>
+                  <span>{user.full_name}</span>
                 </td>
                 <td className="p-3">{user.email}</td>
-                <td className="p-3">{user.phoneNumber}</td>
-                <td className="p-3 font-bold">{user.walletBalance}</td>
+                <td className="p-3">{user.phone || 'No phone'}</td>
+                <td className="p-3 font-bold">₦{user.wallet_balance}</td>
                 <td className="p-3 space-x-1">
                   <button
                     onClick={() => handleCustomerDetails(user)}
@@ -242,17 +272,67 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   />
                 </td>
               </tr>
-            ))}
-            {filteredUsers.length === 0 && (
+            ))
+            )}
+            {!isLoading && !error && filteredUsers.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
-                  No users found for “{searchQuery}”.
+                  No users found for "{searchQuery}".
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-between items-center mt-4 px-4 py-3 bg-white border-t border-gray-200">
+          <div className="text-sm text-gray-700">
+            Showing {pagination.from} to {pagination.to} of {pagination.total} results
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => onPageChange?.(pagination.current_page - 1)}
+              disabled={!pagination.prev_page_url}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex space-x-1">
+              {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+                const pageNum = i + 1;
+                const isActive = pageNum === pagination.current_page;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange?.(pageNum)}
+                    className={`px-3 py-1 text-sm border rounded-md ${
+                      isActive
+                        ? 'bg-[#E53E3E] text-white border-[#E53E3E]'
+                        : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => onPageChange?.(pagination.current_page + 1)}
+              disabled={!pagination.next_page_url}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

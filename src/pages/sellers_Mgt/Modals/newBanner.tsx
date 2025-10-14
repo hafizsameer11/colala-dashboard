@@ -4,9 +4,20 @@ import images from "../../../constants/images";
 interface NewBannerProps {
   isOpen: boolean;
   onClose: () => void;
+  editingBanner?: any;
+  onCreateBanner?: (formData: FormData) => void;
+  onUpdateBanner?: (bannerId: string, formData: FormData) => void;
+  isLoading?: boolean;
 }
 
-const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
+const NewBanner: React.FC<NewBannerProps> = ({ 
+  isOpen, 
+  onClose, 
+  editingBanner,
+  onCreateBanner,
+  onUpdateBanner,
+  isLoading = false
+}) => {
   if (!isOpen) return null;
 
   // State management
@@ -26,6 +37,17 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
       }
     };
   }, [bannerFile]);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingBanner) {
+      setBannerLink(editingBanner.link || "");
+      setBannerFile(null); // Reset file for new upload
+    } else {
+      setBannerLink("");
+      setBannerFile(null);
+    }
+  }, [editingBanner]);
 
   // Handle file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +83,8 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
       bannerLink: "",
     };
 
-    if (!bannerFile) {
+    // File is only required for new banners, not when editing (can keep current image)
+    if (!editingBanner && !bannerFile) {
       newErrors.bannerFile = "Please upload a banner image or video";
     }
 
@@ -96,30 +119,22 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
       const formData = new FormData();
       if (bannerFile) {
-        formData.append("banner", bannerFile);
+        formData.append("image", bannerFile);
       }
       formData.append("link", bannerLink);
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Banner uploaded successfully:", {
-        file: bannerFile?.name,
-        link: bannerLink,
-      });
-
-      alert("Banner uploaded successfully!");
+      if (editingBanner && onUpdateBanner) {
+        onUpdateBanner(editingBanner.id, formData);
+      } else if (onCreateBanner) {
+        onCreateBanner(formData);
+      }
 
       // Reset form
       setBannerFile(null);
       setBannerLink("");
       setErrors({ bannerFile: "", bannerLink: "" });
-
-      // Close modal
-      onClose();
     } catch (error) {
       console.error("Error uploading banner:", error);
       alert("Error uploading banner. Please try again.");
@@ -133,7 +148,9 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Add New Banner</h2>
+            <h2 className="text-xl font-bold">
+              {editingBanner ? "Edit Banner" : "Add New Banner"}
+            </h2>
             <div className="flex items-center">
               <button
                 onClick={onClose}
@@ -149,8 +166,13 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-3">
               <label htmlFor="uploadBanner" className="text-xl font-medium">
-                Upload Banner
+                {editingBanner ? "Update Banner (Optional)" : "Upload Banner"}
               </label>
+              {editingBanner && (
+                <p className="text-sm text-gray-600">
+                  Leave empty to keep the current banner image
+                </p>
+              )}
 
               {/* File Upload Area */}
               {bannerFile ? (
@@ -175,6 +197,17 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
                   >
                     ×
                   </button>
+                </div>
+              ) : editingBanner?.image ? (
+                <div className="relative rounded-xl border border-[#989898] overflow-hidden">
+                  <img
+                    src={editingBanner.image}
+                    alt="Current banner"
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                    Current banner
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3 items-center justify-center p-10 rounded-xl border border-[#989898] cursor-pointer hover:border-[#E53E3E] transition-colors relative">
@@ -235,7 +268,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose }) => {
                     : "bg-[#E53E3E] hover:bg-[#d63333] cursor-pointer"
                 }`}
               >
-                {isSubmitting ? "Uploading..." : "Upload Banner"}
+                {isSubmitting ? "Saving..." : (editingBanner ? "Update Banner" : "Upload Banner")}
               </button>
             </div>
           </form>

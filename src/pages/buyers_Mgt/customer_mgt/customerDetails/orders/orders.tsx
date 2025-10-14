@@ -1,23 +1,35 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
 import useDebouncedValue from "../../../../../hooks/useDebouncedValue";
+import { getUserOrders } from "../../../../../utils/queries/users";
 
-const Orders: React.FC = () => {
+interface OrdersProps {
+  userId?: string | number;
+}
+
+const Orders: React.FC<OrdersProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = [
     "All",
-    "Order Placed",
-    "Out for delivery",
-    "Delivered",
-    "Completed",
-    "Disputed",
-    "Uncompleted",
+    "placed",
+    "pending", 
+    "out_for_delivery",
+    "delivered",
   ];
+
+  // Fetch user orders data from API
+  const { data: ordersData, isLoading, error } = useQuery({
+    queryKey: ['userOrders', userId],
+    queryFn: () => getUserOrders(userId!),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  });
 
   const handleUserSelection = (selectedIds: string[]) => {
     console.log("Selected user IDs:", selectedIds);
@@ -50,58 +62,68 @@ const Orders: React.FC = () => {
     <>
       <div>
         <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.cycle} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">2,000</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-
+          {/* Total Orders Card */}
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">2,000</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+              <span className="font-semibold text-2xl">
+                {ordersData?.data?.statistics?.total_orders?.value || 0}
+              </span>
+              <span className="text-[#00000080] text-[13px]">
+                <span className="text-[#1DB61D]">
+                  +{ordersData?.data?.statistics?.total_orders?.increase || 0}%
+                </span>{" "}
+                increase from last month
               </span>
             </div>
           </div>
 
-          {/* Card 3 */}
-
+          {/* Pending Orders Card */}
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">2,000</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+              <span className="font-semibold text-[15px]">Pending Orders</span>
+              <span className="font-semibold text-2xl">
+                {ordersData?.data?.statistics?.pending_orders?.value || 0}
+              </span>
+              <span className="text-[#00000080] text-[13px]">
+                <span className="text-[#1DB61D]">
+                  +{ordersData?.data?.statistics?.pending_orders?.increase || 0}%
+                </span>{" "}
+                increase from last month
+              </span>
+            </div>
+          </div>
+
+          {/* Completed Orders Card */}
+          <div
+            className="flex flex-row rounded-2xl w-90"
+            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+          >
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+              <img className="w-9 h-9" src={images.cycle} alt="" />
+            </div>
+            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+              <span className="font-semibold text-[15px]">Completed Orders</span>
+              <span className="font-semibold text-2xl">
+                {ordersData?.data?.statistics?.completed_orders?.value || 0}
+              </span>
+              <span className="text-[#00000080] text-[13px]">
+                <span className="text-[#1DB61D]">
+                  +{ordersData?.data?.statistics?.completed_orders?.increase || 0}%
+                </span>{" "}
+                increase from last month
               </span>
             </div>
           </div>
@@ -149,7 +171,12 @@ const Orders: React.FC = () => {
             title="Latest Orders"
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
-            searchQuery={debouncedQuery} // <-- pass debounced query
+            searchQuery={debouncedQuery}
+            orders={ordersData?.data?.orders?.data || []}
+            pagination={ordersData?.data?.pagination || null}
+            isLoading={isLoading}
+            error={error}
+            userId={userId}
           />
         </div>
       </div>

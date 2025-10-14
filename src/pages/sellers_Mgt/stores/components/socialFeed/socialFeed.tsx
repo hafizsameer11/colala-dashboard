@@ -3,11 +3,26 @@ import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import SocialFeedTable from "./socialFeedTable";
 import NewPost from "../../../Modals/newPost";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerSocialFeed } from "../../../../../utils/queries/users";
 
 const SocialFeed = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const { storeId } = useParams<{ storeId: string }>();
   const tabs = ["All", "My Posts"];
   const [showModal, setShowModal] = useState(false);
+
+  const { data: socialFeedData, isLoading, error } = useQuery({
+    queryKey: ['sellerSocialFeed', storeId, currentPage],
+    queryFn: () => getSellerSocialFeed(storeId!, currentPage),
+    enabled: !!storeId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const posts = socialFeedData?.data?.data || [];
+  const pagination = socialFeedData?.data;
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -45,8 +60,8 @@ const SocialFeed = () => {
             <img className="w-9 h-9" src={images.transaction1} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Liked Posts</span>
-            <span className="font-semibold text-2xl">10</span>
+            <span className="font-semibold text-[15px]">Total Posts</span>
+            <span className="font-semibold text-2xl">{pagination?.total || 0}</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
               month
@@ -64,8 +79,8 @@ const SocialFeed = () => {
             <img className="w-9 h-9" src={images.transaction1} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Comments</span>
-            <span className="font-semibold text-2xl">2</span>
+            <span className="font-semibold text-[15px]">Total Likes</span>
+            <span className="font-semibold text-2xl">{posts.reduce((sum, post) => sum + (post.likes_count || 0), 0)}</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
               month
@@ -83,8 +98,8 @@ const SocialFeed = () => {
             <img className="w-9 h-9" src={images.transaction1} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Saved Posts</span>
-            <span className="font-semibold text-2xl">0</span>
+            <span className="font-semibold text-[15px]">Total Comments</span>
+            <span className="font-semibold text-2xl">{posts.reduce((sum, post) => sum + (post.comments_count || 0), 0)}</span>
             <span className="text-[#00000080] text-[13px] ">
               <span className="text-[#1DB61D]">+5%</span> increase from last
               month
@@ -145,7 +160,14 @@ const SocialFeed = () => {
         </div>
       </div>
       <div>
-        <SocialFeedTable />
+        <SocialFeedTable 
+          posts={posts}
+          isLoading={isLoading}
+          error={error}
+          pagination={pagination}
+          onPageChange={setCurrentPage}
+          userId={storeId}
+        />
       </div>
 
       

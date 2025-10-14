@@ -2,24 +2,48 @@ import React, { useMemo, useState, useEffect } from "react";
 import ChatsModel from "../../../../../components/chatsModel";
 
 interface Chat {
-  id: string;
-  storeName: string;
-  userName: string;
-  lastMessage: string;
-  chatDate: string;
-  other: string;
+  id: string | number;
+  store_name: string;
+  store_image?: string;
+  user_name: string;
+  last_message: string;
+  last_message_time?: string;
+  is_read: boolean;
+  is_dispute: boolean;
+  chat_date: string;
+  unread_count: number;
+  // Legacy fields for backward compatibility
+  storeName?: string;
+  userName?: string;
+  lastMessage?: string;
+  chatDate?: string;
+  other?: string;
 }
 
-interface OrdersTableProps {
+interface ChatsTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  searchQuery?: string; // <-- NEW
+  onSelectedChatsChange?: (selectedChats: Chat[]) => void;
+  searchQuery?: string;
+  chats?: Chat[];
+  pagination?: any;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
+  userId?: string | number;
 }
 
-const ChatsTable: React.FC<OrdersTableProps> = ({
+const ChatsTable: React.FC<ChatsTableProps> = ({
   title = "Latest Chats",
   onRowSelect,
+  onSelectedChatsChange,
   searchQuery = "",
+  chats = [],
+  pagination = null,
+  onPageChange,
+  isLoading = false,
+  error = null,
+  userId,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -27,75 +51,39 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
 
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
-  const chats: Chat[] = [
-    {
-      id: "1",
-      storeName: "Pet Paradise",
-      userName: "David Chen",
-      lastMessage: "What are the ingredients in your gr...",
-      chatDate: "20-07-2025/07:58PM",
-      other: "View Chat",
-    },
-    {
-      id: "2",
-      storeName: "Fitness Forward",
-      userName: "Sofia Rossi",
-      lastMessage: "I'd like to return the yoga mat I...",
-      chatDate: "20-07-2025/07:21PM",
-      other: "View Chat",
-    },
-    {
-      id: "3",
-      storeName: "Fresh Blooms Co.",
-      userName: "Elena Petrova",
-      lastMessage: "Can I change the delivery address for...",
-      chatDate: "20-07-2025/08:50PM",
-      other: "View Chat",
-    },
-    {
-      id: "4",
-      storeName: "AutoPro Parts",
-      userName: "Kenji Tanaka",
-      lastMessage: "Is this compatible with a 2023 Hon...",
-      chatDate: "20-07-2025/08:45PM",
-      other: "View Chat",
-    },
-    {
-      id: "5",
-      storeName: "Gadget Haven",
-      userName: "Qamar Malik",
-      lastMessage: "I need this delivered to my location...",
-      chatDate: "20-07-2025/09:15PM",
-      other: "View Chat",
-    },
-    {
-      id: "6",
-      storeName: "Artisan Coffee Roasters",
-      userName: "Liam O'Connell",
-      lastMessage: "Do you offer a subscription servi...",
-      chatDate: "20-07-2025/06:45PM",
-      other: "View Chat",
-    },
-    {
-      id: "7",
-      storeName: "The Book Nook",
-      userName: "Fatima Al-Sayed",
-      lastMessage: "My order seems to be delayed, any...",
-      chatDate: "20-07-2025/08:32PM",
-      other: "View Chat",
-    },
-  ];
+  // Helper function to normalize chat data from API
+  const normalizeChat = (chat: Chat): Chat => ({
+    id: chat.id,
+    store_name: chat.store_name || 'Unknown Store',
+    store_image: chat.store_image,
+    user_name: chat.user_name || 'Unknown User',
+    last_message: chat.last_message || 'No messages',
+    last_message_time: chat.last_message_time,
+    is_read: chat.is_read || false,
+    is_dispute: chat.is_dispute || false,
+    chat_date: chat.chat_date || 'Unknown Date',
+    unread_count: chat.unread_count || 0,
+    // Legacy fields for backward compatibility
+    storeName: chat.store_name || 'Unknown Store',
+    userName: chat.user_name || 'Unknown User',
+    lastMessage: chat.last_message || 'No messages',
+    chatDate: chat.chat_date || 'Unknown Date',
+    other: 'View Chat',
+  });
+
+  // Use real chats data or fallback to empty array
+  const normalizedChats = chats.map(normalizeChat);
 
   // Case-insensitive filtering on multiple fields
   const filteredChats = useMemo(() => {
     const q = (searchQuery || "").trim().toLowerCase();
-    if (!q) return chats;
-    return chats.filter((c) =>
-      [c.storeName, c.userName, c.lastMessage, c.chatDate].some((field) =>
+    if (!q) return normalizedChats;
+    return normalizedChats.filter((c) =>
+      [c.store_name, c.user_name, c.last_message, c.chat_date].some((field) =>
         field.toLowerCase().includes(q)
       )
     );
-  }, [searchQuery]);
+  }, [normalizedChats, searchQuery]);
 
   // Reset selection when the visible list changes
   useEffect(() => {
@@ -109,7 +97,7 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
   };
 
   const handleSelectAll = () => {
-    const visibleIds = filteredChats.map((chat) => chat.id);
+    const visibleIds = filteredChats.map((chat) => String(chat.id));
     const allSelected = visibleIds.every((id) => selectedRows.includes(id));
     const newSelection = allSelected
       ? selectedRows.filter((id) => !visibleIds.includes(id)) // unselect visible
@@ -118,6 +106,14 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
     setSelectedRows(newSelection);
     setSelectAll(!allSelected);
     onRowSelect?.(newSelection);
+    
+    // Call onSelectedChatsChange with actual chat objects
+    if (onSelectedChatsChange) {
+      const selectedChats = filteredChats.filter(chat => 
+        newSelection.includes(String(chat.id))
+      );
+      onSelectedChatsChange(selectedChats);
+    }
   };
 
   const handleRowSelect = (chatId: string) => {
@@ -129,9 +125,17 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
     setSelectedRows(newSelection);
     setSelectAll(
       filteredChats.length > 0 &&
-        filteredChats.every((c) => newSelection.includes(c.id))
+        filteredChats.every((c) => newSelection.includes(String(c.id)))
     );
     onRowSelect?.(newSelection);
+    
+    // Call onSelectedChatsChange with actual chat objects
+    if (onSelectedChatsChange) {
+      const selectedChats = filteredChats.filter(chat => 
+        newSelection.includes(String(chat.id))
+      );
+      onSelectedChatsChange(selectedChats);
+    }
   };
 
   return (
@@ -169,47 +173,63 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredChats.map((chat, index) => (
-              <tr
-                key={chat.id}
-                className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === filteredChats.length - 1 ? "" : "border-b"
-                }`}
-              >
-                <td className="p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(chat.id)}
-                    onChange={() => handleRowSelect(chat.id)}
-                    className="w-5 h-5 border border-gray-300 rounded cursor-pointer text-center"
-                  />
-                </td>
-                <td className="p-4 text-[14px] text-black text-left">
-                  {chat.storeName}
-                </td>
-                <td className="p-4 text-[14px] text-black text-left">
-                  {chat.userName}
-                </td>
-                <td className="p-4 text-[14px] text-black text-left">
-                  {chat.lastMessage}
-                </td>
-                <td className="p-4 text-[14px] font-semibold text-black text-left">
-                  {chat.chatDate}
-                </td>
-                <td className="p-4 text-center">
-                  <button
-                    onClick={() => handleShowDetails(chat)}
-                    className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
-                  >
-                    View Chat
-                  </button>
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="p-6 text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
                 </td>
               </tr>
-            ))}
-            {filteredChats.length === 0 && (
+            ) : error ? (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-red-500">
+                  <p className="text-sm">Error loading chats</p>
+                </td>
+              </tr>
+            ) : (
+              filteredChats.map((chat, index) => (
+                <tr
+                  key={chat.id}
+                  className={`border-t border-[#E5E5E5] transition-colors ${
+                    index === filteredChats.length - 1 ? "" : "border-b"
+                  }`}
+                >
+                  <td className="p-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(String(chat.id))}
+                      onChange={() => handleRowSelect(String(chat.id))}
+                      className="w-5 h-5 border border-gray-300 rounded cursor-pointer text-center"
+                    />
+                  </td>
+                  <td className="p-4 text-[14px] text-black text-left">
+                    {chat.store_name}
+                  </td>
+                  <td className="p-4 text-[14px] text-black text-left">
+                    {chat.user_name}
+                  </td>
+                  <td className="p-4 text-[14px] text-black text-left">
+                    {chat.last_message}
+                  </td>
+                  <td className="p-4 text-[14px] font-semibold text-black text-left">
+                    {chat.chat_date}
+                  </td>
+                  <td className="p-4 text-center">
+                    <button
+                      onClick={() => handleShowDetails(chat)}
+                      className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
+                    >
+                      View Chat
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+            {!isLoading && !error && filteredChats.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-6 text-center text-gray-500">
-                  No chats found for “{searchQuery}”.
+                  No chats found for "{searchQuery}".
                 </td>
               </tr>
             )}
@@ -217,7 +237,39 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
         </table>
       </div>
 
-      <ChatsModel isOpen={showModal} onClose={() => setShowModal(false)} />
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-center items-center py-4 border-t border-[#E5E5E5]">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onPageChange?.(pagination.current_page - 1)}
+              disabled={pagination.current_page <= 1}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            
+            <span className="text-sm text-gray-600">
+              Page {pagination.current_page} of {pagination.last_page}
+            </span>
+            
+            <button
+              onClick={() => onPageChange?.(pagination.current_page + 1)}
+              disabled={pagination.current_page >= pagination.last_page}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ChatsModel 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)} 
+        chatId={selectedChat?.id}
+        userId={userId}
+      />
     </div>
   );
 };

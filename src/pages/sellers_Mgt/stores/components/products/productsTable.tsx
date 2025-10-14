@@ -1,72 +1,79 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import ProductDetailsModal from "../../../Modals/productDetailsModal";
 
-interface Product {
-  id: string;
-  storeName: string;
-  productName: string;
+interface ApiProduct {
+  id: number;
+  name: string;
+  brand: string | null;
+  description: string | null;
   price: string;
-  date: string;
-  sponsored: boolean;
-  productImage: string;
+  discount_price: string | null;
+  status: string; // draft | active
+  is_sold: number;
+  is_unavailable: number;
+  quantity: number;
+  has_variants: number;
+  is_sponsored: boolean;
+  sponsored_status: string;
+  main_image: string | null;
+  store_name: string;
+  category?: { id: number; title: string; image: string } | null;
+  stats?: { views: number; impressions: number; clicks: number; carts: number; orders: number; chats: number };
+  created_at: string;
 }
 
 interface ProductsTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  products: ApiProduct[];
+  isLoading?: boolean;
+  error?: any;
+  pagination?: { current_page: number; last_page: number; total: number; per_page: number };
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  activeTab?: string; // All | General | Sponsored
+  userId?: string;
 }
 
 const ProductsTable: React.FC<ProductsTableProps> = ({
   title = "All Products",
   onRowSelect,
+  products = [],
+  isLoading,
+  error,
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  activeTab = 'All',
+  userId,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
-  // Sample products data
-  const products: Product[] = [
-    {
-      id: "1",
-      storeName: "Sasha Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: true,
-      productImage: "/assets/layout/iphone.png",
-    },
-    {
-      id: "2",
-      storeName: "Sasha Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: false,
-      productImage: "/assets/layout/iphone.png",
-    },
-    {
-      id: "3",
-      storeName: "Sasha Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: false,
-      productImage: "/assets/layout/iphone.png",
-    },
-    {
-      id: "4",
-      storeName: "Sasha Stores",
-      productName: "iPhone 16 pro max.....",
-      price: "₦200,000",
-      date: "18-07-2025/11:30AM",
-      sponsored: false,
-      productImage: "/assets/layout/iphone.png",
-    },
-  ];
+  const normalizedProducts = useMemo(() => {
+    let list = products.map((p) => ({
+      id: String(p.id),
+      storeName: p.store_name || 'N/A',
+      productName: p.name || 'N/A',
+      price: p.price || 'N/A',
+      date: p.created_at || 'N/A',
+      sponsored: Boolean(p.is_sponsored) || p.sponsored_status === 'active',
+      productImage: p.main_image || '/assets/layout/iphone.png',
+      status: p.status,
+    }));
+    if (activeTab === 'General') {
+      list = list.filter((p) => !p.sponsored);
+    } else if (activeTab === 'Sponsored') {
+      list = list.filter((p) => p.sponsored);
+    }
+    return list;
+  }, [products, activeTab]);
 
   const handleSelectAll = () => {
-    const allIds = products.map((product) => product.id);
+    const allIds = normalizedProducts.map((product) => product.id);
     const newSelection = selectAll ? [] : allIds;
     setSelectedRows(newSelection);
     setSelectAll(!selectAll);
@@ -83,7 +90,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
       : [...selectedRows, id];
 
     setSelectedRows(newSelection);
-    setSelectAll(newSelection.length === products.length);
+    setSelectAll(newSelection.length === normalizedProducts.length);
 
     if (onRowSelect) {
       onRowSelect(newSelection);
@@ -121,7 +128,20 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">Loading...</td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-red-500">Failed to load products</td>
+              </tr>
+            ) : normalizedProducts.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-gray-500">No products found</td>
+              </tr>
+            ) : (
+            normalizedProducts.map((product) => (
               <tr key={product.id} className="border-t border-[#00000040] ">
                 <td className="p-4">
                   <input
@@ -161,20 +181,52 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                 </td>
                 <td className="p-4 text-center">
                   <button
-                    onClick={() => setShowModal(true)}
+                    onClick={() => {
+                      setSelectedProductId(product.id);
+                      setShowModal(true);
+                    }}
                     className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
                   >
                     View Details
                   </button>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-between items-center p-4">
+          <div className="text-sm text-gray-600">
+            Page {currentPage} of {pagination.last_page} • Total {pagination.total}
+          </div>
+          <div className="flex gap-2">
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => onPageChange && onPageChange(currentPage - 1)}
+              className="px-3 py-2 border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <button
+              disabled={currentPage >= pagination.last_page}
+              onClick={() => onPageChange && onPageChange(currentPage + 1)}
+              className="px-3 py-2 border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
       <ProductDetailsModal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedProductId(null);
+        }}
+        userId={userId}
+        productId={selectedProductId || undefined}
       />
     </div>
   );

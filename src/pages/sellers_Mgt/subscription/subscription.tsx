@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import SubscriptionTable from "./subscriptionTable";
 import PlansModal from "../Modals/planModal";
+import ViewPlansModal from "../Modals/viewPlansModal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminSubscriptions, getAdminSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan } from "../../../utils/queries/users";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -17,19 +20,91 @@ function useDebouncedValue<T>(value: T, delay = 450) {
 
 const Subscription = () => {
   const [activeTab, setActiveTab] = useState<
-    "All" | "Basic" | "Standard" | "Ultra"
+    "All" | "active" | "cancelled" | "expired"
   >("All");
-  const tabs: Array<"All" | "Basic" | "Standard" | "Ultra"> = [
+  const tabs: Array<"All" | "active" | "cancelled" | "expired"> = [
     "All",
-    "Basic",
-    "Standard",
-    "Ultra",
+    "active",
+    "cancelled",
+    "expired",
   ];
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewPlansModalOpen, setIsViewPlansModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // search (debounced)
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+
+  // API data fetching
+  const { data: subscriptionsData, isLoading, error } = useQuery({
+    queryKey: ['adminSubscriptions', activeTab, currentPage],
+    queryFn: () => getAdminSubscriptions(currentPage, activeTab === "All" ? undefined : activeTab),
+    keepPreviousData: true,
+  });
+
+  const { data: plansData } = useQuery({
+    queryKey: ['adminSubscriptionPlans'],
+    queryFn: getAdminSubscriptionPlans,
+  });
+
+  const queryClient = useQueryClient();
+
+  // Extract data
+  const subscriptions = subscriptionsData?.data?.subscriptions || [];
+  const statistics = subscriptionsData?.data?.statistics || {};
+  const pagination = subscriptionsData?.data?.pagination;
+  const plans = plansData?.data?.plans || [];
+
+  // Mutations
+  const createPlanMutation = useMutation({
+    mutationFn: createSubscriptionPlan,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+      setIsModalOpen(false);
+    },
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: ({ planId, planData }: { planId: number | string; planData: any }) => 
+      updateSubscriptionPlan(planId, planData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+      setIsModalOpen(false);
+      setEditingPlan(null);
+    },
+  });
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
+
+  const handleCreatePlan = (planData: any) => {
+    createPlanMutation.mutate(planData);
+  };
+
+  const handleUpdatePlan = (planData: any) => {
+    if (editingPlan) {
+      updatePlanMutation.mutate({ planId: editingPlan.id, planData });
+    }
+  };
+
+  const handleEditPlan = (plan: any) => {
+    setEditingPlan(plan);
+    setIsViewPlansModalOpen(false); // Close the view plans modal
+    setIsModalOpen(true);
+  };
+
+  const handleViewPlans = () => {
+    setIsViewPlansModalOpen(true);
+  };
+
+  const handleCreateNewPlan = () => {
+    setEditingPlan(null);
+    setIsViewPlansModalOpen(false); // Close the view plans modal first
+    setIsModalOpen(true);
+  };
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -54,7 +129,6 @@ const Subscription = () => {
     console.log("Bulk action selected in Orders:", action);
   };
 
-  const handleModalOpen = () => setIsModalOpen(true);
 
   return (
     <div>
@@ -74,10 +148,9 @@ const Subscription = () => {
               <span className="font-semibold text-[15px]">
                 Subscription Revenue
               </span>
-              <span className="font-semibold text-2xl">N100,000</span>
+              <span className="font-semibold text-2xl">N{statistics.total_revenue || "0"}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Total</span> subscription revenue
               </span>
             </div>
           </div>
@@ -91,12 +164,11 @@ const Subscription = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">
-                Standard Plan Stores
+                Active Subscriptions
               </span>
-              <span className="font-semibold text-2xl">800</span>
+              <span className="font-semibold text-2xl">{statistics.active_subscriptions || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Active</span> subscriptions
               </span>
             </div>
           </div>
@@ -110,12 +182,11 @@ const Subscription = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">
-                Ultra Plan Stores
+                Total Subscriptions
               </span>
-              <span className="font-semibold text-2xl">200</span>
+              <span className="font-semibold text-2xl">{statistics.total_subscriptions || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Total</span> subscriptions
               </span>
             </div>
           </div>
@@ -139,7 +210,7 @@ const Subscription = () => {
           <div className="flex flex-row gap-2">
             <button
               className="bg-[#E53E3E] text-white py-3.5 px-6 rounded-lg cursor-pointer"
-              onClick={handleModalOpen}
+              onClick={handleViewPlans}
             >
               View Plans
             </button>
@@ -177,11 +248,36 @@ const Subscription = () => {
           <SubscriptionTable
             activeTab={activeTab}
             searchTerm={debouncedSearch}
+            subscriptions={subscriptions}
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            isLoading={isLoading}
+            error={error}
+            onViewPlans={handleViewPlans}
           />
         </div>
       </div>
 
-      <PlansModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <PlansModal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingPlan(null);
+        }}
+        editingPlan={editingPlan}
+        onCreatePlan={handleCreatePlan}
+        onUpdatePlan={handleUpdatePlan}
+        isLoading={createPlanMutation.isPending || updatePlanMutation.isPending}
+      />
+
+      <ViewPlansModal
+        isOpen={isViewPlansModalOpen}
+        onClose={() => setIsViewPlansModalOpen(false)}
+        plans={plans}
+        onEditPlan={handleEditPlan}
+        onCreatePlan={handleCreateNewPlan}
+      />
     </div>
   );
 };

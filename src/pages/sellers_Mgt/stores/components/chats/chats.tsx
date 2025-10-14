@@ -2,9 +2,25 @@ import images from "../../../../../constants/images";
 import { useState } from "react";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import ChatsTable from "./chatsTable";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerChats } from "../../../../../utils/queries/users";
 
 const Chats = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const { storeId } = useParams<{ storeId: string }>();
+
+  const { data: chatsPage, isLoading, error } = useQuery({
+    queryKey: ['sellerChats', storeId, currentPage],
+    queryFn: () => getSellerChats(storeId!, currentPage),
+    enabled: !!storeId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const stats = chatsPage?.data?.statistics;
+  const chats = chatsPage?.data?.chats?.data || [];
+  const pagination = chatsPage?.data?.chats;
 
   const tabs = ["All", "Unread", "Dispute"];
 
@@ -47,10 +63,10 @@ const Chats = () => {
             <img className="w-9 h-9" src={images.cycle} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Total Orders</span>
-            <span className="font-semibold text-2xl">10</span>
+            <span className="font-semibold text-[15px]">{stats?.total_chats?.label || 'Total Chats'}</span>
+            <span className="font-semibold text-2xl">{stats?.total_chats?.value ?? 0}</span>
             <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
+              <span className="text-[#1DB61D]">+{stats?.total_chats?.increase ?? 0}%</span> increase from last
               month
             </span>
           </div>
@@ -66,10 +82,10 @@ const Chats = () => {
             <img className="w-9 h-9" src={images.cycle} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Unread Chats</span>
-            <span className="font-semibold text-2xl">2</span>
+            <span className="font-semibold text-[15px]">{stats?.unread_chats?.label || 'Unread Chats'}</span>
+            <span className="font-semibold text-2xl">{stats?.unread_chats?.value ?? 0}</span>
             <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
+              <span className="text-[#1DB61D]">+{stats?.unread_chats?.increase ?? 0}%</span> increase from last
               month
             </span>
           </div>
@@ -85,10 +101,10 @@ const Chats = () => {
             <img className="w-9 h-9" src={images.cycle} alt="" />
           </div>
           <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Dispute</span>
-            <span className="font-semibold text-2xl">0</span>
+            <span className="font-semibold text-[15px]">{stats?.dispute_chats?.label || 'Dispute'}</span>
+            <span className="font-semibold text-2xl">{stats?.dispute_chats?.value ?? 0}</span>
             <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
+              <span className="text-[#1DB61D]">+{stats?.dispute_chats?.increase ?? 0}%</span> increase from last
               month
             </span>
           </div>
@@ -140,7 +156,14 @@ const Chats = () => {
       </div>
 
 <div className="mt-5" >
-  <ChatsTable />
+  <ChatsTable 
+    chats={chats as any}
+    isLoading={isLoading}
+    error={error as any}
+    pagination={pagination as any}
+    onPageChange={setCurrentPage}
+    userId={storeId as string}
+  />
 </div>
 
     </div>

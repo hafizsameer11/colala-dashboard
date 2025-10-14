@@ -2,10 +2,18 @@ import images from "../constants/images";
 import React, { useState } from "react";
 
 // ColorPicker component
-const ColorPicker: React.FC = () => {
+const ColorPicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
-  const colors = ["#000000", "#0000FF", "#FF0000", "#FFFF00", "#00FFFF"];
+  const colors = variants
+    .map(v => v.color)
+    .filter(Boolean)
+    .filter((color, index, arr) => arr.indexOf(color) === index); // Remove duplicates
+
+  // Don't render if no colors available
+  if (colors.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex gap-2 pb-4">
@@ -24,10 +32,18 @@ const ColorPicker: React.FC = () => {
 };
 
 // SizePicker component
-const SizePicker: React.FC = () => {
+const SizePicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
-  const sizes = ["S", "M", "L", "XL", "XXL"];
+  const sizes = variants
+    .map(v => v.size)
+    .filter(Boolean)
+    .filter((size, index, arr) => arr.indexOf(size) === index); // Remove duplicates
+
+  // Don't render if no sizes available
+  if (sizes.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex gap-2 pb-4">
@@ -52,29 +68,38 @@ const SizePicker: React.FC = () => {
 interface ProductOverviewProps {
   quantity: number;
   setQuantity: (quantity: number) => void;
+  productData?: any;
 }
 
 const ProductOverview: React.FC<ProductOverviewProps> = ({
   quantity,
   setQuantity,
+  productData,
 }) => {
+  const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
   return (
     <div className="">
       <div>
         <div className="flex flex-row justify-between w-80">
-          <span className="font-semibold text-[17px]">Iphone 12 Pro Max</span>
+          <span className="font-semibold text-[17px]">
+            {productData?.compelete?.product?.name || 'Product Name'}
+          </span>
           <div className="flex items-center gap-1">
             <img className="w-5 h-5" src={images.start1} alt="" />
-            <span className="text-[#00000080] text-[17px]">4.5</span>
+            <span className="text-[#00000080] text-[17px]">
+              {productData?.compelete?.product?.average_rating || '0.0'}
+            </span>
           </div>
         </div>
         <div className="mt-2">
           <span className="font-bold text-[#E53E3E] text-[17px]">
-            N2,500,000
+            ₦{productData?.compelete?.product?.discount_price || productData?.compelete?.product?.price || '0.00'}
           </span>
-          <span className="line-through text-[#00000080] text-[14px] ml-2">
-            N3,000,000
-          </span>
+          {productData?.compelete?.product?.discount_price && (
+            <span className="line-through text-[#00000080] text-[14px] ml-2">
+              ₦{productData.compelete.product.price}
+            </span>
+          )}
         </div>
         <div className="mt-4 space-y-2">
           {/* Information tag 1 - Orange */}
@@ -111,31 +136,37 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
           </div>
         </div>
 
-        {/* Colors Section */}
-        <div className="border-t border-b border-[#00000080] mt-2">
-          <div className="flex flex-col gap-3">
-            <span className="text-lg font-medium pt-3">Colors</span>
-            <div>
-              <ColorPicker />
+        {/* Colors Section - Only show if there are color variants */}
+        {productData?.compelete?.product?.variants?.some((v: any) => v.color) && (
+          <div className="border-t border-b border-[#00000080] mt-2">
+            <div className="flex flex-col gap-3">
+              <span className="text-lg font-medium pt-3">Colors</span>
+              <div>
+                <ColorPicker variants={productData?.compelete?.product?.variants || []} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Size Section */}
-        <div className="border-b border-[#00000080]">
-          <div className="flex flex-col gap-3">
-            <span className="text-lg font-medium pt-3">Size</span>
-            <div>
-              <SizePicker />
+        {/* Size Section - Only show if there are size variants */}
+        {productData?.compelete?.product?.variants?.some((v: any) => v.size) && (
+          <div className="border-b border-[#00000080]">
+            <div className="flex flex-col gap-3">
+              <span className="text-lg font-medium pt-3">Size</span>
+              <div>
+                <SizePicker variants={productData?.compelete?.product?.variants || []} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Subtotal and Counter */}
         <div className="mt-4 flex flex-row justify-between border-b border-[#00000080] pb-3">
           <div className="flex flex-col py-4">
             <span className="text-[#00000080] text-sm">Subtotal</span>
-            <span className="text-[#E53E3E] font-bold text-lg">N2,500,000</span>
+            <span className="text-[#E53E3E] font-bold text-lg">
+              ₦{((parseFloat(productData?.compelete?.product?.discount_price || productData?.compelete?.product?.price || '0') * quantity).toFixed(2))}
+            </span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -181,8 +212,14 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
               <img className="w-7 h-7" src={images.chat} alt="" />
             </div>
             <div>
-              <button className="bg-[#000000] rounded-2xl text-white px-13 py-3.5 cursor-pointer">
-                Reveal Phone Number
+              <button 
+                onClick={() => setIsPhoneRevealed(!isPhoneRevealed)}
+                className="bg-[#000000] rounded-2xl text-white px-13 py-3.5 cursor-pointer"
+              >
+                {isPhoneRevealed 
+                  ? (productData?.compelete?.store?.store_phone || 'Phone: N/A')
+                  : 'Reveal Phone Number'
+                }
               </button>
             </div>
           </div>
@@ -207,35 +244,47 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                 {/* Store Card */}
                 <div className="rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
                   {/* Cover Image with Avatar */}
-                  <div className="relative h-30">
-                    <img
-                      src={images.cover}
-                      alt="Store cover"
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Store Avatar positioned over cover */}
-                    <div className="absolute -bottom-8 left-4">
+                    <div className="relative h-30">
                       <img
-                        src={images.icon}
-                        alt=""
-                        className="w-18 h-18 rounded-full object-cover shadow-md"
+                        src={productData?.compelete?.store?.banner_image 
+                          ? `https://colala.hmstech.xyz/storage/${productData.compelete.store.banner_image}` 
+                          : images.cover
+                        }
+                        alt="Store cover"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = images.cover;
+                        }}
                       />
+                      {/* Store Avatar positioned over cover */}
+                      <div className="absolute -bottom-8 left-4">
+                        <img
+                          src={productData?.compelete?.store?.profile_image 
+                            ? `https://colala.hmstech.xyz/storage/${productData.compelete.store.profile_image}` 
+                            : images.icon
+                          }
+                          alt="Store profile"
+                          className="w-18 h-18 rounded-full object-cover shadow-md"
+                          onError={(e) => {
+                            e.currentTarget.src = images.icon;
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
 
                   {/* Content */}
                   <div className="pt-10 pb-4 px-4">
                     {/* Store Name and Rating */}
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="flex items-end justify-between font-semibold -mt-14 ml-20 mb-1">
-                        Sasha Stores
+                        {productData?.compelete?.store?.store_name || 'Store Name'}
                       </h3>
                       <div className="flex items-center space-x-1">
                         <span className="">
                           <img src={images.start1} alt="" />
                         </span>
                         <span className="text-sm text-[#00000080] font-medium">
-                          4.5
+                          {productData?.compelete?.store?.average_rating || '0.0'}
                         </span>
                       </div>
                     </div>
@@ -258,7 +307,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                         className="w-4 h-4"
                       />
                       <span className="text-sm text-[#00000080]">
-                        Ikeja Lagos
+                        {productData?.compelete?.store?.store_location || 'Location'}
                       </span>
                     </div>
 

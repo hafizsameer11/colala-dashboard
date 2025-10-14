@@ -1,21 +1,48 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PlansModal from "../Modals/planModal";
 
+interface ApiSubscription {
+  id: number;
+  store_name: string;
+  owner_name: string;
+  plan_name: string;
+  price: string;
+  currency: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  days_left: number;
+  created_at: string;
+  formatted_date: string;
+  status_color: string;
+}
+
 interface Subscription {
   id: string;
   storeName: string;
-  plan: string; // e.g., "Basic Plan", "Standard Plan", "Ultra Plan"
+  ownerName: string;
+  plan: string;
+  price: string;
+  currency: string;
+  status: string;
+  startDate: string;
+  endDate: string;
   daysLeft: number;
   subscriptionDate: string;
-  price: string;
-  status?: "Active" | "Expired" | "Pending";
+  statusColor: string;
 }
 
 interface SubscriptionTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  data?: Subscription[];
-  activeTab: "All" | "Basic" | "Standard" | "Ultra";
+  subscriptions?: ApiSubscription[];
+  pagination?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
+  onViewPlans?: () => void;
+  activeTab: "All" | "active" | "cancelled" | "expired";
   /** debounced string */
   searchTerm?: string;
 }
@@ -23,7 +50,13 @@ interface SubscriptionTableProps {
 const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   title = "Latest Submissions",
   onRowSelect,
-  data,
+  subscriptions = [],
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  isLoading = false,
+  error,
+  onViewPlans,
   activeTab,
   searchTerm = "",
 }) => {
@@ -35,79 +68,42 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   const [modalInitialTab, setModalInitialTab] = useState<
     "Basic" | "Standard" | "Ultra"
   >("Basic");
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
-  useEffect(() => {
-    if (data && data.length > 0) {
-      setSubscriptions(data);
-    } else {
-      setSubscriptions([
-        {
-          id: "1",
-          storeName: "Eze & Sons Ventures",
-          plan: "Basic Plan",
-          daysLeft: 5,
-          subscriptionDate: "14-07-2025/10:00AM",
-          price: "₦0",
-          status: "Active",
-        },
-        {
-          id: "2",
-          storeName: "Ade Transport Co.",
-          plan: "Standard Plan",
-          daysLeft: 15,
-          subscriptionDate: "10-07-2025/09:30AM",
-          price: "₦5,000",
-          status: "Active",
-        },
-        {
-          id: "3",
-          storeName: "Logistics Solutions",
-          plan: "Ultra Plan",
-          daysLeft: 0,
-          subscriptionDate: "01-06-2025/02:15PM",
-          price: "₦10,000",
-          status: "Expired",
-        },
-        {
-          id: "4",
-          storeName: "Freight Systems",
-          plan: "Basic Plan",
-          daysLeft: 30,
-          subscriptionDate: "20-07-2025/11:45AM",
-          price: "₦0",
-          status: "Active",
-        },
-        {
-          id: "5",
-          storeName: "Delivery Group",
-          plan: "Basic Plan",
-          daysLeft: 2,
-          subscriptionDate: "05-07-2025/04:20PM",
-          price: "₦0",
-          status: "Pending",
-        },
-        {
-          id: "6",
-          storeName: "Shipping Enterprises",
-          plan: "Ultra Plan",
-          daysLeft: 22,
-          subscriptionDate: "08-07-2025/01:10PM",
-          price: "₦7,500",
-          status: "Active",
-        },
-        {
-          id: "7",
-          storeName: "Eze Logistics Services",
-          plan: "Basic Plan",
-          daysLeft: 12,
-          subscriptionDate: "18-07-2025/03:40PM",
-          price: "₦0",
-          status: "Active",
-        },
-      ]);
-    }
-  }, [data]);
+  // Normalize API data to UI format
+  const normalizedSubscriptions: Subscription[] = useMemo(() => {
+    return subscriptions.map((sub: ApiSubscription) => ({
+      id: sub.id.toString(),
+      storeName: sub.store_name,
+      ownerName: sub.owner_name,
+      plan: sub.plan_name,
+      price: sub.price,
+      currency: sub.currency,
+      status: sub.status,
+      startDate: sub.start_date,
+      endDate: sub.end_date,
+      daysLeft: Math.round(sub.days_left),
+      subscriptionDate: sub.formatted_date,
+      statusColor: sub.status_color,
+    }));
+  }, [subscriptions]);
+
+  // Filter subscriptions based on activeTab and searchTerm
+  const visibleSubscriptions = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    const statusOk = (sub: Subscription) =>
+      activeTab === "All" ? true : sub.status === activeTab;
+
+    const searchOk = (sub: Subscription) => {
+      if (!q) return true;
+      return [sub.storeName, sub.ownerName, sub.plan, sub.price, sub.status]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    };
+
+    return normalizedSubscriptions.filter((sub) => statusOk(sub) && searchOk(sub));
+  }, [normalizedSubscriptions, activeTab, searchTerm]);
 
   const getPlanTabName = (planName: string): "Basic" | "Standard" | "Ultra" => {
     const lower = planName.toLowerCase();
@@ -224,18 +220,32 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center">
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-red-500">
+                    <p className="text-sm">Error loading subscriptions</p>
+                  </td>
+                </tr>
+              ) : visibleSubscriptions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-6 text-center text-gray-500">
                     No subscriptions found.
                   </td>
                 </tr>
               ) : (
-                filtered.map((subscription, index) => (
+                visibleSubscriptions.map((subscription, index) => (
                   <tr
                     key={subscription.id}
                     className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
-                      index === filtered.length - 1 ? "" : "border-b"
+                      index === visibleSubscriptions.length - 1 ? "" : "border-b"
                     }`}
                   >
                     <td className="p-4 text-center">
@@ -263,7 +273,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       {subscription.subscriptionDate}
                     </td>
                     <td className="p-4 text-[14px] font-semibold text-center">
-                      {subscription.price}
+                      {subscription.currency} {subscription.price}
                     </td>
                     <td className="p-4 text-center">
                       <button
@@ -280,6 +290,39 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">
+            Page {currentPage} of {pagination.last_page}
+          </span>
+          <button
+            onClick={() => onPageChange && onPageChange(currentPage + 1)}
+            disabled={currentPage === pagination.last_page}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {/* View Plans Button */}
+      {/* <div className="mt-8 flex justify-center">
+        <button
+          onClick={onViewPlans}
+          className="bg-[#E53E3E] text-white px-6 py-3 rounded-lg hover:bg-[#D32F2F] transition-colors font-medium"
+        >
+          View Subscription Plans
+        </button>
+      </div> */}
 
       {showModal && selectedSubscription && (
         <PlansModal

@@ -1,122 +1,100 @@
 import React, { useState, useEffect, useMemo } from "react";
-import OrderDetails from "../../../../../components/orderDetails";
+import BuyerOrderDetails from "../../../../../components/buyerOrderDetails";
 
 interface Order {
-  id: string;
-  storeName: string;
-  productName: string;
-  price: string;
-  orderDate: string;
-  status:
-    | "Out for delivery"
-    | "Delivered"
-    | "Order Placed"
-    | "Uncompleted"
-    | "Disputed"
-    | "Completed";
+  id: string | number;
+  order_no?: string;
+  store_name?: string;
+  product_name?: string;
+  price?: string;
+  order_date?: string;
+  status?: string;
+  status_color?: string;
+  // Legacy fields for backward compatibility
+  storeName?: string;
+  productName?: string;
+  orderDate?: string;
 }
 
 interface LatestOrdersProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  onSelectedOrdersChange?: (selectedOrders: Order[]) => void;
   activeTab?: string;
-  searchQuery?: string; // <-- NEW
+  searchQuery?: string;
+  orders?: Order[];
+  pagination?: any;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: any;
+  userId?: string | number;
 }
 
-const statusColors: Record<Order["status"], string> = {
-  "Out for delivery":
-    "text-[#0000FF] border border-[#0000FF] bg-[#0000FF1A] rounded-lg",
-  Delivered: "text-[#800080] border border-[#800080] bg-[#8000801A] rounded-lg",
-  "Order Placed":
-    "text-[#E53E3E] border border-[#E53E3E] bg-[#E53E3E1A] rounded-lg",
-  Uncompleted:
-    "text-[#000000] border border-[#000000] bg-[#0000001A] rounded-lg",
-  Disputed: "text-[#FF0000] border border-[#FF0000] bg-[#FF00001A] rounded-lg",
-  Completed: "text-[#008000] border border-[#008000] bg-[#0080001A] rounded-lg",
+const getStatusStyle = (status?: string) => {
+  switch (status?.toLowerCase()) {
+    case "placed":
+      return "text-[#E53E3E] border border-[#E53E3E] bg-[#E53E3E1A] rounded-lg";
+    case "pending":
+      return "text-[#1E90FF] border border-[#1E90FF] bg-[#1E90FF1A] rounded-lg";
+    case "out_for_delivery":
+      return "text-[#0000FF] border border-[#0000FF] bg-[#0000FF1A] rounded-lg";
+    case "delivered":
+      return "text-[#800080] border border-[#800080] bg-[#8000801A] rounded-lg";
+    case "completed":
+      return "text-[#008000] border border-[#008000] bg-[#0080001A] rounded-lg";
+    default:
+      return "text-gray-600 border border-gray-300 bg-gray-100 rounded-lg";
+  }
 };
 
 const LatestOrders: React.FC<LatestOrdersProps> = ({
   title = "Latest Orders",
   onRowSelect,
+  onSelectedOrdersChange,
   activeTab = "All",
   searchQuery = "",
+  orders = [],
+  pagination = null,
+  onPageChange,
+  isLoading = false,
+  error = null,
+  userId,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
-  const orders: Order[] = [
-    {
-      id: "1",
-      storeName: "Gadget Haven",
-      productName: "Samsung Galaxy S24 Ultra",
-      price: "₦1,950,500",
-      orderDate: "20-07-2025/09:15PM",
-      status: "Out for delivery",
-    },
-    {
-      id: "2",
-      storeName: "Jumia Electronics",
-      productName: "Sony WH-1000XM5 Headphones",
-      price: "₦420,000",
-      orderDate: "15-07-2025/10:05AM",
-      status: "Delivered",
-    },
-    {
-      id: "3",
-      storeName: "Tech Bros Inc.",
-      productName: "MacBook Air M3",
-      price: "₦1,750,000",
-      orderDate: "18-07-2025/12:30PM",
-      status: "Order Placed",
-    },
-    {
-      id: "4",
-      storeName: "Konga Deals",
-      productName: "Dell XPS 15 Laptop",
-      price: "₦2,250,000",
-      orderDate: "12-07-2025/06:55PM",
-      status: "Uncompleted",
-    },
-    {
-      id: "5",
-      storeName: "Slot Limited",
-      productName: "GoPro HERO12 Black",
-      price: "₦585,000",
-      orderDate: "10-07-2025/02:18PM",
-      status: "Order Placed",
-    },
-    {
-      id: "6",
-      storeName: "Pointek Online",
-      productName: "DJI Mini 4 Pro Drone",
-      price: "₦1,100,000",
-      orderDate: "05-06-2025/08:40AM",
-      status: "Disputed",
-    },
-    {
-      id: "7",
-      storeName: "Franko Trading",
-      productName: "Apple Watch Series 9",
-      price: "₦715,000",
-      orderDate: "28-05-2025/11:59PM",
-      status: "Completed",
-    },
-  ];
+  // Normalize orders data from API
+  const normalizeOrder = (order: any): Order => ({
+    id: order.id,
+    order_no: order.order_no || 'N/A',
+    store_name: order.store?.name || 'Unknown Store',
+    product_name: order.product?.name || 'Unknown Product',
+    price: order.pricing?.subtotal_with_shipping || '₦0.00',
+    order_date: order.order_date || 'Unknown Date',
+    status: order.status || 'Unknown Status',
+    status_color: order.status_color,
+    // Legacy fields for backward compatibility
+    storeName: order.store?.name || 'Unknown Store',
+    productName: order.product?.name || 'Unknown Product',
+    orderDate: order.order_date || 'Unknown Date',
+  });
+
+  const normalizedOrders = orders.map(normalizeOrder);
 
   // 1) Filter by tab
   const byTab = useMemo(() => {
     return activeTab === "All"
-      ? orders
-      : orders.filter((o) => o.status === activeTab);
-  }, [orders, activeTab]);
+      ? normalizedOrders
+      : normalizedOrders.filter((o) => o.status?.toLowerCase() === activeTab.toLowerCase());
+  }, [normalizedOrders, activeTab]);
 
   // 2) Filter by search (case-insensitive)
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return byTab;
     return byTab.filter((o) =>
-      [o.storeName, o.productName, o.price, o.orderDate].some((field) =>
-        field.toLowerCase().includes(q)
+      [o.store_name, o.product_name, o.price, o.order_date, o.order_no].some((field) =>
+        field?.toLowerCase().includes(q)
       )
     );
   }, [byTab, searchQuery]);
@@ -128,7 +106,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   }, [activeTab, searchQuery]);
 
   const handleSelectAll = () => {
-    const visibleIds = filteredOrders.map((o) => o.id);
+    const visibleIds = filteredOrders.map((o) => String(o.id));
     const allSelected = visibleIds.every((id) => selectedRows.includes(id));
     const newSelection = allSelected
       ? selectedRows.filter((id) => !visibleIds.includes(id))
@@ -136,6 +114,14 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     setSelectedRows(newSelection);
     setSelectAll(!allSelected);
     onRowSelect?.(newSelection);
+    
+    // Call onSelectedOrdersChange with actual order objects
+    if (onSelectedOrdersChange) {
+      const selectedOrders = filteredOrders.filter(order => 
+        newSelection.includes(String(order.id))
+      );
+      onSelectedOrdersChange(selectedOrders);
+    }
   };
 
   const handleRowSelect = (id: string) => {
@@ -146,16 +132,24 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     setSelectedRows(newSelection);
     setSelectAll(
       filteredOrders.length > 0 &&
-        filteredOrders.every((o) => newSelection.includes(o.id))
+        filteredOrders.every((o) => newSelection.includes(String(o.id)))
     );
     onRowSelect?.(newSelection);
+    
+    // Call onSelectedOrdersChange with actual order objects
+    if (onSelectedOrdersChange) {
+      const selectedOrders = filteredOrders.filter(order => 
+        newSelection.includes(String(order.id))
+      );
+      onSelectedOrdersChange(selectedOrders);
+    }
   };
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | number | null>(null);
 
   const handleShowDetails = (order: Order) => {
-    setSelectedOrder(order);
+    setSelectedOrderId(order.id);
     setShowModal(true);
   };
 
@@ -186,49 +180,63 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order) => (
-              <tr
-                key={order.id}
-                className="text-center border-t border-gray-200"
-              >
-                <td className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(order.id)}
-                    onChange={() => handleRowSelect(order.id)}
-                    className="w-5 h-5"
-                  />
-                </td>
-                <td className="p-3 text-left">{order.storeName}</td>
-                <td className="p-3 text-left">{order.productName}</td>
-                <td className="p-3 font-bold">{order.price}</td>
-                <td className="p-3">{order.orderDate}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      statusColors[order.status]
-                    }`}
-                  >
-                    {order.status}
-                  </span>
-                </td>
-                <td className="p-3 space-x-2">
-                  <button
-                    onClick={() => handleShowDetails(order)}
-                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
-                  >
-                    Details
-                  </button>
-                  <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
-                    View Chat
-                  </button>
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
                 </td>
               </tr>
-            ))}
-            {filteredOrders.length === 0 && (
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-red-500">
+                  <p className="text-sm">Error loading orders</p>
+                </td>
+              </tr>
+            ) : (
+              filteredOrders.map((order) => (
+                <tr
+                  key={order.id}
+                  className="text-center border-t border-gray-200"
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(String(order.id))}
+                      onChange={() => handleRowSelect(String(order.id))}
+                      className="w-5 h-5"
+                    />
+                  </td>
+                  <td className="p-3 text-left">{order.store_name}</td>
+                  <td className="p-3 text-left">{order.product_name}</td>
+                  <td className="p-3 font-bold">{order.price}</td>
+                  <td className="p-3">{order.order_date}</td>
+                  <td className="p-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusStyle(order.status)}`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="p-3 space-x-2">
+                    <button
+                      onClick={() => handleShowDetails(order)}
+                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
+                    >
+                      Details
+                    </button>
+                    <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                      View Chat
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+            {!isLoading && !error && filteredOrders.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
-                  No orders found for “{searchQuery}”.
+                  No orders found for "{searchQuery}".
                 </td>
               </tr>
             )}
@@ -236,7 +244,16 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
         </table>
       </div>
 
-      <OrderDetails isOpen={showModal} onClose={() => setShowModal(false)} />
+      {selectedOrderId && (
+        <BuyerOrderDetails 
+          isOpen={showModal} 
+          onClose={() => {
+            setShowModal(false);
+            setSelectedOrderId(null);
+          }}
+          orderId={selectedOrderId}
+        />
+      )}
     </div>
   );
 };

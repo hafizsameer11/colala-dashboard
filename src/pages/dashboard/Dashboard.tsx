@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import images from "../../constants/images";
 import BulkActionDropdown from "../../components/BulkActionDropdown";
 import OrdersTable from "./OrdersTable";
 import PageHeader from "../../components/PageHeader";
+import { getDashboardData } from "../../utils/queries/dashboard";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +16,7 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 
+// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -23,144 +26,180 @@ ChartJS.register(
   Legend
 );
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+// ============================================================================
+// CONSTANTS & TYPES
+// ============================================================================
 
-const tabs = [
+/**
+ * Available filter tabs for orders
+ * These match the status values from the API
+ */
+const ORDER_FILTER_TABS = [
   "All",
-  "Order Placed",
-  "Out for delivery",
-  "Delivered",
-  "Completed",
-  "Disputed",
-];
+  "placed",
+  "pending", 
+  "delivered",
+  "completed",
+  "disputed",
+] as const;
 
-type Tab = (typeof tabs)[number];
+type OrderFilterTab = (typeof ORDER_FILTER_TABS)[number];
+
+// ============================================================================
+// MAIN DASHBOARD COMPONENT
+// ============================================================================
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("All");
-
-  // search with debounce
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
+  // Filter and search state
+  const [activeTab, setActiveTab] = useState<OrderFilterTab>("All");
+  const [isTabChanging, setIsTabChanging] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Selected orders for bulk actions
+  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
+
+  // ============================================================================
+  // API DATA FETCHING
+  // ============================================================================
+  
+  /**
+   * Fetch dashboard data using React Query
+   * Includes buyer stats, seller stats, site stats, latest chats, and latest orders
+   */
+  const { data: dashboardData, isLoading, error } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getDashboardData,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // ============================================================================
+  // SEARCH DEBOUNCING
+  // ============================================================================
+  
+  /**
+   * Debounce search input to avoid excessive API calls
+   * Updates debouncedSearch 500ms after user stops typing
+   */
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
   }, [searchInput]);
 
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+  
+  /**
+   * Handle tab filter changes with debouncing to prevent rapid clicks
+   */
+  const handleTabClick = useCallback((tab: OrderFilterTab) => {
+    // Prevent clicks during transitions or if already active
+    if (isTabChanging || tab === activeTab) return;
+    
+    console.log('Filter tab clicked:', tab);
+    setIsTabChanging(true);
+    setActiveTab(tab);
+    
+    // Reset transition state after animation completes
+    setTimeout(() => {
+      setIsTabChanging(false);
+    }, 100);
+  }, [activeTab, isTabChanging]);
+
+  /**
+   * Handle bulk action selection (export CSV/PDF, delete)
+   */
   const handleBulkActionSelect = (action: string) => {
-    console.log("Bulk action selected in Dashboard:", action);
+    console.log("Bulk action selected:", action);
   };
 
+  /**
+   * Handle order selection for bulk actions
+   */
   const handleOrderSelection = (selectedIds: string[]) => {
     console.log("Selected order IDs:", selectedIds);
   };
 
+  /**
+   * Handle selected orders change for bulk actions
+   */
+  const handleSelectedOrdersChange = (orders: any[]) => {
+    setSelectedOrders(orders);
+  };
+
+  /**
+   * Handle period change for dashboard data
+   */
   const handlePeriodChange = (period: string) => {
     console.log("Period changed to:", period);
   };
 
-  const tabs = [
-    "All",
-    "Order Placed",
-    "Out for delivery",
-    "Delivered",
-    "Completed",
-    "Disputed",
-  ];
-
-  const TabButtons = () => {
-    return (
-      <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-                isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
-              }`}
-            >
-              {tab}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-  // Chart data based on the image
+  // ============================================================================
+  // CHART DATA PREPARATION
+  // ============================================================================
+  
+  /**
+   * Prepare chart data from API response
+   * Maps site statistics to Chart.js format
+   */
   const chartData = {
-    labels: [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+    labels: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.month) || [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ],
     datasets: [
       {
         label: "Users",
-        data: [690, 140, 350, 100, 520, 680, 100, 350, 1150, 220, 140, 100],
+        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.users) || 
+              new Array(12).fill(0),
         backgroundColor: "#E53E3E",
         borderRadius: 50,
         barThickness: 20,
-        stack: "stack1", // important to make separate stacks
+        stack: "stack1",
       },
       {
         label: "Orders",
-        data: [300, 1170, 650, 650, 650, 950, 650, 220, 550, 350, 500, 980],
+        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.orders) || 
+              new Array(12).fill(0),
         backgroundColor: "#008000",
         borderRadius: 50,
         barThickness: 20,
-        stack: "stack2", // different stack creates spacing
+        stack: "stack2",
       },
     ],
   };
 
+  /**
+   * Chart configuration options
+   */
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, // This removes the internal chart legend
+        display: false, // We have custom legend in the UI
       },
     },
     scales: {
       x: {
-        stacked: false, // important to allow stacks to render side-by-side
-        grid: {
-          display: false,
-        },
-        border: {
-          display: false,
-        },
+        stacked: false,
+        grid: { display: false },
+        border: { display: false },
       },
       y: {
         beginAtZero: true,
         max: 1200,
-        ticks: {
-          stepSize: 200,
-        },
-        grid: {
-          display: false,
-        },
-        border: {
-          display: false,
-        },
+        ticks: { stepSize: 200 },
+        grid: { display: false },
+        border: { display: false },
       },
     },
     layout: {
@@ -173,101 +212,179 @@ const Dashboard = () => {
     },
   };
 
+  // ============================================================================
+  // COMPONENT RENDERERS
+  // ============================================================================
+  
+  /**
+   * Render filter tab buttons with smooth transitions
+   */
+  const TabButtons = useCallback(() => {
+    return (
+      <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+        {ORDER_FILTER_TABS.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isTabChanging) {
+                  handleTabClick(tab);
+                }
+              }}
+              disabled={isTabChanging}
+              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer select-none ${
+                isActive 
+                  ? "px-8 bg-[#E53E3E] text-white" 
+                  : isTabChanging 
+                    ? "px-4 text-gray-400 cursor-not-allowed" 
+                    : "px-4 text-black hover:bg-gray-100 active:bg-gray-200"
+              }`}
+              style={{ 
+                pointerEvents: 'auto',
+                userSelect: 'none'
+              }}
+            >
+              {tab}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }, [activeTab, handleTabClick, isTabChanging]);
+
+  // ============================================================================
+  // LOADING & ERROR STATES
+  // ============================================================================
+  
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader title="Dashboard" onPeriodChange={handlePeriodChange} />
+        <div className="bg-[#F5F5F5] p-5">
+          <div className="flex justify-center items-center h-96">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <PageHeader title="Dashboard" onPeriodChange={handlePeriodChange} />
+        <div className="bg-[#F5F5F5] p-5">
+          <div className="flex justify-center items-center h-96">
+            <div className="text-red-500 text-center">
+              <p className="text-lg font-semibold">Error loading dashboard data</p>
+              <p className="text-sm">Please try refreshing the page</p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+  
   return (
     <>
       <PageHeader title="Dashboard" onPeriodChange={handlePeriodChange} />
 
       <div className="bg-[#F5F5F5] p-5">
-        <div className="flex flex-row gap-6 ">
+        {/* ========================================================================
+            STATISTICS CARDS SECTION
+        ======================================================================== */}
+        <div className="flex flex-row gap-6">
+          
+          {/* Buyer App Statistics */}
           <div className="border border-[#989898] rounded-2xl">
             <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
               <span>
                 <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
               </span>
-              <span className="font-semibold text-[16px]">
-                Buyer App Statistics
-              </span>
+              <span className="font-semibold text-[16px]">Buyer App Statistics</span>
             </div>
 
             <div className="flex flex-col bg-white p-5 rounded-b-2xl gap-3">
+              {/* First Row: Total Users & Total Orders */}
               <div className="flex flex-row gap-3">
-                {/* Card 1 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#470434] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Total Users Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#470434] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.Users} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Total Users</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.buyer_stats?.total_users?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]">+5%</span> increase from
-                      last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.total_users?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
 
-                {/* Card 2 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#042A47] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Total Orders Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#042A47] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.orders} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Total Orders</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.buyer_stats?.total_orders?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]  ">+5%</span> increase
-                      from last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
               </div>
+
+              {/* Second Row: Completed Orders & Total Transactions */}
               <div className="flex flex-row gap-3">
-                {/* Card 1 */}
-                <div
-                  className="flex flex-row rounded-2xl "
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#471204] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Completed Orders Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#471204] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.orders} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Completed Orders</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.buyer_stats?.completed_orders?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]">+5%</span> increase from
-                      last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
 
-                {/* Card 2 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#044713] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Total Transactions Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#044713] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.money} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Total Transactions</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.buyer_stats?.total_transactions?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]  ">+5%</span> increase
-                      from last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
@@ -275,95 +392,89 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Seller App Statistics */}
           <div className="border border-[#989898] rounded-2xl">
             <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
               <span>
                 <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
               </span>
-              <span className="font-semibold text-[16px]">
-                Seller App Statistics
-              </span>
+              <span className="font-semibold text-[16px]">Seller App Statistics</span>
             </div>
 
             <div className="flex flex-col bg-white p-5 rounded-b-2xl gap-3">
+              {/* First Row: Total Users & Total Orders */}
               <div className="flex flex-row gap-3">
-                {/* Card 1 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#470434] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Total Users Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#470434] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.Users} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Total Users</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.seller_stats?.total_users?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]">+5%</span> increase from
-                      last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.seller_stats?.total_users?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
 
-                {/* Card 2 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#042A47] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Total Orders Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#042A47] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.orders} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Total Orders</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.seller_stats?.total_orders?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]  ">+5%</span> increase
-                      from last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.seller_stats?.total_orders?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
               </div>
+
+              {/* Second Row: Completed Orders & Total Transactions */}
               <div className="flex flex-row gap-3">
-                {/* Card 1 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#471204] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Completed Orders Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#471204] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.orders} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Completed Orders</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.seller_stats?.completed_orders?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]">+5%</span> increase from
-                      last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.seller_stats?.completed_orders?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
 
-                {/* Card 2 */}
-                <div
-                  className="flex flex-row rounded-2xl"
-                  style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                >
-                  <div className="bg-[#044713] rounded-l-2xl p-5 flex justify-center items-center ">
+                {/* Total Transactions Card */}
+                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#044713] rounded-l-2xl p-5 flex justify-center items-center">
                     <img className="w-7 h-7" src={images.money} alt="" />
                   </div>
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">
-                      Total Users
+                    <span className="font-semibold text-[15px]">Total Transactions</span>
+                    <span className="font-semibold text-2xl">
+                      {dashboardData?.data?.seller_stats?.total_transactions?.value || 0}
                     </span>
-                    <span className="font-semibold text-2xl">1,500</span>
-                    <span className="text-[#00000080] text-[10px] ">
-                      <span className="text-[#1DB61D]  ">+5%</span> increase
-                      from last month
+                    <span className="text-[#00000080] text-[10px]">
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.seller_stats?.total_transactions?.increase || 0}%
+                      </span> increase from last month
                     </span>
                   </div>
                 </div>
@@ -372,22 +483,20 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* ========================================================================
+            CHARTS & LATEST DATA SECTION
+        ======================================================================== */}
         <div className="flex flex-row gap-5 mt-5">
+          
           {/* Site Statistics Chart */}
           <div className="">
             <div className="border border-[#989898] rounded-2xl bg-white w-180">
               <div className="flex flex-row justify-between bg-[#F2F2F2] rounded-t-2xl p-5">
                 <div className="flex flex-row items-center gap-2">
                   <span>
-                    <img
-                      className="w-5 h-5"
-                      src={images.analyticsIcon}
-                      alt=""
-                    />
+                    <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
                   </span>
-                  <span className="font-semibold text-[16px]">
-                    Site Statistics
-                  </span>
+                  <span className="font-semibold text-[16px]">Site Statistics</span>
                 </div>
                 <div className="flex flex-row items-center gap-2">
                   <div className="flex flex-row items-center gap-1">
@@ -408,6 +517,7 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Latest Chats */}
           <div className="">
             <div className="border border-[#989898] rounded-2xl">
               <div className="flex flex-row items-center bg-[#F2F2F2] rounded-t-2xl p-5 gap-2">
@@ -418,107 +528,62 @@ const Dashboard = () => {
               </div>
               <div>
                 <div className="flex flex-col bg-white rounded-b-2xl">
-                  <div className="flex flex-row p-5 gap-32 ">
+                  <div className="flex flex-row p-5 gap-32">
                     <div>Store</div>
                     <div>Customer</div>
                   </div>
-                  <div className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.sasha} alt="" />
-                      <span>Sasha Stores</span>
+                  {dashboardData?.data?.latest_chats?.length > 0 ? (
+                    dashboardData.data.latest_chats.map((chat: any) => (
+                      <div key={chat.id} className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
+                        <div className="flex flex-row items-center gap-2">
+                          <img 
+                            className="w-10 h-10 rounded-full object-cover" 
+                            src={chat.store?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.store.profile_image}` : images.Users} 
+                            alt={chat.store?.name || 'Store'} 
+                          />
+                          <span>{chat.store?.name || 'Unknown Store'}</span>
+                        </div>
+                        <div className="flex flex-row items-center gap-2">
+                          <img 
+                            className="w-10 h-10 rounded-full object-cover" 
+                            src={chat.customer?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.customer.profile_image}` : images.Users} 
+                            alt={chat.customer?.name || 'Customer'} 
+                          />
+                          <span>{chat.customer?.name || 'Unknown Customer'}</span>
+                          <span className="ml-5">
+                            <img
+                              className="w-10 h-10 cursor-pointer"
+                              src={images.eye}
+                              alt=""
+                            />
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-row justify-center p-8">
+                      <span className="text-gray-500">No recent chats</span>
                     </div>
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.admin} alt="" />
-                      <span>Adam Sandler</span>
-                      <span className="ml-5">
-                        <img
-                          className="w-10 h-10 cursor-pointer"
-                          src={images.eye}
-                          alt=""
-                        />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.bella} alt="" />
-                      <span>Sasha Stores</span>
-                    </div>
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.jennifer} alt="" />
-                      <span>Adam Sandler</span>
-                      <span className="ml-5">
-                        <img
-                          className="w-10 h-10 cursor-pointer"
-                          src={images.eye}
-                          alt=""
-                        />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.carter} alt="" />
-                      <span>Sasha Stores</span>
-                    </div>
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.chris} alt="" />
-                      <span>Adam Sandler</span>
-                      <span className="ml-5">
-                        <img
-                          className="w-10 h-10 cursor-pointer"
-                          src={images.eye}
-                          alt=""
-                        />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.daisy} alt="" />
-                      <span>Sasha Stores</span>
-                    </div>
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.emma} alt="" />
-                      <span>Adam Sandler</span>
-                      <span className="ml-5">
-                        <img
-                          className="w-10 h-10 cursor-pointer"
-                          src={images.eye}
-                          alt=""
-                        />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-row justify-between pr-5 pl-5 pt-2 pb-2 gap-6.5 border-t-1 border-[#989898]">
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.ethens} alt="" />
-                      <span>Sasha Stores</span>
-                    </div>
-                    <div className="flex flex-row items-center gap-2">
-                      <img className="w-10 h-10" src={images.tom} alt="" />
-                      <span>Adam Sandler</span>
-                      <span className="ml-5">
-                        <img
-                          className="w-10 h-10 cursor-pointer"
-                          src={images.eye}
-                          alt=""
-                        />
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* ========================================================================
+            ORDERS TABLE SECTION
+        ======================================================================== */}
         <div className="flex flex-row mt-5">
           <div className="">
             <TabButtons />
           </div>
-          <div className=" ml-5">
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+          <div className="ml-5">
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              orders={dashboardData?.data?.latest_orders || []}
+              selectedOrders={selectedOrders}
+            />
           </div>
           <div className="ml-5">
             <div className="relative">
@@ -548,12 +613,15 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Orders Table */}
         <div>
           <OrdersTable
             title="Latest Orders"
             onRowSelect={handleOrderSelection}
+            onSelectedOrdersChange={handleSelectedOrdersChange}
             filterStatus={activeTab}
             searchTerm={debouncedSearch}
+            orders={dashboardData?.data?.latest_orders || []}
           />
         </div>
       </div>

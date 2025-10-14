@@ -1,15 +1,34 @@
 import images from "../../../../../constants/images";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import ChatsTable from "./chatsTable";
 import useDebouncedValue from "../../../../../hooks/useDebouncedValue";
+import { getUserChats } from "../../../../../utils/queries/users";
+import Papa from 'papaparse';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-const Chats = () => {
+interface ChatsProps {
+  userId?: string;
+}
+
+const Chats: React.FC<ChatsProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState("All");
-  const [query, setQuery] = useState(""); // <-- add
+  const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedChats, setSelectedChats] = useState<any[]>([]);
   const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = ["All", "Unread", "Dispute"];
+
+  // Fetch user chats data from API
+  const { data: chatsData, isLoading, error } = useQuery({
+    queryKey: ['userChats', userId, currentPage],
+    queryFn: () => getUserChats(userId!, currentPage),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  });
 
   const TabButtons = () => {
     return (
@@ -32,71 +51,185 @@ const Chats = () => {
     );
   };
 
+  // Filter chats based on active tab
+  const filteredChats = chatsData?.data?.chats?.data?.filter((chat: any) => {
+    switch (activeTab) {
+      case "Unread":
+        return !chat.is_read;
+      case "Dispute":
+        return chat.is_dispute;
+      case "All":
+      default:
+        return true;
+    }
+  }) || [];
+
   const handleBulkActionSelect = (action: string) => {
-    // Handle the bulk action selection from the parent component
-    console.log("Bulk action selected in Orders:", action);
-    // Add your custom logic here
+    console.log("Bulk action selected in Chats:", action);
+    
+    if (selectedChats.length === 0) {
+      alert("Please select chats to perform this action");
+      return;
+    }
+
+    switch (action) {
+      case "Export as CSV":
+        // Export selected chats to CSV
+        const csvData = selectedChats.map((chat: any) => ({
+          'Chat ID': chat.id,
+          'Store Name': chat.store_name || 'N/A',
+          'User Name': chat.user_name || 'N/A',
+          'Last Message': chat.last_message || 'N/A',
+          'Chat Date': chat.chat_date || 'N/A',
+          'Is Read': chat.is_read ? 'Yes' : 'No',
+          'Is Dispute': chat.is_dispute ? 'Yes' : 'No',
+          'Unread Count': chat.unread_count || 0
+        }));
+        
+        const csv = Papa.unparse(csvData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `chats_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        break;
+        
+      case "Export as PDF":
+        // Export selected chats to PDF
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text('Chats Report', 14, 22);
+        
+        const headers = ['Chat ID', 'Store Name', 'User Name', 'Last Message', 'Chat Date', 'Is Read', 'Is Dispute'];
+        const tableData = selectedChats.map((chat: any) => [
+          chat.id,
+          chat.store_name || 'N/A',
+          chat.user_name || 'N/A',
+          chat.last_message || 'N/A',
+          chat.chat_date || 'N/A',
+          chat.is_read ? 'Yes' : 'No',
+          chat.is_dispute ? 'Yes' : 'No'
+        ]);
+        
+        (doc as any).autoTable({
+          head: [headers],
+          body: tableData,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [229, 62, 62] }
+        });
+        
+        doc.save(`chats_${new Date().toISOString().split('T')[0]}.pdf`);
+        break;
+        
+      case "Delete":
+        if (confirm(`Are you sure you want to delete ${selectedChats.length} chat(s)?`)) {
+          console.log("Deleting chats:", selectedChats);
+          // Add delete logic here
+        }
+        break;
+        
+      default:
+        console.log("Unknown action:", action);
+    }
+  };
+
+  const handleSelectedChatsChange = (chats: any[]) => {
+    setSelectedChats(chats);
   };
 
   return (
     <div>
-      <div className="flex flex-row justify-between items-center">
-        {/* Card 1 */}
-        <div
-          className="flex flex-row rounded-2xl  w-90"
-          style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-        >
-          <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-            <img className="w-9 h-9" src={images.cycle} alt="" />
-          </div>
-          <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Total Orders</span>
-            <span className="font-semibold text-2xl">10</span>
-            <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
-              month
-            </span>
+      {/* Statistics Cards */}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+        </div>
+      ) : error ? (
+        <div className="flex justify-center items-center h-32">
+          <div className="text-red-500 text-center">
+            <p className="text-sm">Error loading chat statistics</p>
           </div>
         </div>
-
-        {/* Card 2 */}
-
-        <div
-          className="flex flex-row rounded-2xl w-90"
-          style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-        >
-          <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-            <img className="w-9 h-9" src={images.cycle} alt="" />
+      ) : (
+        <div className="flex flex-row justify-between items-center">
+          {/* Total Chats Card */}
+          <div
+            className="flex flex-row rounded-2xl w-90"
+            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+          >
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+              <img className="w-9 h-9" src={images.cycle} alt="" />
+            </div>
+            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+              <span className="font-semibold text-[15px]">
+                {chatsData?.data?.statistics?.total_chats?.label || 'Total Chats'}
+              </span>
+              <span className="font-semibold text-2xl">
+                {chatsData?.data?.statistics?.total_chats?.value || 0}
+              </span>
+              <span className="text-[#00000080] text-[13px]">
+                <span className="text-[#1DB61D]">
+                  +{chatsData?.data?.statistics?.total_chats?.increase || 0}%
+                </span>{" "}
+                increase from last month
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Unread Chats</span>
-            <span className="font-semibold text-2xl">2</span>
-            <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
-              month
-            </span>
+
+          {/* Unread Chats Card */}
+          <div
+            className="flex flex-row rounded-2xl w-90"
+            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+          >
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+              <img className="w-9 h-9" src={images.cycle} alt="" />
+            </div>
+            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+              <span className="font-semibold text-[15px]">
+                {chatsData?.data?.statistics?.unread_chats?.label || 'Unread Chats'}
+              </span>
+              <span className="font-semibold text-2xl">
+                {chatsData?.data?.statistics?.unread_chats?.value || 0}
+              </span>
+              <span className="text-[#00000080] text-[13px]">
+                <span className="text-[#1DB61D]">
+                  +{chatsData?.data?.statistics?.unread_chats?.increase || 0}%
+                </span>{" "}
+                increase from last month
+              </span>
+            </div>
+          </div>
+
+          {/* Dispute Chats Card */}
+          <div
+            className="flex flex-row rounded-2xl w-90"
+            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+          >
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
+              <img className="w-9 h-9" src={images.cycle} alt="" />
+            </div>
+            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+              <span className="font-semibold text-[15px]">
+                {chatsData?.data?.statistics?.dispute_chats?.label || 'Dispute'}
+              </span>
+              <span className="font-semibold text-2xl">
+                {chatsData?.data?.statistics?.dispute_chats?.value || 0}
+              </span>
+              <span className="text-[#00000080] text-[13px]">
+                <span className="text-[#1DB61D]">
+                  +{chatsData?.data?.statistics?.dispute_chats?.increase || 0}%
+                </span>{" "}
+                increase from last month
+              </span>
+            </div>
           </div>
         </div>
-
-        {/* Card 3 */}
-
-        <div
-          className="flex flex-row rounded-2xl w-90"
-          style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-        >
-          <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-            <img className="w-9 h-9" src={images.cycle} alt="" />
-          </div>
-          <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-            <span className="font-semibold text-[15px]">Dispute</span>
-            <span className="font-semibold text-2xl">0</span>
-            <span className="text-[#00000080] text-[13px] ">
-              <span className="text-[#1DB61D]">+5%</span> increase from last
-              month
-            </span>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Tab Buttons */}
 
@@ -112,7 +245,12 @@ const Chats = () => {
             </div>
           </div>
           <div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              selectedOrders={selectedChats}
+              orders={filteredChats}
+              dataType="chats"
+            />
           </div>
         </div>
 
@@ -145,7 +283,16 @@ const Chats = () => {
       </div>
 
       <div className="mt-5">
-        <ChatsTable searchQuery={debouncedQuery} />
+        <ChatsTable 
+          searchQuery={debouncedQuery}
+          chats={filteredChats}
+          pagination={chatsData?.data?.pagination || null}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+          error={error}
+          userId={userId}
+          onSelectedChatsChange={handleSelectedChatsChange}
+        />
       </div>
     </div>
   );

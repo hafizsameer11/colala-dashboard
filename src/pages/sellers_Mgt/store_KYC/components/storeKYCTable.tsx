@@ -1,5 +1,20 @@
 import React, { useState, useEffect, useMemo } from "react";
 import AddStoreModal from "./addStoreModel";
+import ViewStoreModal from "./viewStoreModal";
+
+interface ApiStore {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  owner_name: string;
+  owner_email: string;
+  status: string;
+  onboarding_level: number;
+  created_at: string;
+  formatted_date: string;
+  status_color: string;
+}
 
 interface StoreKYC {
   id: string;
@@ -18,6 +33,13 @@ interface StoreKYCTableProps {
   statusFilter?: "All" | "Pending" | "Successful" | "Rejected";
   /** debounced string from parent */
   searchTerm?: string;
+  stores?: ApiStore[];
+  statistics?: any;
+  pagination?: any;
+  isLoading?: boolean;
+  error?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
@@ -26,78 +48,38 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
   levelFilter = "all",
   statusFilter = "All",
   searchTerm = "",
+  stores = [],
+  statistics = {},
+  pagination = {},
+  isLoading = false,
+  error = null,
+  currentPage = 1,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedStoreId, setSelectedStoreId] = useState<number | string | null>(null);
   const [selectedStoreLevel, setSelectedStoreLevel] = useState<1 | 2 | 3>(1);
 
-  // Base data
-  const storeKYC: StoreKYC[] = [
-    {
-      id: "1",
-      storeName: "Eze & Sons Ventures",
-      emailAddress: "ezeandsons@icloud.com",
-      phoneNumber: "07065432109B",
-      submissionDate: "14-07-2025/10:00AM",
-      level: 1,
-      status: "Successful",
-    },
-    {
-      id: "2",
-      storeName: "Segun's Auto Parts",
-      emailAddress: "segunautoparts@yandex.com",
-      phoneNumber: "09098765432I",
-      submissionDate: "12-07-2025/03:20PM",
-      level: 1,
-      status: "Successful",
-    },
-    {
-      id: "3",
-      storeName: "Bello Electronics",
-      emailAddress: "belloelectronics@outlook.com",
-      phoneNumber: "09023456789",
-      submissionDate: "16-07-2025/02:15PM",
-      level: 2,
-      status: "Rejected",
-    },
-    {
-      id: "4",
-      storeName: "Amina's Spices",
-      emailAddress: "aminaspices@proton.me",
-      phoneNumber: "08187654321O",
-      submissionDate: "15-07-2025/04:00PM",
-      level: 3,
-      status: "Successful",
-    },
-    {
-      id: "5",
-      storeName: "Adewale Stores",
-      emailAddress: "adewalestores@gmail.com",
-      phoneNumber: "07032345678",
-      submissionDate: "18-07-2025/11:30AM",
-      level: 2,
-      status: "Successful",
-    },
-    {
-      id: "6",
-      storeName: "Fatima's Fabrics",
-      emailAddress: "fatimasfabrics@gmail.com",
-      phoneNumber: "08023456789O",
-      submissionDate: "13-07-2025/12:55PM",
-      level: 3,
-      status: "Pending",
-    },
-    {
-      id: "7",
-      storeName: "Chidinma's Boutique",
-      emailAddress: "chidimmaboutique@yahoo.com",
-      phoneNumber: "08059876543Z",
-      submissionDate: "17-07-2025/09:45AM",
-      level: 2,
-      status: "Pending",
-    },
-  ];
+  // Transform API data to UI format
+  const normalizedStores = useMemo(() => {
+    return stores.map((store: ApiStore): StoreKYC => ({
+      id: store.id.toString(),
+      storeName: store.name || store.owner_name,
+      emailAddress: store.owner_email || store.email || "N/A",
+      phoneNumber: store.phone || "N/A",
+      submissionDate: store.formatted_date,
+      level: store.onboarding_level,
+      status: store.status === "pending" ? "Pending" : 
+              store.status === "approved" ? "Successful" : 
+              store.status === "rejected" ? "Rejected" : "Pending"
+    }));
+  }, [stores]);
+
+  // Use real API data
+  const storeKYC: StoreKYC[] = normalizedStores;
 
   // Visible rows = level + status (tab) + search filters
   const visibleRows = useMemo(() => {
@@ -141,8 +123,8 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
   }, [visibleRows, selectedRows]);
 
   const handleShowDetails = (store: StoreKYC) => {
-    setSelectedStoreLevel(store.level as 1 | 2 | 3);
-    setShowModal(true);
+    setSelectedStoreId(parseInt(store.id));
+    setShowViewModal(true);
   };
 
   // Select/Deselect all visible rows (keeps selections from other views)
@@ -223,7 +205,19 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
           </thead>
 
           <tbody>
-            {visibleRows.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-gray-500">
+                  Loading stores...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-red-500">
+                  Error loading stores. Please try again.
+                </td>
+              </tr>
+            ) : visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="p-6 text-center text-gray-500">
                   No results found.
@@ -284,6 +278,67 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
         </table>
       </div>
 
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white border-t border-[#E5E5E5] px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {((currentPage - 1) * (pagination.per_page || 20)) + 1} to {Math.min(currentPage * (pagination.per_page || 20), pagination.total || 0)} of {pagination.total || 0} results
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* Previous Button */}
+              <button
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, pagination.last_page || 1) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.last_page <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= pagination.last_page - 2) {
+                    pageNum = pagination.last_page - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => onPageChange?.(pageNum)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                        currentPage === pageNum
+                          ? "bg-[#E53E3E] text-white"
+                          : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Next Button */}
+              <button
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= (pagination.last_page || 1)}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AddStoreModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -291,6 +346,12 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
         initialTab={
           `Level ${selectedStoreLevel}` as "Level 1" | "Level 2" | "Level 3"
         }
+      />
+      
+      <ViewStoreModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        storeId={selectedStoreId}
       />
     </div>
   );

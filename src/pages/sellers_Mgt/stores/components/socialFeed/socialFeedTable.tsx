@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import SocialFeedModel from "../../../Modals/socialFeedModal";
 
 interface SocialFeed {
@@ -12,11 +12,23 @@ interface SocialFeed {
 interface SocialFeedTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
+  posts?: any[];
+  isLoading?: boolean;
+  error?: any;
+  pagination?: any;
+  onPageChange?: (page: number) => void;
+  userId?: string;
 }
 
 const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
   title = "Latest Posts",
   onRowSelect,
+  posts = [],
+  isLoading = false,
+  error,
+  pagination,
+  onPageChange,
+  userId,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -24,58 +36,16 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
   const [selectedSocialFeed, setSelectedSocialFeed] =
     useState<SocialFeed | null>(null);
 
-  // Sample data based on the image
-  const socialFeeds: SocialFeed[] = [
-    {
-      id: "1",
-      storeName: "Sasha Stores",
-      type: "Post Like",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-    {
-      id: "2",
-      storeName: "Sasha Stores",
-      type: "Post Comment",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-    {
-      id: "3",
-      storeName: "Sasha Stores",
-      type: "Post Saved",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-    {
-      id: "4",
-      storeName: "Sasha Stores",
-      type: "Post Like",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-    {
-      id: "5",
-      storeName: "Sasha Stores",
-      type: "Post Like",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-    {
-      id: "6",
-      storeName: "Sasha Stores",
-      type: "Post Like",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-    {
-      id: "7",
-      storeName: "Sasha Stores",
-      type: "Post Like",
-      post: "This is nice......",
-      date: "18-07-2025/11:30AM",
-    },
-  ];
+  // Normalize API data to match our interface
+  const normalizedPosts: SocialFeed[] = useMemo(() => {
+    return posts.map((post: any) => ({
+      id: String(post.id),
+      storeName: post.user?.name || 'N/A',
+      type: "Post Like", // Default type since API doesn't provide interaction type
+      post: post.content || 'N/A',
+      date: post.created_at || 'N/A',
+    }));
+  }, [posts]);
 
   const handleShowDetails = (socialFeed: SocialFeed) => {
     setSelectedSocialFeed(socialFeed);
@@ -86,13 +56,13 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
     if (selectAll) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(socialFeeds.map((socialFeed) => socialFeed.id));
+      setSelectedRows(normalizedPosts.map((socialFeed) => socialFeed.id));
     }
     setSelectAll(!selectAll);
 
     if (onRowSelect) {
       onRowSelect(
-        selectAll ? [] : socialFeeds.map((socialFeed) => socialFeed.id)
+        selectAll ? [] : normalizedPosts.map((socialFeed) => socialFeed.id)
       );
     }
   };
@@ -106,7 +76,7 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
     }
 
     setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === socialFeeds.length);
+    setSelectAll(newSelectedRows.length === normalizedPosts.length);
 
     if (onRowSelect) {
       onRowSelect(newSelectedRows);
@@ -144,11 +114,17 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {socialFeeds.map((socialFeed, index) => (
+            {isLoading ? (
+              <tr><td colSpan={6} className="p-6 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E] mx-auto"></div></td></tr>
+            ) : error ? (
+              <tr><td colSpan={6} className="p-6 text-center text-red-500">Failed to load posts</td></tr>
+            ) : normalizedPosts.length === 0 ? (
+              <tr><td colSpan={6} className="p-6 text-center text-gray-500">No posts</td></tr>
+            ) : normalizedPosts.map((socialFeed, index) => (
               <tr
                 key={socialFeed.id}
                 className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === socialFeeds.length - 1 ? "" : "border-b"
+                  index === normalizedPosts.length - 1 ? "" : "border-b"
                 }`}
               >
                 <td className="p-4">
@@ -188,7 +164,28 @@ const SocialFeedTable: React.FC<SocialFeedTableProps> = ({
       <SocialFeedModel
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        userId={userId}
+        postId={selectedSocialFeed?.id}
       />
+
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <button onClick={() => onPageChange?.(pagination.current_page - 1)} disabled={pagination.current_page <= 1} className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, pagination.current_page - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              return (
+                <button key={pageNum} onClick={() => onPageChange?.(pageNum)} className={`px-3 py-2 text-sm font-medium rounded-md ${pagination.current_page === pageNum ? 'bg-[#E53E3E] text-white' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>{pageNum}</button>
+              );
+            })}
+            <button onClick={() => onPageChange?.(pagination.current_page + 1)} disabled={pagination.current_page >= pagination.last_page} className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

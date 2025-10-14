@@ -1,22 +1,59 @@
 import images from "../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminPromotionDetails } from "../../../utils/queries/users";
+import { API_DOMAIN } from "../../../config/apiConfig";
+
+interface Promotion {
+  id: string;
+  storeName: string;
+  sellerName: string;
+  product: string;
+  productImage: string | null;
+  amount: string;
+  duration: string;
+  date: string;
+  status: string;
+  statusColor: string;
+  reach: number;
+  impressions: number;
+  clicks: number;
+  cpc: string;
+}
 
 interface PromotionsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  promotion?: Promotion | null;
+  onStatusUpdate?: (promotionId: number | string, statusData: any) => void;
+  onExtendPromotion?: (promotionId: number | string, extendData: any) => void;
 }
 
 const PromotionsModal: React.FC<PromotionsModalProps> = ({
   isOpen,
   onClose,
+  promotion,
+  onStatusUpdate,
+  onExtendPromotion,
 }) => {
   if (!isOpen) return null;
+
+  // Fetch detailed promotion data
+  const { data: promotionDetails, isLoading, error } = useQuery({
+    queryKey: ['adminPromotionDetails', promotion?.id],
+    queryFn: () => getAdminPromotionDetails(promotion!.id),
+    enabled: !!promotion?.id && isOpen,
+  });
 
   const [dropdownStates, setDropdownStates] = useState({
     approvalStatus: false,
   });
   const [selectedapprovalStatus, setSelectedapprovalStatus] = useState("");
-  const approvalStatusOptions = ["Approved", "Pending", "Rejected"];
+  const [extendData, setExtendData] = useState({
+    additionalDays: "",
+    additionalBudget: "",
+  });
+  const approvalStatusOptions = ["pending", "approved", "active", "stopped", "rejected", "completed"];
 
   const toggleDropdown = (dropdownName: keyof typeof dropdownStates) => {
     setDropdownStates((prev) => ({
@@ -28,6 +65,26 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
   const handleapprovalStatusSelect = (status: string) => {
     setSelectedapprovalStatus(status);
     setDropdownStates((prev) => ({ ...prev, approvalStatus: false }));
+  };
+
+  const handleStatusUpdate = () => {
+    if (selectedapprovalStatus && promotion && onStatusUpdate) {
+      onStatusUpdate(promotion.id, {
+        status: selectedapprovalStatus,
+        notes: "Status updated by admin",
+      });
+      onClose();
+    }
+  };
+
+  const handleExtendPromotion = () => {
+    if (promotion && onExtendPromotion && extendData.additionalDays) {
+      onExtendPromotion(promotion.id, {
+        additional_days: parseInt(extendData.additionalDays),
+        additional_budget: extendData.additionalBudget ? parseFloat(extendData.additionalBudget) : undefined,
+      });
+      onClose();
+    }
   };
 
   return (
@@ -50,44 +107,62 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
             </div>
           </div>
           <div className="p-5">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-500 py-8">
+                <p>Error loading promotion details</p>
+              </div>
+            ) : promotion && promotionDetails ? (
+              <>
             <div
               className="flex flex-col rounded-2xl"
               style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
             >
               <div>
                 <img
-                  className="rounded-t-2xl w-full"
-                  src={images.laptop}
-                  alt="Laptop"
+                    className="rounded-t-2xl w-full h-48 object-cover"
+                    src={promotionDetails.data.product_info?.product_images?.[0]?.path ? 
+                      `${API_DOMAIN}/storage/${promotionDetails.data.product_info.product_images[0].path}` : 
+                      images.laptop}
+                    alt="Product"
                 />
               </div>
               <div className="flex flex-row justify-between bg-[#F2F2F2] p-3">
                 <div className="flex items-center gap-2">
-                  <div>
-                    <img
-                      className="w-7 h-7"
-                      src={images.sasha}
-                      alt="Sasha Stores"
-                    />
-                  </div>
-                  <div className="text-[#B91919]">Sasha Stores</div>
+                    <div className="w-7 h-7 bg-[#E53E3E] rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">
+                        {promotionDetails.data.store_info?.store_name?.charAt(0) || "S"}
+                      </span>
+                    </div>
+                    <div className="text-[#B91919]">
+                      {promotionDetails.data.store_info?.store_name || "Store"}
+                    </div>
                 </div>
                 <div className="flex items-center">
                   <div>
                     <img className="w-4 h-4" src={images.start1} alt="Rating" />
                   </div>
-                  <div className="text-[#00000080]">4.5</div>
+                  <div className="text-[#00000080]">
+                    {promotionDetails.data.product_info?.product?.average_rating || "N/A"}
+                  </div>
                 </div>
               </div>
               <div className="flex flex-col p-5 gap-5">
-                <div className="text-xl font-medium">Dell Inspiron Laptop</div>
+                <div className="text-xl font-medium">
+                  {promotionDetails.data.product_info?.product?.name || "No Product Name"}
+                </div>
                 <div className="flex flex-row gap-2">
                   <div className="text-[#E53E3E] font-bold text-xl">
-                    N2,000,000
+                    ₦{parseFloat(promotionDetails.data.product_info?.product?.discount_price || "0").toLocaleString()}
                   </div>
-                  <div className="text-[#00000080] line-through text-xl">
-                    N3,000,000
-                  </div>
+                  {promotionDetails.data.product_info?.product?.discount_price && (
+                    <div className="text-[#00000080] line-through text-xl">
+                      ₦{parseFloat(promotionDetails.data.product_info?.product?.price || "0").toLocaleString()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-row gap-2">
                   <div className="flex items-center bg-[#FFA500] text-white rounded-md">
@@ -121,43 +196,45 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
                       alt="Location"
                     />
                   </div>
-                  <div className="text-[#00000080] text-lg">Lagos, Nigeria</div>
+                  <div className="text-[#00000080] text-lg">
+                    {promotionDetails.data.promotion_info?.location || "Location not specified"}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-1">
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-2xl rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Reach</div>
-                <div className="text-xl font-semibold">2,000</div>
+                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.reach?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Impressions</div>
-                <div className="text-xl font-semibold">2,000</div>
+                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.impressions?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Cost/Click</div>
-                <div className="text-xl font-semibold">N10</div>
+                <div className="text-xl font-semibold">₦{promotionDetails.data.performance_metrics?.cpc || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Amount Spent</div>
-                <div className="text-xl font-semibold">N5,000</div>
+                <div className="text-xl font-semibold">₦{promotionDetails.data.performance_metrics?.amount_spent?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Date Created</div>
-                <div className="text-xl font-semibold">07/22/25 - 08:22 AM</div>
+                <div className="text-xl font-semibold">{new Date(promotionDetails.data.promotion_info?.created_at).toLocaleDateString()}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
-                <div className="text-[#00000080] text-xl">End Date</div>
-                <div className="text-xl font-semibold">07/22/25 - 08:22 AM</div>
+                <div className="text-[#00000080] text-xl">Duration</div>
+                <div className="text-xl font-semibold">{promotionDetails.data.promotion_info?.duration || "0"} Days</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
-                <div className="text-[#00000080] text-xl">Days Remaining</div>
-                <div className="text-xl font-semibold">7 Days</div>
+                <div className="text-[#00000080] text-xl">Budget</div>
+                <div className="text-xl font-semibold">₦{promotionDetails.data.promotion_info?.budget?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-b-2xl rounded-t-lg">
                 <div className="text-[#00000080] text-xl">Status</div>
                 <div className="text-xl font-semibold text-[#008000]">
-                  Active
+                  {promotionDetails.data.promotion_info?.status?.toUpperCase() || "N/A"}
                 </div>
               </div>
             </div>
@@ -179,38 +256,25 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
                   alt="Delete"
                 />
               </div>
-              <div>
-                <button className="bg-[#E53E3E] text-white cursor-pointer px-6 py-4 rounded-xl">
-                  Extend Promotion
-                </button>
-              </div>
             </div>
-            <div className="mt-5">
-              <label htmlFor="store" className="text-lg font-semibold">
-                Approval Status
-              </label>
+
+            {/* Status Update Section */}
+            <div className="mt-6 p-4 border border-gray-200 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">Update Status</h3>
               <div className="relative">
                 <div
-                  className="w-full border border-[#989898] p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer"
+                  className="flex items-center justify-between border border-[#989898] rounded-2xl p-4 cursor-pointer"
                   onClick={() => toggleDropdown("approvalStatus")}
                 >
-                  <div
-                    className={
-                      selectedapprovalStatus ? "text-black" : "text-[#00000080]"
-                    }
-                  >
-                    {selectedapprovalStatus || "Change Approval Status"}
+                  <div className="text-lg">
+                    {selectedapprovalStatus || "Select Status"}
                   </div>
                   <div
                     className={`transform transition-transform duration-200 ${
                       dropdownStates.approvalStatus ? "rotate-90" : ""
                     }`}
                   >
-                    <img
-                      src={images.rightarrow}
-                      alt="arrow"
-                      className="w-5 h-5"
-                    />
+                    <img src={images?.rightarrow} alt="arrow" />
                   </div>
                 </div>
 
@@ -228,8 +292,61 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
                   </div>
                 )}
               </div>
+              <button
+                onClick={handleStatusUpdate}
+                disabled={!selectedapprovalStatus}
+                className="mt-4 bg-[#E53E3E] text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Update Status
+              </button>
             </div>
-            <div className="mt-5 mb-5" ><button className="bg-[#E53E3E] text-white w-full py-3.5 cursor-pointer rounded-xl" >Save</button></div>
+
+            {/* Extend Promotion Section */}
+            <div className="mt-6 p-4 border border-gray-200 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">Extend Promotion</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Additional Days</label>
+                  <input
+                    type="number"
+                    value={extendData.additionalDays}
+                    onChange={(e) => setExtendData(prev => ({ ...prev, additionalDays: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="Enter additional days"
+                    min="1"
+                    max="365"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Additional Budget (Optional)</label>
+                  <input
+                    type="number"
+                    value={extendData.additionalBudget}
+                    onChange={(e) => setExtendData(prev => ({ ...prev, additionalBudget: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="Enter additional budget"
+                    min="0"
+                  />
+                </div>
+                <button
+                  onClick={handleExtendPromotion}
+                  disabled={!extendData.additionalDays}
+                  className="bg-[#E53E3E] text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Extend Promotion
+                </button>
+              </div>
+            </div>
+              </>
+            ) : promotion ? (
+              <div className="text-center text-gray-500 py-8">
+                <p>Loading promotion details...</p>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <p>No promotion selected</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -10,6 +10,17 @@ interface ActivityProps {
     email: string;
     phoneNumber: string;
     walletBalance: string;
+    escrowBalance?: string | number;
+    rewardBalance?: string | number;
+    referralBalance?: string | number;
+    loyaltyPoints?: string | number;
+    location?: string;
+    lastLogin?: string;
+    createdAt?: string;
+    username?: string;
+    profileImage?: string | null;
+    isVerified?: boolean;
+    recentActivities?: Array<{ id: number; activity: string; created_at: string }>;
   };
 }
 
@@ -126,7 +137,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             </div>
             <div className="bg-[#731313] text-white rounded-bl-2xl p-5 flex flex-col gap-5 w-[350px]">
               <span className="text-xl font-normal">Escrow Wallet Balance</span>
-              <span className="text-4xl font-semibold">N25,000</span>
+              <span className="text-4xl font-semibold">{userData.escrowBalance ?? 'N/A'}</span>
             </div>
           </div>
           <div
@@ -135,14 +146,21 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
           >
             <div className=" flex flex-col">
               <div>
-                <img className="w-20 h-20 ml-5 mt-10" src={images.admin} alt="" />
+                <img
+                  className="w-20 h-20 ml-5 mt-10 rounded-full object-cover"
+                  src={userData.profileImage ? `https://colala.hmstech.xyz/storage/${userData.profileImage}` : images.admin}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = images.admin; }}
+                  alt="Profile"
+                />
               </div>
-              <div className="flex flex-row rounded-full text-[#E53E3E] items-center p-2 gap-3 mt-2 ml-2.5 bg-white ">
-                <div>Verified</div>
-                <div>
-                  <img src={images.verified} alt="" />
+              {userData.isVerified && (
+                <div className="flex flex-row rounded-full text-[#E53E3E] items-center p-2 gap-3 mt-2 ml-2.5 bg-white ">
+                  <div>Verified</div>
+                  <div>
+                    <img src={images.verified} alt="" />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className=" flex flex-row p-5 gap-14">
               <div className="flex flex-col gap-5">
@@ -157,17 +175,17 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Location</span>
-                <span className="text-white">Lagos, Nigeria</span>
+                <span className="text-white">{userData.location ?? 'N/A'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">Last Login</span>
-                <span className="text-white">23/02/25 - 11:22 AM</span>
+                <span className="text-white">{userData.lastLogin ?? 'N/A'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Account Creation
                 </span>
-                <span className="text-white">10/02/25 - 07:21 AM</span>
+                <span className="text-white">{userData.createdAt ?? 'N/A'}</span>
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Username</span>
-                <span className="text-white">Maleekfrenzy</span>
+                <span className="text-white">{userData.username ?? 'N/A'}</span>
                 {/* <span className="text-[#FFFFFF80] text-[16px]">
                   Loyalty Points
                 </span>
@@ -240,60 +258,24 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">
-                      User Account created
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">User logged in</td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">
-                      User ordered a product
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-gray-800">
-                      User funded wallet
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600">
-                      22/10/25 - 07:22 AM
-                    </td>
-                  </tr>
+                  {(userData.recentActivities ?? []).length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="py-6 text-center text-gray-500">No activities</td>
+                    </tr>
+                  ) : (
+                    (userData.recentActivities ?? []).map((a) => (
+                      <tr key={a.id} className="hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                          />
+                        </td>
+                        <td className="py-3 px-4 text-gray-800">{a.activity || 'N/A'}</td>
+                        <td className="py-3 px-4 text-center text-gray-600">{a.created_at || 'N/A'}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

@@ -1,15 +1,97 @@
 import images from "../../../../../constants/images";
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getSellerCoupons, createSellerCoupon, getSellerLoyaltySettings, updateSellerLoyaltySettings, getSellerLoyaltyCustomers } from "../../../../../utils/queries/users";
 import NewCoupon from "../../../Modals/newCoupon";
 import PointsSettings from "../../../Modals/pointsSettings";
 import NewUser from "../../../Modals/newUser";
 
 const Others = () => {
+  const { storeId } = useParams<{ storeId: string }>();
   const [activeTab, setActiveTab] = useState("Coupons");
   const tabs = ["Coupons", "Points"];
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [showNewUserModal, setShowNewUserModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const queryClient = useQueryClient();
+
+  // Fetch coupons data
+  const { data: couponsData, isLoading: couponsLoading, error: couponsError } = useQuery({
+    queryKey: ['sellerCoupons', storeId, currentPage],
+    queryFn: () => {
+      if (!storeId) return Promise.reject(new Error('Store ID is required'));
+      return getSellerCoupons(storeId, currentPage);
+    },
+    enabled: !!storeId && activeTab === "Coupons",
+  });
+
+  // Fetch loyalty settings
+  const { data: loyaltySettingsData, isLoading: loyaltySettingsLoading, error: loyaltySettingsError } = useQuery({
+    queryKey: ['sellerLoyaltySettings', storeId],
+    queryFn: () => {
+      if (!storeId) return Promise.reject(new Error('Store ID is required'));
+      return getSellerLoyaltySettings(storeId);
+    },
+    enabled: !!storeId && activeTab === "Points",
+  });
+
+  // Fetch loyalty customers
+  const { data: loyaltyCustomersData, isLoading: loyaltyCustomersLoading, error: loyaltyCustomersError } = useQuery({
+    queryKey: ['sellerLoyaltyCustomers', storeId],
+    queryFn: () => {
+      if (!storeId) return Promise.reject(new Error('Store ID is required'));
+      return getSellerLoyaltyCustomers(storeId);
+    },
+    enabled: !!storeId && activeTab === "Points",
+  });
+
+  // Create coupon mutation
+  const createCouponMutation = useMutation({
+    mutationFn: (couponData: any) => createSellerCoupon(storeId!, couponData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerCoupons', storeId] });
+      setShowCouponModal(false);
+    },
+    onError: (error) => {
+      console.error('Failed to create coupon:', error);
+      alert('Failed to create coupon. Please try again.');
+    },
+  });
+
+  // Update loyalty settings mutation
+  const updateLoyaltySettingsMutation = useMutation({
+    mutationFn: (settingsData: any) => updateSellerLoyaltySettings(storeId!, settingsData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerLoyaltySettings', storeId] });
+      setShowPointsModal(false);
+    },
+    onError: (error) => {
+      console.error('Failed to update loyalty settings:', error);
+      alert('Failed to update loyalty settings. Please try again.');
+    },
+  });
+
+  // Extract data
+  const coupons = couponsData?.data?.coupons || [];
+  const couponsPagination = couponsData?.data?.pagination;
+  const loyaltySettings = loyaltySettingsData?.data?.settings;
+  const loyaltyCustomers = loyaltyCustomersData?.data?.customers || [];
+  const totalPointsBalance = loyaltyCustomersData?.data?.total_points_balance || 0;
+
+  const handleCreateCoupon = (couponData: any) => {
+    createCouponMutation.mutate(couponData);
+  };
+
+  const handleUpdateLoyaltySettings = (settingsData: any) => {
+    updateLoyaltySettingsMutation.mutate(settingsData);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -44,10 +126,11 @@ const Others = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Coupons</span>
-              <span className="font-semibold text-2xl">10</span>
+              <span className="font-semibold text-2xl">
+                {couponsLoading ? "..." : couponsPagination?.total || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Active</span> coupons available
               </span>
             </div>
           </div>
@@ -62,12 +145,13 @@ const Others = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">
-                Points earned by users
+                Total Points Balance
               </span>
-              <span className="font-semibold text-2xl">5,000</span>
+              <span className="font-semibold text-2xl">
+                {loyaltyCustomersLoading ? "..." : totalPointsBalance.toLocaleString()}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">Points</span> across all customers
               </span>
             </div>
           </div>
@@ -140,108 +224,118 @@ const Others = () => {
               {activeTab === "Coupons" ? (
                 // Coupons Section
                 <>
-                  <div
-                    className="rounded-2xl flex flex-col p-3"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="border border-[#00000080] rounded-lg p-5 flex items-center justify-center text-xl font-semibold">
-                      NEW123
+                  {couponsLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg">Loading coupons...</div>
                     </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        Date Created
-                      </div>
-                      <div className="font-semibold">07-16-25/05:33AM</div>
+                  ) : couponsError ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg text-red-500">Error loading coupons</div>
                     </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        No of times used
-                      </div>
-                      <div className="font-semibold">25</div>
+                  ) : coupons.length === 0 ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg text-gray-500">No coupons found</div>
                     </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        Maximum Usage
-                      </div>
-                      <div className="font-semibold">50</div>
-                    </div>
-                    <div className="flex flex-row gap-4 mt-3">
-                      <div className="border border-[#B8B8B8] rounded-xl p-3">
-                        <img src={images.edit1} alt="" />
-                      </div>
-                      <div className="border border-[#B8B8B8] rounded-xl p-3">
-                        <img src={images.delete1} alt="" />
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="rounded-2xl flex flex-col p-3"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="border border-[#00000080] rounded-lg p-5 flex items-center justify-center  text-xl font-semibold">
-                      NEW123
-                    </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        Date Created
-                      </div>
-                      <div className="font-semibold">07-16-25/05:33AM</div>
-                    </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        No of times used
-                      </div>
-                      <div className="font-semibold">25</div>
-                    </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        Maximum Usage
-                      </div>
-                      <div className="font-semibold">50</div>
-                    </div>
-                    <div className="flex flex-row gap-4 mt-3">
-                      <div className="border border-[#B8B8B8] rounded-xl p-3">
-                        <img src={images.edit1} alt="" />
-                      </div>
-                      <div className="border border-[#B8B8B8] rounded-xl p-3">
-                        <img src={images.delete1} alt="" />
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="rounded-2xl flex flex-col p-3"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="border border-[#00000080] rounded-lg p-5 flex items-center justify-center  text-xl font-semibold">
-                      NEW123
-                    </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        Date Created
-                      </div>
-                      <div className="font-semibold">07-16-25/05:33AM</div>
-                    </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        No of times used
-                      </div>
-                      <div className="font-semibold">25</div>
-                    </div>
-                    <div className="flex flex-row justify-between mt-3">
-                      <div className="text-[#00000080] text-md ">
-                        Maximum Usage
-                      </div>
-                      <div className="font-semibold">50</div>
-                    </div>
-                    <div className="flex flex-row gap-4 mt-3">
-                      <div className="border border-[#B8B8B8] rounded-xl p-3">
-                        <img src={images.edit1} alt="" />
-                      </div>
-                      <div className="border border-[#B8B8B8] rounded-xl p-3">
-                        <img src={images.delete1} alt="" />
-                      </div>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      {coupons.map((coupon: any) => (
+                        <div
+                          key={coupon.id}
+                          className="rounded-2xl flex flex-col p-3"
+                          style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
+                        >
+                          <div className="border border-[#00000080] rounded-lg p-5 flex items-center justify-center text-xl font-semibold">
+                            {coupon.code}
+                          </div>
+                          <div className="flex flex-row justify-between mt-3">
+                            <div className="text-[#00000080] text-md">
+                              Discount Type
+                            </div>
+                            <div className="font-semibold">
+                              {coupon.discount_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                            </div>
+                          </div>
+                          <div className="flex flex-row justify-between mt-3">
+                            <div className="text-[#00000080] text-md">
+                              Discount Value
+                            </div>
+                            <div className="font-semibold">
+                              {coupon.discount_value}%
+                            </div>
+                          </div>
+                          <div className="flex flex-row justify-between mt-3">
+                            <div className="text-[#00000080] text-md">
+                              Date Created
+                            </div>
+                            <div className="font-semibold">
+                              {new Date(coupon.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="flex flex-row justify-between mt-3">
+                            <div className="text-[#00000080] text-md">
+                              Times Used
+                            </div>
+                            <div className="font-semibold">{coupon.times_used}</div>
+                          </div>
+                          <div className="flex flex-row justify-between mt-3">
+                            <div className="text-[#00000080] text-md">
+                              Maximum Usage
+                            </div>
+                            <div className="font-semibold">{coupon.max_usage}</div>
+                          </div>
+                          <div className="flex flex-row justify-between mt-3">
+                            <div className="text-[#00000080] text-md">
+                              Status
+                            </div>
+                            <div className={`font-semibold ${coupon.status === 'active' ? 'text-green-500' : 'text-red-500'}`}>
+                              {coupon.status}
+                            </div>
+                          </div>
+                          {coupon.expiry_date && (
+                            <div className="flex flex-row justify-between mt-3">
+                              <div className="text-[#00000080] text-md">
+                                Expiry Date
+                              </div>
+                              <div className="font-semibold">
+                                {new Date(coupon.expiry_date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex flex-row gap-4 mt-3">
+                            <div className="border border-[#B8B8B8] rounded-xl p-3 cursor-pointer hover:bg-gray-50">
+                              <img src={images.edit1} alt="Edit" />
+                            </div>
+                            <div className="border border-[#B8B8B8] rounded-xl p-3 cursor-pointer hover:bg-gray-50">
+                              <img src={images.delete1} alt="Delete" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Pagination */}
+                      {couponsPagination && couponsPagination.last_page > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-6">
+                          <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Previous
+                          </button>
+                          <span className="px-4 py-2">
+                            Page {currentPage} of {couponsPagination.last_page}
+                          </span>
+                          <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === couponsPagination.last_page}
+                            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </>
               ) : (
                 // Points Section
@@ -256,7 +350,9 @@ const Others = () => {
                     <div className="text-white text-lg">
                       Total Points Balance
                     </div>
-                    <div className="text-white font-bold text-2xl">5,000</div>
+                    <div className="text-white font-bold text-2xl">
+                      {loyaltyCustomersLoading ? "..." : totalPointsBalance.toLocaleString()}
+                    </div>
                   </div>
 
                   <div className="text-xl font-medium">Customers Points</div>
@@ -488,11 +584,16 @@ const Others = () => {
         <NewCoupon
           isOpen={showCouponModal}
           onClose={() => setShowCouponModal(false)}
+          onCreateCoupon={handleCreateCoupon}
+          isLoading={createCouponMutation.isPending}
         />
 
         <PointsSettings
           isOpen={showPointsModal}
           onClose={() => setShowPointsModal(false)}
+          loyaltySettings={loyaltySettings}
+          onUpdateSettings={handleUpdateLoyaltySettings}
+          isLoading={updateLoyaltySettingsMutation.isPending}
         />
 
         <NewUser

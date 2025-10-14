@@ -4,11 +4,25 @@ import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LatestOrders from "../customer_mgt/customerDetails/orders/latestOrders";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
+import { useQuery } from "@tanstack/react-query";
+import { getBuyerOrders } from "../../../utils/queries/users";
+import Papa from 'papaparse';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const ordersMgt = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
   const debouncedQuery = useDebouncedValue(query, 400);
+
+  // Fetch buyer orders data from API
+  const { data: ordersData, isLoading, error } = useQuery({
+    queryKey: ['buyerOrders', currentPage],
+    queryFn: () => getBuyerOrders(currentPage),
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  });
 
   const tabs = [
     "All",
@@ -45,6 +59,84 @@ const ordersMgt = () => {
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Orders:", action);
+    
+    if (selectedOrders.length === 0) {
+      alert("Please select orders to perform this action");
+      return;
+    }
+
+    switch (action) {
+      case "Export as CSV":
+        // Export selected orders to CSV
+        const csvData = selectedOrders.map((order: any) => ({
+          'Order ID': order.id,
+          'Order No': order.order_no || 'N/A',
+          'Buyer Name': order.buyer?.name || 'N/A',
+          'Store Name': order.store?.name || 'N/A',
+          'Product Name': order.product?.name || 'N/A',
+          'Status': order.status || 'N/A',
+          'Order Date': order.order_date || 'N/A',
+          'Total Price': order.pricing?.subtotal_with_shipping || 'N/A'
+        }));
+        
+        const csv = Papa.unparse(csvData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `orders_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        break;
+        
+      case "Export as PDF":
+        // Export selected orders to PDF
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text('Orders Report', 14, 22);
+        
+        const headers = ['Order ID', 'Order No', 'Buyer Name', 'Store Name', 'Product Name', 'Status', 'Order Date'];
+        const tableData = selectedOrders.map((order: any) => [
+          order.id,
+          order.order_no || 'N/A',
+          order.buyer?.name || 'N/A',
+          order.store?.name || 'N/A',
+          order.product?.name || 'N/A',
+          order.status || 'N/A',
+          order.order_date || 'N/A'
+        ]);
+        
+        (doc as any).autoTable({
+          head: [headers],
+          body: tableData,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [229, 62, 62] }
+        });
+        
+        doc.save(`orders_${new Date().toISOString().split('T')[0]}.pdf`);
+        break;
+        
+      case "Delete":
+        if (confirm(`Are you sure you want to delete ${selectedOrders.length} order(s)?`)) {
+          console.log("Deleting orders:", selectedOrders);
+          // Add delete logic here
+        }
+        break;
+        
+      default:
+        console.log("Unknown action:", action);
+    }
+  };
+
+  const handleSelectedOrdersChange = (orders: any[]) => {
+    setSelectedOrders(orders);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -63,10 +155,13 @@ const ordersMgt = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-2xl">
+                {ordersData?.data?.summary_stats?.total_store_orders?.count || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">
+                  +{ordersData?.data?.summary_stats?.total_store_orders?.increase || 0}%
+                </span> increase from last month
               </span>
             </div>
           </div>
@@ -81,11 +176,14 @@ const ordersMgt = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-[15px]">Pending Orders</span>
+              <span className="font-semibold text-2xl">
+                {ordersData?.data?.summary_stats?.pending_store_orders?.count || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">
+                  +{ordersData?.data?.summary_stats?.pending_store_orders?.increase || 0}%
+                </span> increase from last month
               </span>
             </div>
           </div>
@@ -100,11 +198,14 @@ const ordersMgt = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">1,000</span>
+              <span className="font-semibold text-[15px]">Completed Orders</span>
+              <span className="font-semibold text-2xl">
+                {ordersData?.data?.summary_stats?.completed_store_orders?.count || 0}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
+                <span className="text-[#1DB61D]">
+                  +{ordersData?.data?.summary_stats?.completed_store_orders?.increase || 0}%
+                </span> increase from last month
               </span>
             </div>
           </div>
@@ -120,7 +221,12 @@ const ordersMgt = () => {
             </div>
           </div>
           <div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              selectedOrders={selectedOrders}
+              orders={ordersData?.data?.store_orders?.data || []}
+              dataType="orders"
+            />
           </div>
           <div className="relative">
             <input
@@ -151,8 +257,14 @@ const ordersMgt = () => {
           <LatestOrders
             title="Latest Orders"
             onRowSelect={handleUserSelection}
+            onSelectedOrdersChange={handleSelectedOrdersChange}
             activeTab={activeTab}
             searchQuery={debouncedQuery}
+            orders={ordersData?.data?.store_orders?.data || []}
+            pagination={ordersData?.data?.store_orders || null}
+            onPageChange={handlePageChange}
+            isLoading={isLoading}
+            error={error}
           />
         </div>
       </div>

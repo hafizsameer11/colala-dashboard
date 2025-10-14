@@ -1,10 +1,25 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerOrders } from "../../../../../utils/queries/users";
 
 const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const { storeId } = useParams<{ storeId: string }>();
+
+  const { data: ordersPage, isLoading, error } = useQuery({
+    queryKey: ['sellerOrders', storeId, currentPage],
+    queryFn: () => getSellerOrders(storeId!, currentPage),
+    enabled: !!storeId,
+    staleTime: 2 * 60 * 1000,
+  });
+  const stats = ordersPage?.data?.statistics;
+  const ordersData = ordersPage?.data?.orders?.data || [];
+  const pagination = ordersPage?.data?.orders;
 
   const tabs = [
     "All",
@@ -62,10 +77,10 @@ const Orders: React.FC = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">2,000</span>
+              <span className="font-semibold text-[15px]">{stats?.total_orders?.label || 'Total Orders'}</span>
+              <span className="font-semibold text-2xl">{stats?.total_orders?.value ?? 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
+                <span className="text-[#1DB61D]">+{stats?.total_orders?.increase ?? 0}%</span> increase from last
                 month
               </span>
             </div>
@@ -81,10 +96,10 @@ const Orders: React.FC = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">2,000</span>
+              <span className="font-semibold text-[15px]">{stats?.pending_orders?.label || 'Pending Orders'}</span>
+              <span className="font-semibold text-2xl">{stats?.pending_orders?.value ?? 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
+                <span className="text-[#1DB61D]">+{stats?.pending_orders?.increase ?? 0}%</span> increase from last
                 month
               </span>
             </div>
@@ -100,10 +115,10 @@ const Orders: React.FC = () => {
               <img className="w-9 h-9" src={images.cycle} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">2,000</span>
+              <span className="font-semibold text-[15px]">{stats?.completed_orders?.label || 'Completed Orders'}</span>
+              <span className="font-semibold text-2xl">{stats?.completed_orders?.value ?? 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
+                <span className="text-[#1DB61D]">+{stats?.completed_orders?.increase ?? 0}%</span> increase from last
                 month
               </span>
             </div>
@@ -150,6 +165,11 @@ const Orders: React.FC = () => {
             title="Latest Orders"
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
+            orders={ordersData}
+            isLoading={isLoading}
+            error={error}
+            pagination={pagination}
+            onPageChange={setCurrentPage}
           />
         </div>
       </div>

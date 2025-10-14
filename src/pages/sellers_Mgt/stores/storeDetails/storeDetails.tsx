@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import PageHeader from "../../../../components/PageHeader";
+import { useQuery } from "@tanstack/react-query";
+import { getSellerDetails } from "../../../../utils/queries/users";
 import Activity from "../components/activity/activity";
 import Orders from "../components/orders/orders";
 import Chats from "../components/chats/chats";
@@ -11,18 +13,61 @@ import Announcements from "../components/announcement/announcements";
 import Others from "../components/others/others";
 
 const StoreDetails: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { storeId } = useParams<{ storeId: string }>();
   const { state } = useLocation();
   const [activeTab, setActiveTab] = useState("Activity");
 
-  // Extract the user from the state (fallback in case it's missing)
-  const userData = state || {
-    id: userId,
-    userName: "Unknown",
-    email: "No email",
-    phoneNumber: "No phone number",
-    walletBalance: "₦0",
-  };
+  const { data: sellerDetails, isLoading, error } = useQuery({
+    queryKey: ['sellerDetails', storeId],
+    queryFn: () => getSellerDetails(storeId!),
+    enabled: !!storeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Map API to existing userData shape expected by tabs
+  const userData = useMemo(() => {
+    if (sellerDetails?.data) {
+      const d = sellerDetails.data;
+      return {
+        id: d.user_info?.id || storeId,
+        userName: d.user_info?.full_name || 'Unknown',
+        email: d.user_info?.email || 'No email',
+        phoneNumber: d.user_info?.phone || 'No phone number',
+        walletBalance: d.financial_info?.store_wallet_balance?.formatted || 'N/A',
+        escrowBalance: d.financial_info?.escrow_wallet_balance?.formatted || 'N/A',
+        rewardBalance: d.financial_info?.reward_balance?.formatted || 'N/A',
+        referralBalance: d.financial_info?.referral_balance?.formatted || 'N/A',
+        loyaltyPoints: typeof d.financial_info?.loyalty_points === 'number' ? d.financial_info.loyalty_points : 'N/A',
+        profileImage: d.user_info?.profile_picture || null,
+        isActive: !!d.user_info?.is_active,
+        isVerified: !!d.user_info?.is_verified,
+        createdAt: d.user_info?.created_at || 'N/A',
+        lastLogin: d.user_info?.last_login || 'N/A',
+        location: d.user_info?.location || 'N/A',
+        username: d.user_info?.username || 'N/A',
+        stats: d.statistics || null,
+        recentActivities: d.recent_activities || [],
+      };
+    }
+    return (
+      state || {
+        id: storeId,
+        userName: "Unknown",
+        email: "N/A",
+        phoneNumber: "N/A",
+        walletBalance: "N/A",
+        escrowBalance: "N/A",
+        rewardBalance: "N/A",
+        referralBalance: "N/A",
+        loyaltyPoints: "N/A",
+        createdAt: 'N/A',
+        lastLogin: 'N/A',
+        location: 'N/A',
+        username: 'N/A',
+        recentActivities: [],
+      }
+    );
+  }, [sellerDetails, state, storeId]);
 
   const tabs = [
     "Activity",
@@ -98,8 +143,15 @@ const StoreDetails: React.FC = () => {
       />
 
       <div className="bg-[#F5F5F5] min-h-screen p-5">
-        {/* Tab Content */}
-        <div className="mb-6">{renderTabContent()}</div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500">Failed to load seller details</div>
+        ) : (
+          <div className="mb-6">{renderTabContent()}</div>
+        )}
       </div>
     </div>
   );
