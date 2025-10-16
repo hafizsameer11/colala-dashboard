@@ -1,4 +1,6 @@
 import PageHeader from "../../../components/PageHeader";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAdminOrders, updateOrderStatus } from "../../../utils/queries/users";
@@ -99,66 +101,26 @@ const orders_Mgt = () => {
     <>
       <PageHeader title="Orders Management - Stores" />
       <div className="p-5">
-        <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.cycle} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Orders</span>
-              <span className="font-semibold text-2xl">
-                {isLoading ? "..." : statistics.total_orders || 0}
-              </span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">Active</span> orders across all stores
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.cycle} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Out for Delivery</span>
-              <span className="font-semibold text-2xl">
-                {isLoading ? "..." : statistics.out_for_delivery || 0}
-              </span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">Active</span> delivery orders
-              </span>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.cycle} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Delivered</span>
-              <span className="font-semibold text-2xl">
-                {isLoading ? "..." : statistics.delivered || 0}
-              </span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">Completed</span> deliveries
-              </span>
-            </div>
-          </div>
-        </div>
+        <StatCardGrid columns={3}>
+          <StatCard
+            icon={images.cycle}
+            title="Total Orders"
+            value={isLoading ? "..." : statistics.total_orders || 0}
+            subtitle="Active orders across all stores"
+          />
+          <StatCard
+            icon={images.cycle}
+            title="Out for Delivery"
+            value={isLoading ? "..." : statistics.out_for_delivery || 0}
+            subtitle="Active delivery orders"
+          />
+          <StatCard
+            icon={images.cycle}
+            title="Delivered"
+            value={isLoading ? "..." : statistics.delivered || 0}
+            subtitle="Completed deliveries"
+          />
+        </StatCardGrid>
         <div className="mt-5 flex flex-row gap-2">
           <div>
             <TabButtons />

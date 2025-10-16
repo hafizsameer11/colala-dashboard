@@ -1,26 +1,31 @@
 import React from "react";
 import images from "../../../../constants/images";
+import { useQuery } from "@tanstack/react-query";
+import { getReferralDetails } from "../../../../utils/queries/referrals";
 
 interface ViewAllModalProps {
   isOpen: boolean;
   onClose: () => void;
   referrerName?: string;
+  referrerId?: string;
 }
 
 const ViewAllModal: React.FC<ViewAllModalProps> = ({
   isOpen,
   onClose,
-  referrerName = "Sasha Stores",
+  referrerName = "Unknown",
+  referrerId,
 }) => {
-  // Sample data for users referred by the selected referrer
-  const referredUsers = [
-    { id: 1, name: "Ade Stores", date: "20 Jan 2025 08:45" },
-    { id: 2, name: "Ade Stores", date: "20 Jan 2025 08:45" },
-    { id: 3, name: "Ade Stores", date: "20 Jan 2025 08:45" },
-    { id: 4, name: "Ade Stores", date: "20 Jan 2025 08:45" },
-    { id: 5, name: "Ade Stores", date: "20 Jan 2025 08:45" },
-    { id: 6, name: "Ade Stores", date: "20 Jan 2025 08:45" },
-  ];
+  // Fetch referral details when modal is open and referrerId is provided
+  const { data: referralDetails, isLoading, error } = useQuery({
+    queryKey: ['referralDetails', referrerId],
+    queryFn: () => getReferralDetails(referrerId!),
+    enabled: isOpen && !!referrerId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const referredUsers = referralDetails?.data?.referred_users?.data || [];
+  const referrerStats = referralDetails?.data?.referrer_stats;
 
   if (!isOpen) return null;
 
@@ -43,7 +48,7 @@ const ViewAllModal: React.FC<ViewAllModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5 mt-2 border-b  border-[#DDDDDD]">
           <h2 className="text-[16px] font-semibold text-black">
-            User Referred by {referrerName} (340)
+            Users Referred by {referrerName} ({referrerStats?.total_referred || 0})
           </h2>
           <button
             onClick={onClose}
@@ -55,28 +60,50 @@ const ViewAllModal: React.FC<ViewAllModalProps> = ({
 
         {/* Content */}
         <div className="p-5 max-h-[500px] overflow-y-auto">
-          <div className="space-y-1">
-            {referredUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between py-3 rounded-2xl border border-[#DDDDDD]"
-              >
-                <div className="flex items-center space-x-3 ml-4">
-                  <div className="w-10 h-10  rounded-full flex items-center justify-center">
-                    <img
-                      src={images.sasha}
-                      alt="User Avatar"
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-4">
+              <p>Error loading referral details</p>
+            </div>
+          ) : referredUsers.length === 0 ? (
+            <div className="text-center text-gray-500 py-4">
+              <p>No referred users found</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {referredUsers.map((user: any) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between py-3 rounded-2xl border border-[#DDDDDD]"
+                >
+                  <div className="flex items-center space-x-3 ml-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200">
+                      <span className="text-sm font-medium text-gray-600">
+                        {user.full_name?.charAt(0) || 'U'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[14px] font-medium text-black">
+                        {user.full_name}
+                      </span>
+                      <span className="text-[12px] text-gray-500">
+                        {user.email}
+                      </span>
+                      <span className="text-[12px] text-blue-600">
+                        {user.role || 'Unknown Role'}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[14px] font-medium text-black">
-                    {user.name}
+                  <span className="text-[10px] mr-4 text-gray-500">
+                    {new Date(user.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                <span className="text-[10px] mr-4 text-gray-500">{user.date}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

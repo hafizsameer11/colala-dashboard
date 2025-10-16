@@ -3,22 +3,46 @@ import ViewAllModal from "./viewallmodal";
 
 interface Referral {
   id: string;
-  name: string;
-  noOfReferrals: number;
-  amountEarned: string;
-  other: string;
+  full_name: string;
+  email: string;
+  user_code: string;
+  referral_code: string | null;
+  role: string | null;
+  created_at: string;
+  referral_balance: number;
+  shopping_balance: number;
+  reward_balance: number;
+  loyalty_points: number;
+  wallet: {
+    id: number;
+    user_id: number;
+    shopping_balance: number;
+    reward_balance: number;
+    referral_balance: number;
+    loyality_points: number;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 interface ReferralTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  searchTerm?: string; // <- NEW
+  referralsData?: any;
+  isLoading?: boolean;
+  error?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const ReferralTable: React.FC<ReferralTableProps> = ({
-  title = "Reviews & Ratings",
+  title = "Referrals",
   onRowSelect,
-  searchTerm = "",
+  referralsData,
+  isLoading = false,
+  error,
+  currentPage = 1,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -27,71 +51,28 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
     null
   );
 
-  // Sample/static data (replace with API data when ready)
-  const referrals: Referral[] = [
-    {
-      id: "1",
-      name: "QuickMove Logistics",
-      noOfReferrals: 340,
-      amountEarned: "N89,000",
-      other: "View All",
-    },
-    {
-      id: "2",
-      name: "Sasha Stores",
-      noOfReferrals: 210,
-      amountEarned: "N42,500",
-      other: "View All",
-    },
-    {
-      id: "3",
-      name: "Adewale Faizah",
-      noOfReferrals: 118,
-      amountEarned: "N23,800",
-      other: "View All",
-    },
-    {
-      id: "4",
-      name: "Malik Qamar",
-      noOfReferrals: 90,
-      amountEarned: "N18,000",
-      other: "View All",
-    },
-    {
-      id: "5",
-      name: "Don Stores",
-      noOfReferrals: 67,
-      amountEarned: "N13,400",
-      other: "View All",
-    },
-    {
-      id: "6",
-      name: "QuickMove Logistics",
-      noOfReferrals: 51,
-      amountEarned: "N10,200",
-      other: "View All",
-    },
-    {
-      id: "7",
-      name: "QuickMove Logistics",
-      noOfReferrals: 35,
-      amountEarned: "N7,000",
-      other: "View All",
-    },
-  ];
+  // Transform API data to match component expectations
+  const referrals: Referral[] = useMemo(() => {
+    if (!referralsData?.data?.referrers?.data) return [];
+    
+    return referralsData.data.referrers.data.map((referrer: any) => ({
+      id: referrer.id.toString(),
+      full_name: referrer.full_name,
+      email: referrer.email,
+      user_code: referrer.user_code,
+      referral_code: referrer.referral_code,
+      role: referrer.role,
+      created_at: referrer.created_at,
+      referral_balance: referrer.referral_balance,
+      shopping_balance: referrer.shopping_balance,
+      reward_balance: referrer.reward_balance,
+      loyalty_points: referrer.loyalty_points,
+      wallet: referrer.wallet,
+    }));
+  }, [referralsData]);
 
-  // --- Filtering (case-insensitive; matches name, amount, count)
-  const filteredReferrals = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return referrals;
-
-    return referrals.filter((r) => {
-      const nameMatch = r.name.toLowerCase().includes(q);
-      const amountMatch = r.amountEarned.toLowerCase().includes(q);
-      const countMatch = String(r.noOfReferrals).includes(q);
-      return nameMatch || amountMatch || countMatch;
-    });
-  }, [searchTerm]);
+  // Use all referrals without filtering
+  const filteredReferrals = referrals;
 
   // Keep "Select All" checkbox in sync with visible selection
   useEffect(() => {
@@ -139,8 +120,34 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
 
   const isRowSelected = (id: string) => selectedRows.includes(id);
 
+  if (isLoading) {
+    return (
+      <div className="border border-[#989898] rounded-2xl w-full mt-4 mb-4">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-[#989898] rounded-2xl w-full mt-4 mb-4">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="text-center text-red-500 py-4">
+          <p>Error loading referrals</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="border border-[#989898] rounded-2xl w-[1160px] ml-1 mt-4 mb-4">
+    <div className="border border-[#989898] rounded-2xl w-full mt-4 mb-4">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
         {title}
       </div>
@@ -158,8 +165,9 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
                 />
               </th>
               <th className="text-left p-3 font-normal">Names</th>
-              <th className="text-left p-3 font-normal">No of referrals</th>
-              <th className="text-center p-3 font-normal">Amount Earned</th>
+              <th className="text-left p-3 font-normal">Email</th>
+              <th className="text-left p-3 font-normal">User Code</th>
+              <th className="text-center p-3 font-normal">Referral Balance</th>
               <th className="text-center p-3 font-normal">Other</th>
             </tr>
           </thead>
@@ -167,7 +175,7 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
           <tbody>
             {filteredReferrals.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-gray-500">
+                <td colSpan={6} className="p-6 text-center text-gray-500">
                   No results found.
                 </td>
               </tr>
@@ -187,12 +195,11 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
                       className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                     />
                   </td>
-                  <td className="p-4 text-black text-left">{referral.name}</td>
-                  <td className="p-4 text-black text-left">
-                    {referral.noOfReferrals}
-                  </td>
+                  <td className="p-4 text-black text-left">{referral.full_name}</td>
+                  <td className="p-4 text-black text-left">{referral.email}</td>
+                  <td className="p-4 text-black text-left">{referral.user_code}</td>
                   <td className="p-4 text-black text-center font-semibold">
-                    {referral.amountEarned}
+                    ₦{referral.referral_balance.toLocaleString()}
                   </td>
                   <td className="p-4 text-center">
                     <button
@@ -209,10 +216,39 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
         </table>
       </div>
 
+      {/* Pagination */}
+      {referralsData?.data?.pagination && (
+        <div className="flex justify-between items-center p-4 bg-gray-50">
+          <div className="text-sm text-gray-600">
+            Showing {referralsData.data.pagination.from || 0} to {referralsData.data.pagination.to || 0} of {referralsData.data.pagination.total || 0} results
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => onPageChange?.(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1 text-sm">
+              Page {currentPage} of {referralsData.data.pagination.last_page || 1}
+            </span>
+            <button
+              onClick={() => onPageChange?.(currentPage + 1)}
+              disabled={currentPage >= (referralsData.data.pagination.last_page || 1)}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       <ViewAllModal
         isOpen={showViewAllModal}
         onClose={() => setShowViewAllModal(false)}
-        referrerName={selectedReferrer?.name}
+        referrerName={selectedReferrer?.full_name}
+        referrerId={selectedReferrer?.id}
       />
     </div>
   );

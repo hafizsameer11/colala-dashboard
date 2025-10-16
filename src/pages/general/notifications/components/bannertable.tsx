@@ -3,78 +3,84 @@ import images from "../../../../constants/images";
 
 interface BannerData {
   id: number;
-  image: string;
-  date: string;
-  link: string;
-  status: "active" | "inactive";
+  title: string;
+  image_url: string;
+  link?: string;
+  audience_type: string;
+  target_user_ids?: number[];
+  position: string;
+  is_active: boolean;
+  start_date?: string;
+  end_date?: string;
+  created_by: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  total_views: number;
+  total_clicks: number;
+  click_through_rate: number;
+  is_currently_active: boolean;
+  created_at: string;
 }
 
 interface BannerTableProps {
   onRowSelect?: (selectedIds: number[]) => void;
-  searchTerm?: string; // <- NEW
+  searchTerm?: string;
+  bannersData?: any;
+  isLoading?: boolean;
+  error?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const BannerTable: React.FC<BannerTableProps> = ({
   onRowSelect,
   searchTerm = "",
+  bannersData,
+  isLoading = false,
+  error,
+  currentPage = 1,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
-  const banners: BannerData[] = [
-    {
-      id: 1,
-      image: images.banner,
-      date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Nigeria",
-      status: "active",
-    },
-    {
-      id: 2,
-      image: images.banner,
-      date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Cambodia",
-      status: "active",
-    },
-    {
-      id: 3,
-      image: images.banner,
-      date: "21-08-2025 / 07:22 AM",
-      link: "Milan, Italy",
-      status: "active",
-    },
-    {
-      id: 4,
-      image: images.banner,
-      date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Nigeria",
-      status: "active",
-    },
-    {
-      id: 5,
-      image: images.banner,
-      date: "21-08-2025 / 07:22 AM",
-      link: "Lagos, Nigeria",
-      status: "active",
-    },
-    {
-      id: 6,
-      image: images.banner,
-      date: "21-08-2025 / 07:22 AM",
-      link: "Frankfurt, Germany",
-      status: "active",
-    },
-  ];
+  // Transform API data to match component expectations
+  const banners: BannerData[] = useMemo(() => {
+    if (!bannersData?.data?.banners) return [];
+    
+    return bannersData.data.banners.map((banner: any) => ({
+      id: banner.id,
+      title: banner.title,
+      image_url: banner.image_url,
+      link: banner.link,
+      audience_type: banner.audience_type,
+      target_user_ids: banner.target_user_ids,
+      position: banner.position,
+      is_active: banner.is_active,
+      start_date: banner.start_date,
+      end_date: banner.end_date,
+      created_by: banner.created_by,
+      total_views: banner.total_views,
+      total_clicks: banner.total_clicks,
+      click_through_rate: banner.click_through_rate,
+      is_currently_active: banner.is_currently_active,
+      created_at: banner.created_at,
+    }));
+  }, [bannersData]);
 
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return banners;
     return banners.filter(
       (b) =>
-        b.link.toLowerCase().includes(q) ||
-        b.date.toLowerCase().includes(q) ||
-        b.status.toLowerCase().includes(q)
+        b.title.toLowerCase().includes(q) ||
+        (b.link && b.link.toLowerCase().includes(q)) ||
+        b.position.toLowerCase().includes(q) ||
+        b.audience_type.toLowerCase().includes(q) ||
+        (b.is_active ? 'active' : 'inactive').includes(q)
     );
-  }, [searchTerm]);
+  }, [searchTerm, banners]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -99,6 +105,32 @@ const BannerTable: React.FC<BannerTableProps> = ({
     console.log("Edit clicked for banner:", id);
   const handleDelete = (id: number) =>
     console.log("Delete clicked for banner:", id);
+
+  if (isLoading) {
+    return (
+      <div className="mt-5 bg-white border border-[#E5E7EB] rounded-lg">
+        <div className="bg-[#F9FAFB] px-6 py-4 border-b border-[#E5E7EB] rounded-t-lg">
+          <h3 className="text-base font-medium text-[#111827]">Latest Banners</h3>
+        </div>
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-5 bg-white border border-[#E5E7EB] rounded-lg">
+        <div className="bg-[#F9FAFB] px-6 py-4 border-b border-[#E5E7EB] rounded-t-lg">
+          <h3 className="text-base font-medium text-[#111827]">Latest Banners</h3>
+        </div>
+        <div className="text-center text-red-500 py-4">
+          <p>Error loading banners</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-5 bg-white border border-[#E5E7EB] rounded-lg">
@@ -157,24 +189,29 @@ const BannerTable: React.FC<BannerTableProps> = ({
                   <td className="p-4">
                     <div className="w-[220px] h-[41px] rounded-md overflow-hidden shadow-sm border border-gray-200">
                       <img
-                        src={banner.image}
+                        src={banner.image_url}
                         alt="Banner"
                         className="w-[220px] h-[41px] object-cover"
                       />
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="text text-[#000]">{banner.date}</span>
+                    <span className="text text-[#000]">
+                      {banner.created_at 
+                        ? new Date(banner.created_at).toLocaleDateString()
+                        : 'Unknown'
+                      }
+                    </span>
                   </td>
                   <td className="p-4">
-                    <span className="text text-[#000]">{banner.link}</span>
+                    <span className="text text-[#000]">{banner.link || 'No link'}</span>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div
                           className={`w-5 h-5 rounded-full ${
-                            banner.status === "active"
+                            banner.is_active
                               ? "bg-[#008000]"
                               : "bg-red-500"
                           }`}
@@ -210,6 +247,34 @@ const BannerTable: React.FC<BannerTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {bannersData?.data?.pagination && (
+        <div className="flex justify-between items-center p-4 bg-gray-50">
+          <div className="text-sm text-gray-600">
+            Showing {bannersData.data.pagination.from || 0} to {bannersData.data.pagination.to || 0} of {bannersData.data.pagination.total || 0} results
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => onPageChange?.(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1 text-sm">
+              Page {currentPage} of {bannersData.data.pagination.last_page || 1}
+            </span>
+            <button
+              onClick={() => onPageChange?.(currentPage + 1)}
+              disabled={currentPage >= (bannersData.data.pagination.last_page || 1)}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

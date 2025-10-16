@@ -3,11 +3,16 @@ import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getChats } from "../../../utils/queries/chats";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
 
 type Tab = "General" | "Unread" | "Support" | "Dispute";
 
 const Chats = () => {
   const [activeTab, setActiveTab] = useState<Tab>("General");
+  const [currentPage, setCurrentPage] = useState(1);
   const tabs: Tab[] = ["General", "Unread", "Support", "Dispute"];
 
   // Debounced search
@@ -17,6 +22,16 @@ const Chats = () => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Fetch chats data
+  const { data: chatsData, isLoading: isLoadingChats, error: chatsError } = useQuery({
+    queryKey: ['chats', currentPage, debouncedSearch, activeTab],
+    queryFn: () => getChats(currentPage, debouncedSearch || undefined, activeTab.toLowerCase() === 'general' ? undefined : activeTab.toLowerCase()),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use statistics from the main chats API response
+  const statsData = chatsData;
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -45,47 +60,39 @@ const Chats = () => {
     <>
       <PageHeader title="All Chats" />
       <div className="p-5">
-        <div className="flex flex-row justify-between items-center">
-          {/* cards unchanged */}
-          <div className="flex flex-row rounded-2xl  w-90" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.chats} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Chats</span>
-              <span className="font-semibold text-2xl">10</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last month
-              </span>
-            </div>
+        {isLoadingChats ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
           </div>
-
-          <div className="flex flex-row rounded-2xl w-90" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.chats} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Unread Chats</span>
-              <span className="font-semibold text-2xl">2</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last month
-              </span>
-            </div>
+        ) : statsData?.data ? (
+          <StatCardGrid columns={3}>
+            <StatCard
+              icon={images.chats}
+              title="Total Chats"
+              value={statsData.data.statistics?.total_chats || 0}
+              subtitle="All chat conversations"
+              iconBgColor="#E53E3E"
+            />
+            <StatCard
+              icon={images.chats}
+              title="Unread Chats"
+              value={statsData.data.statistics?.unread_chats || 0}
+              subtitle="Unread conversations"
+              iconBgColor="#E53E3E"
+            />
+            <StatCard
+              icon={images.chats}
+              title="Dispute Chats"
+              value={statsData.data.statistics?.dispute_chats || 0}
+              subtitle="Dispute conversations"
+              iconBgColor="#E53E3E"
+            />
+          </StatCardGrid>
+        ) : (
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading chat statistics</p>
           </div>
-
-          <div className="flex flex-row rounded-2xl w-90" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.chats} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Dispute</span>
-              <span className="font-semibold text-2xl">0</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last month
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
@@ -123,6 +130,11 @@ const Chats = () => {
         title="All Chats"
         filterType={activeTab}
         searchTerm={debouncedSearch}
+        chatsData={chatsData}
+        isLoading={isLoadingChats}
+        error={chatsError}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
         onRowSelect={(selectedIds) => {
           console.log("Selected chat IDs:", selectedIds);
         }}

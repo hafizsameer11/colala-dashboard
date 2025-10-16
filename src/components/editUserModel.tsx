@@ -1,81 +1,37 @@
 import images from "../constants/images";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createUser } from "../utils/mutations/users";
+import { updateUser } from "../utils/mutations/users";
 
-interface AddUserModalProps {
+interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userData?: any;
 }
 
-const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
+const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData }) => {
   const [activeTab, setActiveTab] = useState<"profile" | "address">("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
   
-  // Toast notification state
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"success" | "error">("success");
-  
   const queryClient = useQueryClient();
 
-  // Create user mutation
-  const createUserMutation = useMutation({
-    mutationFn: createUser,
-    onSuccess: (data) => {
-      // Show success toast
-      setToastMessage("User created successfully!");
-      setToastType("success");
-      setShowToast(true);
-      
-      // Auto hide toast after 3 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
-      
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: updateUser,
+    onSuccess: () => {
       // Invalidate and refetch users list
-      queryClient.invalidateQueries({ queryKey: ['usersList'] });
-      queryClient.invalidateQueries({ queryKey: ['userStats'] });
-      
-      // Reset form
-      setFormData({
-        user_name: "",
-        full_name: "",
-        email: "",
-        phone: "",
-        password: "",
-        country: "",
-        state: "",
-        role: "buyer",
-        referral_code: "",
-        profile_picture: null,
-      });
-      
-      // Close modal after a short delay
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allUsersStats'] });
+      queryClient.invalidateQueries({ queryKey: ['userDetails'] });
+      onClose();
     },
     onError: (error: any) => {
-      console.error('Error creating user:', error);
-      
-      // Show error toast
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
-                          "Failed to create user. Please try again.";
-      setToastMessage(errorMessage);
-      setToastType("error");
-      setShowToast(true);
-      
-      // Auto hide toast after 5 seconds for errors
-      setTimeout(() => {
-        setShowToast(false);
-      }, 5000);
+      console.error('Error updating user:', error);
     },
   });
 
-  // Form state
+  // Form state - initialize with user data
   const [formData, setFormData] = useState({
     user_name: "",
     full_name: "",
@@ -96,6 +52,24 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     localGovernment: "",
     fullAddress: "",
   });
+
+  // Initialize form data when userData changes
+  useEffect(() => {
+    if (userData) {
+      setFormData({
+        user_name: userData.user_info?.user_name || userData.user_info?.full_name || "",
+        full_name: userData.user_info?.full_name || "",
+        email: userData.user_info?.email || "",
+        phone: userData.user_info?.phone || "",
+        password: "", // Don't pre-fill password for security
+        country: userData.user_info?.country || "",
+        state: userData.user_info?.state || "",
+        role: userData.user_info?.role || "buyer",
+        referral_code: "",
+        profile_picture: null,
+      });
+    }
+  }, [userData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -138,7 +112,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     
     // Validate required fields
-    if (!formData.full_name || !formData.user_name || !formData.email || !formData.phone || !formData.password || !formData.country || !formData.state) {
+    if (!formData.full_name || !formData.email || !formData.phone || !formData.country || !formData.state) {
       alert('Please fill in all required fields');
       return;
     }
@@ -147,8 +121,11 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     console.log('Form data being submitted:', formData);
     console.log('Profile picture file:', formData.profile_picture);
     
-    // Create user
-    createUserMutation.mutate(formData);
+    // Update user
+    updateUserMutation.mutate({
+      userId: userData?.user_info?.id,
+      ...formData
+    });
   };
 
   if (!isOpen) return null;
@@ -164,7 +141,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
           >
             <img src={images.close} alt="Close" />
           </button>
-          <h2 className="text-xl font-semibold">Add New User</h2>
+          <h2 className="text-xl font-semibold">Edit User</h2>
         </div>
 
         <div className="p-5 pb-8">
@@ -203,6 +180,12 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                       <img
                         src={URL.createObjectURL(formData.profile_picture)}
                         alt="Profile preview"
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : userData?.user_info?.profile_picture ? (
+                      <img
+                        src={`https://colala.hmstech.xyz/storage/${userData.user_info.profile_picture}`}
+                        alt="Current profile"
                         className="w-full h-full object-cover rounded-full"
                       />
                     ) : (
@@ -312,7 +295,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                         htmlFor="password"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Password
+                        Password (Leave blank to keep current password)
                       </label>
                       <div className="relative">
                         <input
@@ -321,9 +304,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                           name="password"
                           value={formData.password}
                           onChange={handleInputChange}
-                          placeholder="Enter password"
+                          placeholder="Enter new password (optional)"
                           className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
-                          required
                         />
                         <button
                           type="button"
@@ -427,6 +409,28 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                       </select>
                     </div>
 
+                    {/* Status */}
+                    <div>
+                      <label
+                        htmlFor="status"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Status
+                      </label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={userData?.user_info?.status || 'active'}
+                        onChange={(e) => {
+                          // Handle status change if needed
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+
                     {/* Referral Code */}
                     <div>
                       <label
@@ -449,7 +453,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                     {/* Profile Picture Info */}
                     <div className="text-center">
                       <p className="text-sm text-gray-600">
-                        Click the image above to upload a profile picture (Optional)
+                        Click the image above to upload a new profile picture (Optional)
                       </p>
                       {formData.profile_picture && (
                         <div className="mt-2">
@@ -472,20 +476,20 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                       )}
                     </div>
 
-                    {/* Add User Button */}
+                    {/* Update User Button */}
                     <div className="mt-6">
                       <button
                         type="submit"
-                        disabled={createUserMutation.isPending}
+                        disabled={updateUserMutation.isPending}
                         className="w-full bg-[#E53E3E] text-white py-3 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                       >
-                        {createUserMutation.isPending ? (
+                        {updateUserMutation.isPending ? (
                           <>
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                            Creating User...
+                            Updating User...
                           </>
                         ) : (
-                          "Add User"
+                          "Update User"
                         )}
                       </button>
                     </div>
@@ -527,7 +531,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                             Phone number
                           </label>
                           <p className="text-gray-800 font-medium">
-                            070312345678
+                            {userData?.user_info?.phone || 'N/A'}
                           </p>
                         </div>
 
@@ -537,13 +541,13 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                             <label className="text-gray-500 text-sm block mb-1">
                               State
                             </label>
-                            <p className="text-gray-800 font-medium">Lagos</p>
+                            <p className="text-gray-800 font-medium">{userData?.user_info?.state || 'N/A'}</p>
                           </div>
                           <div>
                             <label className="text-gray-500 text-sm block mb-1">
                               Local Government
                             </label>
-                            <p className="text-gray-800 font-medium">Ikeja</p>
+                            <p className="text-gray-800 font-medium">N/A</p>
                           </div>
                         </div>
 
@@ -553,68 +557,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                             Full Address
                           </label>
                           <p className="text-gray-800 font-medium">
-                            No 2, acbssseddf street, Ikeja
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-[#CDCDCD] rounded-2xl p-4 mt-5">
-                      {/* Address Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            Address 1
-                          </h3>
-                          <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
-                            Default Address
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
-                            Edit
-                          </button>
-                          <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Address Details */}
-                      <div className="space-y-3">
-                        {/* Phone Number */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Phone number
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            070312345678
-                          </p>
-                        </div>
-
-                        {/* State and Local Government */}
-                        <div className="flex flex-row gap-10">
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              State
-                            </label>
-                            <p className="text-gray-800 font-medium">Lagos</p>
-                          </div>
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              Local Government
-                            </label>
-                            <p className="text-gray-800 font-medium">Ikeja</p>
-                          </div>
-                        </div>
-
-                        {/* Full Address */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Full Address
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            No 2, acbssseddf street, Ikeja
+                            {userData?.store_info?.store_location || 'N/A'}
                           </p>
                         </div>
                       </div>
@@ -781,47 +724,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
-
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] ${
-            toastType === 'success' 
-              ? 'bg-green-500 text-white' 
-              : 'bg-red-500 text-white'
-          }`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-              toastType === 'success' ? 'bg-white' : 'bg-white'
-            }`}>
-              {toastType === 'success' ? (
-                <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm">
-                {toastType === 'success' ? 'Success!' : 'Error!'}
-              </p>
-              <p className="text-sm opacity-90">{toastMessage}</p>
-            </div>
-            <button
-              onClick={() => setShowToast(false)}
-              className="text-white hover:text-gray-200 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default AddUserModal;
+export default EditUserModal;

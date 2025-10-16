@@ -51,7 +51,7 @@ const LinkComp: React.FC<LinkCompProps> = ({
       <Link
         to={link}
         onClick={onClick}
-        className={`flex items-center py-5 rounded-2xl transition-all duration-200 mx-4 relative pl-3 text-[20px]
+        className={`flex items-center py-5 rounded-2xl transition-all duration-200 mx-4 relative pl-3 text-[16px]
           ${
             isActive
               ? "bg-[#E53E3E] text-white"
@@ -75,7 +75,7 @@ const LinkComp: React.FC<LinkCompProps> = ({
           }`}
         ></div>
 
-        {!menuStatus && <span className="font-medium ml-2">{name}</span>}
+        {!menuStatus && <span className="font-normal ml-2">{name}</span>}
       </Link>
     </div>
   );

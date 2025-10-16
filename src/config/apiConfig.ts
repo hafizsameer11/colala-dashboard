@@ -17,6 +17,47 @@ const API_ENDPOINTS = {
     LatestOrders: API_DOMAIN + "/admin/latest-orders", // GET
   },
 
+  // ALL USERS
+  ALL_USERS: {
+    List: API_DOMAIN + "/admin/all-users", // GET
+    Stats: API_DOMAIN + "/admin/all-users/stats", // GET
+    Search: API_DOMAIN + "/admin/all-users/search", // GET
+    BulkAction: API_DOMAIN + "/admin/all-users/bulk-action", // POST
+    Profile: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/profile`, // GET
+    Details: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/details`, // GET
+    Create: API_DOMAIN + "/admin/users", // POST
+    Update: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // DELETE
+  },
+
+  // CHATS
+  CHATS: {
+    List: API_DOMAIN + "/admin/chats", // GET
+    Stats: API_DOMAIN + "/admin/chats/stats", // GET
+    Search: API_DOMAIN + "/admin/chats/search", // GET
+    BulkAction: API_DOMAIN + "/admin/chats/bulk-action", // POST
+    Details: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/details`, // GET
+    SendMessage: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/send`, // POST
+    MarkAsRead: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/mark-read`, // POST
+    MarkAsUnread: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/mark-unread`, // POST
+    Close: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/close`, // POST
+    Reopen: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/reopen`, // POST
+  },
+
+  // SUPPORT TICKETS
+  SUPPORT: {
+    List: API_DOMAIN + "/admin/support/tickets", // GET
+    Stats: API_DOMAIN + "/admin/support/tickets/stats", // GET
+    Search: API_DOMAIN + "/admin/support/tickets/search", // GET
+    BulkAction: API_DOMAIN + "/admin/support/tickets/bulk-action", // POST
+    Details: (id: number | string) => `${API_DOMAIN}/admin/support/tickets/${id}/details`, // GET
+    Reply: (id: number | string) => `${API_DOMAIN}/admin/support/tickets/${id}/reply`, // POST
+    UpdateStatus: (id: number | string) => `${API_DOMAIN}/admin/support/tickets/${id}/status`, // PUT
+    Resolve: (id: number | string) => `${API_DOMAIN}/admin/support/tickets/${id}/resolve`, // PUT
+    Close: (id: number | string) => `${API_DOMAIN}/admin/support/tickets/${id}/close`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/support/tickets/${id}`, // DELETE
+  },
+
   // BUYER MANAGEMENT
   BUYER_USERS: {
     List: API_DOMAIN + "/admin/users", // GET
@@ -166,6 +207,13 @@ const API_ENDPOINTS = {
     UpdateLevel: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/level`, // PUT
   },
 
+  // ADMIN SOCIAL FEED
+  ADMIN_SOCIAL_FEED: {
+    List: API_DOMAIN + "/admin/social-feed", // GET
+    Details: (postId: number | string) => `${API_DOMAIN}/admin/social-feed/${postId}/details`, // GET
+    Statistics: API_DOMAIN + "/admin/social-feed/statistics", // GET
+  },
+
   // SELLER SOCIAL FEED
   SELLER_SOCIAL_FEED: {
     List: (userId: number | string) => `${API_DOMAIN}/admin/seller-details/${userId}/social-feed`, // GET
@@ -231,6 +279,39 @@ const API_ENDPOINTS = {
   BALANCE: {
     List: API_DOMAIN + "/admin/balances", // GET
     Statistics: API_DOMAIN + "/admin/balances/statistics", // GET
+  },
+
+  // REFERRAL MANAGEMENT
+  REFERRALS: {
+    List: API_DOMAIN + "/admin/referrals", // GET
+    Stats: API_DOMAIN + "/admin/referrals", // GET (includes statistics)
+    Search: API_DOMAIN + "/admin/referrals/search", // GET
+    BulkAction: API_DOMAIN + "/admin/referrals/bulk-action", // POST
+    Details: (id: number | string) => `${API_DOMAIN}/admin/referrals/${id}/referred-users`, // GET
+    ReferrerStats: (id: number | string) => `${API_DOMAIN}/admin/referrals/${id}/referred-users`, // GET
+  },
+
+  // NOTIFICATIONS & BANNERS
+  NOTIFICATIONS: {
+    List: API_DOMAIN + "/admin/notifications", // GET
+    Create: API_DOMAIN + "/admin/notifications", // POST
+    Details: (id: number | string) => `${API_DOMAIN}/admin/notifications/${id}`, // GET
+    UpdateStatus: (id: number | string) => `${API_DOMAIN}/admin/notifications/${id}/status`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/notifications/${id}`, // DELETE
+    AudienceData: API_DOMAIN + "/admin/notifications/audience/data", // GET
+    AudienceUsers: API_DOMAIN + "/admin/notifications/audience/users", // GET
+  },
+
+  BANNERS: {
+    List: API_DOMAIN + "/admin/banners", // GET
+    Create: API_DOMAIN + "/admin/banners", // POST
+    Details: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // GET
+    Update: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // DELETE
+    Analytics: API_DOMAIN + "/admin/banners/analytics", // GET
+    Active: API_DOMAIN + "/banners/active", // GET (public)
+    TrackView: (id: number | string) => `${API_DOMAIN}/banners/${id}/view`, // POST
+    TrackClick: (id: number | string) => `${API_DOMAIN}/banners/${id}/click`, // POST
   },
 };
 

@@ -182,9 +182,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <th className="text-center p-3 font-semibold text-[14px]">
                 Status
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
-                Other
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -227,18 +224,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     {order.status}
                   </span>
                 </td>
-                <td className="p-4 text-center">
-                  <button className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer">
-                    Details
-                  </button>
-                </td>
               </tr>
             ))}
 
             {filteredOrders.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={7}
                   className="p-6 text-center text-sm text-gray-500"
                 >
                   No orders found for “{searchTerm}”{" "}

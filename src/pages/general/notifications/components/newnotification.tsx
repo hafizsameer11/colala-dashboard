@@ -6,6 +6,7 @@ interface NewNotificationProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: NotificationFormData) => void;
+  isLoading?: boolean;
 }
 
 interface NotificationFormData {
@@ -20,6 +21,7 @@ const NewNotification: React.FC<NewNotificationProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState<NotificationFormData>({
     subject: "",
@@ -364,10 +366,17 @@ const NewNotification: React.FC<NewNotificationProps> = ({
               type="submit"
               className="w-full bg-[#E53E3E] text-white py-4 rounded-xl hover:bg-[#d32f2f] transition-colors font-medium cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={
-                !formData.subject || !formData.message || !formData.audience
+                !formData.subject || !formData.message || !formData.audience || isLoading
               }
             >
-              Send
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Sending...
+                </div>
+              ) : (
+                'Send'
+              )}
             </button>
           </form>
         </div>

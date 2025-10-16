@@ -7,7 +7,7 @@ import Orders from "./orders/orders";
 import Chats from "./chats/chats";
 import Transaction from "./transaction/transaction";
 import SocialFeed from "./socialFeed/socialFeed";
-import { getUserProfile } from "../../../../utils/queries/users";
+import { getUserDetails } from "../../../../utils/queries/users";
 
 const CustomerDetails: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -16,20 +16,79 @@ const CustomerDetails: React.FC = () => {
 
   // Fetch user profile data from API
   const { data: profileData, isLoading, error } = useQuery({
-    queryKey: ['userProfile', userId],
-    queryFn: () => getUserProfile(userId!),
+    queryKey: ['userDetails', userId],
+    queryFn: () => getUserDetails(userId!),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Extract the user data from API response or fallback to state/local data
-  const userData = profileData?.data || state || {
+  // Transform API response to match component expectations
+  const userData = profileData?.data ? {
+    // Map user_info to top level
+    id: profileData.data.user_info?.id || userId,
+    full_name: profileData.data.user_info?.full_name || "Unknown",
+    user_name: profileData.data.user_info?.user_name || "Unknown",
+    email: profileData.data.user_info?.email || "No email",
+    phone: profileData.data.user_info?.phone || "No phone",
+    country: profileData.data.user_info?.country || "Unknown",
+    state: profileData.data.user_info?.state || "Unknown",
+    profile_picture: profileData.data.user_info?.profile_picture || null,
+    last_login: profileData.data.user_info?.last_login || "Never",
+    account_created_at: profileData.data.user_info?.created_at || "Unknown",
+    loyalty_points: profileData.data.statistics?.total_loyalty_points || 0,
+    is_blocked: profileData.data.user_info?.status === "blocked",
+    role: profileData.data.user_info?.role || "buyer",
+    
+    // Map wallet_info
+    wallet: {
+      shopping_balance: profileData.data.wallet_info?.shopping_balance || "0",
+      escrow_balance: profileData.data.wallet_info?.escrow_balance || "0",
+    },
+    
+    // Map statistics
+    statistics: profileData.data.statistics || {
+      total_orders: 0,
+      total_transactions: 0,
+      total_loyalty_points: 0,
+      total_spent: 0,
+      average_order_value: 0,
+    },
+    
+    // Map activities
+    recent_activities: profileData.data.activities || [],
+    
+    // Legacy fields for backward compatibility
+    userName: profileData.data.user_info?.full_name || "Unknown",
+    phoneNumber: profileData.data.user_info?.phone || "No phone",
+    walletBalance: profileData.data.wallet_info?.shopping_balance || "0",
+  } : state || {
     id: userId,
     full_name: "Unknown",
     user_name: "Unknown",
     email: "No email",
     phone: "No phone number",
-    wallet: { shopping_balance: "₦0", escrow_balance: "₦0" },
+    user_info: {
+      full_name: "Unknown",
+      email: "No email",
+      phone: "No phone number",
+    },
+    wallet_info: {
+      balance: "₦0",
+      escrow_balance: "₦0",
+    },
+    store_info: {
+      store_name: "No store",
+    },
+    statistics: {
+      total_orders: 0,
+      total_transactions: 0,
+      total_loyalty_points: 0,
+      total_spent: 0,
+      average_order_value: 0,
+    },
+    activities: [],
+    recent_orders: [],
+    recent_transactions: [],
   };
 
   const tabs = ["Activity", "Orders", "Chats", "Transactions", "Social Feed"];

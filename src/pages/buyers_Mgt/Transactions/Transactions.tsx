@@ -1,4 +1,6 @@
 import PageHeader from "../../../components/PageHeader";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
@@ -114,70 +116,26 @@ const Transactions = () => {
             </div>
           </div>
         ) : (
-          <div className="flex flex-row justify-between items-center">
-            {/* Card 1 - All Transactions */}
-            <div
-              className="flex flex-row rounded-2xl w-90"
-              style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-            >
-              <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
-                <img className="w-9 h-9" src={images.transaction1} alt="" />
-              </div>
-              <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">
-                  All Transactions
-                </span>
-                <span className="font-semibold text-2xl">
-                  {statistics.total_transactions || 0}
-                </span>
-                <span className="text-[#00000080] text-[13px]">
-                  <span className="text-[#1DB61D]">Total</span> transactions processed
-                </span>
-              </div>
-            </div>
-
-            {/* Card 2 - Pending Transactions */}
-            <div
-              className="flex flex-row rounded-2xl w-90"
-              style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-            >
-              <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
-                <img className="w-9 h-9" src={images.transaction1} alt="" />
-              </div>
-              <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">
-                  Pending Transactions
-                </span>
-                <span className="font-semibold text-2xl">
-                  {statistics.pending_transactions || 0}
-                </span>
-                <span className="text-[#00000080] text-[13px]">
-                  <span className="text-[#1DB61D]">Pending</span> transactions
-                </span>
-              </div>
-            </div>
-
-            {/* Card 3 - Successful Transactions */}
-            <div
-              className="flex flex-row rounded-2xl w-90"
-              style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-            >
-              <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center">
-                <img className="w-9 h-9" src={images.transaction1} alt="" />
-              </div>
-              <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">
-                  Successful Transactions
-                </span>
-                <span className="font-semibold text-2xl">
-                  {statistics.successful_transactions || 0}
-                </span>
-                <span className="text-[#00000080] text-[13px]">
-                  <span className="text-[#1DB61D]">Successful</span> transactions
-                </span>
-              </div>
-            </div>
-          </div>
+          <StatCardGrid columns={3}>
+            <StatCard
+              icon={images.transaction1}
+              title="All Transactions"
+              value={statistics.total_transactions || 0}
+              subtitle="Total transactions processed"
+            />
+            <StatCard
+              icon={images.transaction1}
+              title="Pending Transactions"
+              value={statistics.pending_transactions || 0}
+              subtitle="Pending transactions"
+            />
+            <StatCard
+              icon={images.transaction1}
+              title="Successful Transactions"
+              value={statistics.successful_transactions || 0}
+              subtitle="Successful transactions"
+            />
+          </StatCardGrid>
         )}
 
         <div className="mt-5 flex flex-row justify-between">

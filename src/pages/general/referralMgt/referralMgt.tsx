@@ -1,84 +1,70 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
 import ReferralTable from "./components/referraltable";
-import ReferralFilters from "./components/referralfilters";
-// import { useState } from "react";
-import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getReferrals } from "../../../utils/queries/referrals";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
+import { useState } from "react";
 
 const AllReferral = () => {
-  // const handleBulkActionSelect = (action: string) => {
-  //   // Handle the bulk action selection from the parent component
-  //   console.log("Bulk action selected in Referral:", action);
-  //   // Add your custom logic here
-  // };
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const [search, setSearch] = React.useState("");
+  // Fetch referrals data
+  const { data: referralsData, isLoading, error } = useQuery({
+    queryKey: ['referrals', currentPage],
+    queryFn: () => getReferrals(currentPage),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   return (
     <>
-      <PageHeader title=" Referrals" />
+      <PageHeader title="Referrals" />
       <div className="p-5">
-        <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.referralmgt} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Referrals</span>
-              <span className="font-semibold text-2xl">10</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
+        {/* Statistics Cards */}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
           </div>
-
-          {/* Card 2 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.referralmgt} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Buyers referred</span>
-              <span className="font-semibold text-2xl">2</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-4">
+            <p>Error loading referral statistics</p>
+            {error.message === 'No authentication token found' ? (
+              <p className="text-sm mt-2">Please log in to view referral data</p>
+            ) : (
+              <p className="text-sm mt-2">Error details: {error.message}</p>
+            )}
           </div>
+        ) : referralsData?.data ? (
+          <StatCardGrid columns={3}>
+            <StatCard 
+              icon={images.referralmgt} 
+              title="Total Referrals" 
+              value={referralsData.data.statistics?.total_referred || 0} 
+              subtitle="All referred users" 
+            />
+            <StatCard 
+              icon={images.referralmgt} 
+              title="Buyers Referred" 
+              value={referralsData.data.statistics?.total_referred - (referralsData.data.statistics?.sellers_referred || 0) || 0} 
+              subtitle="Buyer referrals" 
+            />
+            <StatCard 
+              icon={images.referralmgt} 
+              title="Sellers Referred" 
+              value={referralsData.data.statistics?.sellers_referred || 0} 
+              subtitle="Seller referrals" 
+            />
+          </StatCardGrid>
+        ) : null}
 
-          {/* Card 3 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.referralmgt} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">
-                Sellers referred
-              </span>
-              <span className="font-semibold text-2xl">0</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
-          </div>
-        </div>
-        <ReferralFilters onSearchChange={setSearch} />
-        <ReferralTable searchTerm={search} />
+        <ReferralTable 
+          referralsData={referralsData}
+          isLoading={isLoading}
+          error={error}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </>
   );

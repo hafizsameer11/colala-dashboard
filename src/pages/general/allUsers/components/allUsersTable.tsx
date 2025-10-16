@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import images from "../../../../constants/images";
+import { getAllUsers } from "../../../../utils/queries/users";
 
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
@@ -62,6 +64,8 @@ interface UsersTableProps {
   onRowSelect?: (selectedIds: string[]) => void;
   filterType?: "All" | "Buyers" | "Sellers"; // <-- from parent tabs
   searchTerm?: string; // <-- debounced search from parent
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
@@ -69,69 +73,35 @@ const UsersTable: React.FC<UsersTableProps> = ({
   onRowSelect,
   filterType = "All",
   searchTerm = "",
+  currentPage = 1,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
 
-  const users: User[] = [
-    {
-      id: "1",
-      userName: "Adebayo Williams",
-      email: "adebayo.w@outlook.com",
-      phoneNumber: "09098765432",
-      walletBalance: "₦15,750",
-      userType: "Buyer",
-    },
-    {
-      id: "2",
-      userName: "Halima Abubakar",
-      email: "halima.abubakar@protonmail.com",
-      phoneNumber: "08056781234",
-      walletBalance: "₦110,300",
-      userType: "Buyer",
-    },
-    {
-      id: "3",
-      userName: "Chidinma Okoro",
-      email: "chidinma.okoro@yahoo.com",
-      phoneNumber: "08021234567",
-      walletBalance: "₦42,500",
-      userType: "Buyer",
-    },
-    {
-      id: "4",
-      userName: "Fatima Bello",
-      email: "fatima.bello@icloud.com",
-      phoneNumber: "08181122334",
-      walletBalance: "₦78,000",
-      userType: "Seller",
-    },
-    {
-      id: "5",
-      userName: "Emeka Eze",
-      email: "emeka.eze.ng@gmail.com",
-      phoneNumber: "07065557788",
-      walletBalance: "₦5,200",
-      userType: "Buyer",
-    },
-    {
-      id: "6",
-      userName: "Tunde Ogunsola",
-      email: "tunde.ogunsola@live.com",
-      phoneNumber: "09034445566",
-      walletBalance: "₦33,999",
-      userType: "Seller",
-    },
-    {
-      id: "7",
-      userName: "Tunde Ogunsola",
-      email: "tunde.ogunsola@live.com",
-      phoneNumber: "09034445566",
-      walletBalance: "₦33,999",
-      userType: "Buyer",
-    },
-  ];
+  // Fetch users data from API
+  const { data: usersData, isLoading, error } = useQuery({
+    queryKey: ['allUsers', currentPage, searchTerm],
+    queryFn: () => getAllUsers(currentPage, searchTerm || undefined),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Transform API data to component format
+  const users: User[] = useMemo(() => {
+    if (!usersData?.data?.users) return [];
+    
+    return usersData.data.users.map((user: any) => ({
+      id: user.id.toString(),
+      userName: user.full_name || "Unknown User",
+      email: user.email || "No email",
+      phoneNumber: user.phone || "No phone",
+      walletBalance: user.wallet_balance ? `₦${user.wallet_balance}` : "₦0",
+      userType: user.role === "seller" ? "Seller" : "Buyer",
+      userImage: user.profile_picture,
+      storeName: user.store_name,
+    }));
+  }, [usersData]);
 
   // Map tab -> filter
   const matchesTab = (u: User) => {
@@ -193,8 +163,38 @@ const UsersTable: React.FC<UsersTableProps> = ({
   };
 
   const handleCustomerDetails = (user: User) => {
-    navigate(`/customer-details/${user.id}`, { state: user });
+    navigate(`/all-users/${user.id}`, { state: user });
   };
+
+  if (isLoading) {
+    return (
+      <div className="border border-gray-300 rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-gray-300 rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading users</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
@@ -241,9 +241,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
                 <td className="p-3 text-left flex items-center justify-start gap-2">
                   <img
-                    src="/assets/layout/admin.png"
+                    src={user.userImage || "/assets/layout/admin.png"}
                     alt="User"
-                    className="w-8 h-8 rounded-full"
+                    className="w-8 h-8 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/assets/layout/admin.png";
+                    }}
                   />
                   <span>{user.userName}</span>
                 </td>
@@ -277,13 +280,43 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   colSpan={7}
                   className="p-6 text-center text-sm text-gray-500"
                 >
-                  No users found{searchTerm ? ` for “${searchTerm}”` : ""}
+                  No users found{searchTerm ? ` for "${searchTerm}"` : ""}
                   {filterType !== "All" ? ` in ${filterType}` : ""}.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        {usersData?.data?.pagination && (
+          <div className="flex justify-between items-center p-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * (usersData.data.pagination.per_page || 20)) + 1} to{" "}
+              {Math.min(currentPage * (usersData.data.pagination.per_page || 20), usersData.data.pagination.total || 0)} of{" "}
+              {usersData.data.pagination.total || 0} results
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 text-sm">
+                Page {currentPage} of {usersData.data.pagination.last_page || 1}
+              </span>
+              <button
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= (usersData.data.pagination.last_page || 1)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

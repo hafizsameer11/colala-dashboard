@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import AddUserModal from "../../../../../components/addUserModel";
+import EditUserModal from "../../../../../components/editUserModel";
 
 interface ActivityProps {
   userData: {
@@ -17,9 +18,17 @@ interface ActivityProps {
     account_created_at?: string;
     loyalty_points?: number;
     is_blocked?: boolean;
+    role?: string;
     wallet?: {
       shopping_balance?: string;
       escrow_balance?: string;
+    };
+    statistics?: {
+      total_orders?: number;
+      total_transactions?: number;
+      total_loyalty_points?: number;
+      total_spent?: number;
+      average_order_value?: number;
     };
     recent_activities?: Array<{
       id: number;
@@ -35,6 +44,7 @@ interface ActivityProps {
 
 const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +75,10 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
     console.log(`${action} action triggered for user:`, userData.userName);
     setIsDropdownOpen(false);
     // Add your action logic here
+  };
+
+  const handleEditUser = () => {
+    setShowEditModal(true);
   };
 
   const DotsDropdown = () => (
@@ -181,11 +195,21 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 <span className="text-[#FFFFFF80] text-[16px]">Location</span>
                 <span className="text-white">{userData.state || 'Unknown'}, {userData.country || 'Unknown'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">Last Login</span>
-                <span className="text-white">{userData.last_login || 'Never'}</span>
+                <span className="text-white">
+                  {userData.last_login 
+                    ? new Date(userData.last_login).toLocaleDateString() 
+                    : 'Never'
+                  }
+                </span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Account Creation
                 </span>
-                <span className="text-white">{userData.account_created_at || 'Unknown'}</span>
+                <span className="text-white">
+                  {userData.account_created_at 
+                    ? new Date(userData.account_created_at).toLocaleDateString() 
+                    : 'Unknown'
+                  }
+                </span>
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Username</span>
@@ -208,6 +232,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                       className="w-10 h-10 cursor-pointer"
                       src={images.edit}
                       alt=""
+                      onClick={handleEditUser}
                     />
                   </div>
                   <div>
@@ -272,10 +297,10 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                           />
                         </td>
                         <td className="py-3 px-4 text-gray-800">
-                          {activity.description}
+                          {activity?.description}
                         </td>
                         <td className="py-3 px-4 text-center text-gray-600">
-                          {activity.created_at}
+                          {new Date(activity.created_at).toLocaleDateString()}
                         </td>
                       </tr>
                     ))
@@ -295,6 +320,29 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
       {/* Add User Modal */}
       <AddUserModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      
+      {/* Edit User Modal */}
+      <EditUserModal 
+        isOpen={showEditModal} 
+        onClose={() => setShowEditModal(false)} 
+        userData={{
+          user_info: {
+            id: userData.id,
+            full_name: userData.full_name,
+            user_name: userData.user_name,
+            email: userData.email,
+            phone: userData.phone,
+            country: userData.country,
+            state: userData.state,
+            role: userData.role || "buyer",
+            profile_picture: userData.profile_picture,
+            created_at: userData.account_created_at,
+            updated_at: userData.account_created_at,
+          },
+          wallet_info: userData.wallet,
+          statistics: userData.statistics,
+        }}
+      />
     </>
   );
 };

@@ -1,13 +1,18 @@
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
+import { getAllUsers, getAllUsersStats } from "../../../utils/queries/users";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
 const AllUsers = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -15,6 +20,20 @@ const AllUsers = () => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Fetch all users data
+  const { data: allUsersData, isLoading: isLoadingUsers, error: usersError } = useQuery({
+    queryKey: ['allUsers', currentPage, debouncedSearch],
+    queryFn: () => getAllUsers(currentPage, debouncedSearch || undefined),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch statistics
+  const { data: statsData, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['allUsersStats'],
+    queryFn: getAllUsersStats,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 
   const tabs: Tab[] = ["All", "Buyers", "Sellers"];
 
@@ -49,63 +68,36 @@ const AllUsers = () => {
     <>
       <PageHeader title="All Users" />
       <div className="p-5">
-        <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.Users} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Users</span>
-              <span className="font-semibold text-2xl">1,500</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
+        {isLoadingStats ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
           </div>
-
-          {/* Card 2 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.Users} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Users</span>
-              <span className="font-semibold text-2xl">1,500</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
+        ) : statsData?.data ? (
+          <StatCardGrid columns={3}>
+            <StatCard
+              icon={images.Users}
+              title="Total Users"
+              value={statsData.data.statistics?.total_users || 0}
+              subtitle="All registered users"
+            />
+            <StatCard
+              icon={images.Users}
+              title="Buyer Users"
+              value={statsData.data.statistics?.buyer_users || 0}
+              subtitle="Registered buyers"
+            />
+            <StatCard
+              icon={images.Users}
+              title="Seller Users"
+              value={statsData.data.statistics?.seller_users || 0}
+              subtitle="Registered sellers"
+            />
+          </StatCardGrid>
+        ) : (
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading user statistics</p>
           </div>
-
-          {/* Card 3 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.Users} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Users</span>
-              <span className="font-semibold text-2xl">1,500</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex gap-2">
             <div>
@@ -157,6 +149,8 @@ const AllUsers = () => {
             onRowSelect={handleUserSelection}
             filterType={activeTab}
             searchTerm={debouncedSearch}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
           />
         </div>
       </div>

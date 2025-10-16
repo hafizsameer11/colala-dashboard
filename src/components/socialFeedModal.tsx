@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import images from "../constants/images";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminSocialFeedDetails } from "../utils/queries/users";
 
 interface Reply {
   id: string;
@@ -12,30 +14,28 @@ interface Reply {
 interface SocialFeedModelProps {
   isOpen: boolean;
   onClose: () => void;
+  postId?: number | null;
 }
 
 const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   isOpen,
   onClose,
+  postId,
 }) => {
   // State to track which reply inputs are open
   const [openReplies, setOpenReplies] = useState<Set<string>>(new Set());
   const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
 
-  // State to store actual replies for each comment
-  const [replies, setReplies] = useState<{ [commentId: string]: Reply[] }>({
-    comment1: [
-      {
-        id: "reply1",
-        text: "We do deliver nationwide.",
-        author: "Sasha Stores",
-        replyTo: "Adam Chris",
-        timestamp: "1 min",
-      },
-    ],
-    comment2: [],
-    comment3: [],
+  // Fetch post details
+  const { data: postDetails, isLoading, error } = useQuery({
+    queryKey: ['adminSocialFeedDetails', postId],
+    queryFn: () => getAdminSocialFeedDetails(postId!),
+    enabled: !!postId && isOpen,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // State to store actual replies for each comment
+  const [replies, setReplies] = useState<{ [commentId: string]: Reply[] }>({});
 
   if (!isOpen) return null;
 
@@ -127,51 +127,133 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
         </div>
         {/* Content */}
         <div className="pr-5 pl-5 mt-3">
-          <div className="flex flex-row justify-between">
-            <div className="flex gap-2">
-              <div>
-                <img className="w-20 h-20" src={images.sasha} alt="" />
-              </div>
-              <div className="flex flex-col gap-2 items-center justify-center">
-                <span className="text-[20px]">Sasha Stores</span>
-                <span className="text-[#00000080] text-[10px]">
-                  Lagos, Nigeria 20 min ago
-                </span>
-              </div>
+          {isLoading ? (
+            <div className="text-center py-10">
+              <div className="text-gray-500">Loading post details...</div>
             </div>
-            <div className="mt-5">
-              <button className="font-bold text-[#FF0000] text-lg cursor-pointer">
-                Delete Post
-              </button>
+          ) : error ? (
+            <div className="text-center py-10">
+              <div className="text-red-500">Error loading post details</div>
             </div>
-          </div>
-          <div className="mt-4">
-            <img src={images.iphone14} alt="" />
-          </div>
-          <div className="w-full bg-[#F0F0F0] rounded-lg p-3 mt-4">
-            Get this phone at a cheap price for a limited period of time, get
-            the best product with us
-          </div>
-          <div className="flex flex-row gap-3 mt-4">
-            <div className="flex items-center gap-1">
-              <div>
-                <img className="cursor-pointer" src={images.heart} alt="" />
+          ) : postDetails?.data ? (
+            <>
+              <div className="flex flex-row justify-between">
+                <div className="flex gap-2">
+                  <div>
+                    <img 
+                      className="w-20 h-20 rounded-full object-cover" 
+                      src={postDetails.data.user_info?.store_name ? 
+                        (postDetails.data.user_info.store_name === "Awesome store" ? images.sasha : images.sasha) : 
+                        images.sasha
+                      } 
+                      alt=""
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTQwIDMwQzQ0LjQxODMgMzAgNDggMzMuNTgxNyA0OCAzOEM0OCA0Mi40MTgzIDQ0LjQxODMgNDYgNDAgNDZTNDAgNDIuNDE4MyAzNiA0Mi40MTgzIDM2IDM4QzM2IDMzLjU4MTcgMzkuNTgxNyAzMCA0MCAzMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTQwIDUwQzQ0LjQxODMgNTAgNDggNDcuNDE4MyA0OCA0M0M0OCAzOC41ODE3IDQ0LjQxODMgMzUgNDAgMzVDMzUuNTgxNyAzNSAzMiAzOC41ODE3IDMyIDQzQzMyIDQ3LjQxODMgMzUuNTgxNyA1MCA0MCA1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 items-center justify-center">
+                    <span className="text-[20px]">{postDetails.data.user_info?.name || "Unknown User"}</span>
+                    <span className="text-[#00000080] text-[10px]">
+                      {postDetails.data.user_info?.location || "Unknown Location"} {postDetails.data.post_info?.created_at ? 
+                        new Date(postDetails.data.post_info.created_at).toLocaleDateString() : "Unknown time"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <button className="font-bold text-[#FF0000] text-lg cursor-pointer">
+                    Delete Post
+                  </button>
+                </div>
               </div>
-              <div>500</div>
-            </div>
-            <div className="flex items-center gap-1">
-              <div>
-                <img className="cursor-pointer" src={images.comment} alt="" />
+              
+              {/* Media */}
+              {postDetails.data.media && postDetails.data.media.length > 0 && (
+                <div className="mt-4">
+                  <img 
+                    className="w-full rounded-lg" 
+                    src={postDetails.data.media[0].url} 
+                    alt=""
+                    onError={(e) => {
+                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Post content */}
+              <div className="w-full bg-[#F0F0F0] rounded-lg p-3 mt-4">
+                {postDetails.data.post_info?.body || "No content available"}
               </div>
-              <div>26</div>
-            </div>
-            <div className="flex items-center gap-1">
-              <div>
-                <img className="cursor-pointer" src={images.share} alt="" />
+              
+              {/* Engagement stats */}
+              <div className="flex flex-row gap-3 mt-4">
+                <div className="flex items-center gap-1">
+                  <div>
+                    <img className="cursor-pointer" src={images.heart} alt="" />
+                  </div>
+                  <div>{postDetails.data.engagement?.likes_count || 0}</div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div>
+                    <img className="cursor-pointer" src={images.comment} alt="" />
+                  </div>
+                  <div>{postDetails.data.engagement?.comments_count || 0}</div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div>
+                    <img className="cursor-pointer" src={images.share} alt="" />
+                  </div>
+                  <div>{postDetails.data.engagement?.shares_count || 0}</div>
+                </div>
               </div>
-              <div>26</div>
+            </>
+          ) : (
+            <div className="text-center py-10">
+              <div className="text-gray-500">No post data available</div>
             </div>
-          </div>
+          )}
+          
+          {/* Comments Section */}
+          {postDetails?.data?.recent_comments && postDetails.data.recent_comments.length > 0 && (
+            <div className="flex flex-col mt-4 gap-4 mb-10">
+              {postDetails.data.recent_comments.map((comment: any, index: number) => (
+                <div key={comment.id || index} className="flex flex-row gap-3">
+                  <div>
+                    <img 
+                      className="w-15 h-15 rounded-full object-cover" 
+                      src={images.adam} 
+                      alt=""
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMzAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTMwIDI1QzMyLjc2MTQgMjUgMzUgMjcuMjM4NiAzNSAzMEMzNSAzMi43NjE0IDMyLjc2MTQgMzUgMzAgMzVDMjcuMjM4NiAzNSAyNSAzMi43NjE0IDI1IDMwQzI1IDI3LjIzODYgMjcuMjM4NiAyNSAzMCAyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTMwIDM1QzMyLjc2MTQgMzUgMzUgMzIuNzYxNCAzNSAzMEMzNSAyNy4yMzg2IDMyLjc2MTQgMjUgMzAgMjVDMjcuMjM4NiAyNSAyNSAyNy4yMzg2IDI1IDMwQzI1IDMyLjc2MTQgMjcuMjM4NiAzNSAzMCAzNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col w-full">
+                    <div className="flex flex-row gap-1">
+                      <span className="text-[#E53E3E] font-semibold text-md">
+                        {comment.user_name || "Unknown User"}
+                      </span>
+                      <span className="text-[#00000080]">{comment.formatted_date || "Unknown time"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[14px] font-semibold">
+                        {comment.body || comment.comment || "No comment text"}
+                      </span>
+                    </div>
+                    <div className="flex flex-row mt-3 justify-between items-center">
+                      <div className="flex gap-2">
+                        <span className="text-[#00000080] cursor-pointer">Reply</span>
+                        <span className="text-[#00000080] cursor-pointer">Like</span>
+                      </div>
+                      <div className="text-[#FF0000] font-bold cursor-pointer">Delete</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
           <div className="flex flex-col mt-4 gap-4 mb-10">
             {/* Comment 1 */}
             <div className="flex flex-row gap-3">

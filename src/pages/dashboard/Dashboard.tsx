@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import images from "../../constants/images";
+import StatCard from "../../components/StatCard";
+import StatCardGrid from "../../components/StatCardGrid";
 import BulkActionDropdown from "../../components/BulkActionDropdown";
 import OrdersTable from "./OrdersTable";
 import PageHeader from "../../components/PageHeader";
@@ -303,7 +305,7 @@ const Dashboard = () => {
         <div className="flex flex-row gap-6">
           
           {/* Buyer App Statistics */}
-          <div className="border border-[#989898] rounded-2xl">
+          <div className="border border-[#989898] rounded-2xl flex-1">
             <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
               <span>
                 <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
@@ -313,87 +315,45 @@ const Dashboard = () => {
 
             <div className="flex flex-col bg-white p-5 rounded-b-2xl gap-3">
               {/* First Row: Total Users & Total Orders */}
-              <div className="flex flex-row gap-3">
-                {/* Total Users Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#470434] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.Users} alt="" />
-                  </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Total Users</span>
-                    <span className="font-semibold text-2xl">
-                      {dashboardData?.data?.buyer_stats?.total_users?.value || 0}
-                    </span>
-                    <span className="text-[#00000080] text-[10px]">
-                      <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.total_users?.increase || 0}%
-                      </span> increase from last month
-                    </span>
-                  </div>
-                </div>
-
-                {/* Total Orders Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#042A47] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.orders} alt="" />
-                  </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Total Orders</span>
-                    <span className="font-semibold text-2xl">
-                      {dashboardData?.data?.buyer_stats?.total_orders?.value || 0}
-                    </span>
-                    <span className="text-[#00000080] text-[10px]">
-                      <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}%
-                      </span> increase from last month
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <StatCardGrid columns={2}>
+                <StatCard
+                  icon={images.Users}
+                  title="Total Users"
+                  value={dashboardData?.data?.buyer_stats?.total_users?.value || 0}
+                  subtitle={`+${dashboardData?.data?.buyer_stats?.total_users?.increase || 0}% increase from last month`}
+                  iconBgColor="#470434"
+                />
+                <StatCard
+                  icon={images.orders}
+                  title="Total Orders"
+                  value={dashboardData?.data?.buyer_stats?.total_orders?.value || 0}
+                  subtitle={`+${dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}% increase from last month`}
+                  iconBgColor="#042A47"
+                />
+              </StatCardGrid>
 
               {/* Second Row: Completed Orders & Total Transactions */}
-              <div className="flex flex-row gap-3">
-                {/* Completed Orders Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#471204] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.orders} alt="" />
-                  </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Completed Orders</span>
-                    <span className="font-semibold text-2xl">
-                      {dashboardData?.data?.buyer_stats?.completed_orders?.value || 0}
-                    </span>
-                    <span className="text-[#00000080] text-[10px]">
-                      <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0}%
-                      </span> increase from last month
-                    </span>
-                  </div>
-                </div>
-
-                {/* Total Transactions Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#044713] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.money} alt="" />
-                  </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Total Transactions</span>
-                    <span className="font-semibold text-2xl">
-                      {dashboardData?.data?.buyer_stats?.total_transactions?.value || 0}
-                    </span>
-                    <span className="text-[#00000080] text-[10px]">
-                      <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}%
-                      </span> increase from last month
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <StatCardGrid columns={2}>
+                <StatCard
+                  icon={images.orders}
+                  title="Completed Orders"
+                  value={dashboardData?.data?.buyer_stats?.completed_orders?.value || 0}
+                  subtitle={`+${dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0}% increase from last month`}
+                  iconBgColor="#471204"
+                />
+                <StatCard
+                  icon={images.money}
+                  title="Total Transactions"
+                  value={dashboardData?.data?.buyer_stats?.total_transactions?.value || 0}
+                  subtitle={`+${dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}% increase from last month`}
+                  iconBgColor="#044713"
+                />
+              </StatCardGrid>
             </div>
           </div>
 
           {/* Seller App Statistics */}
-          <div className="border border-[#989898] rounded-2xl">
+          <div className="border border-[#989898] rounded-2xl flex-1">
             <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
               <span>
                 <img className="w-5 h-5" src={images.analyticsIcon} alt="" />

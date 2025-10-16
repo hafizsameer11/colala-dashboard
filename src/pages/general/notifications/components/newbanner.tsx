@@ -6,6 +6,7 @@ interface NewBannerProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: BannerFormData) => void;
+  isLoading?: boolean;
 }
 
 interface BannerFormData {
@@ -14,7 +15,7 @@ interface BannerFormData {
   link: string;
 }
 
-const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit }) => {
+const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoading = false }) => {
   const [formData, setFormData] = useState<BannerFormData>({
     image: null,
     audience: "",
@@ -271,9 +272,16 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit }) => {
             <button
               type="submit"
               className="w-full py-4 mt-2 bg-[#E53E3E] text-white rounded-xl hover:bg-[#d32f2f] transition-colors font-medium cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={!formData.image || !formData.audience || !formData.link}
+              disabled={!formData.image || !formData.audience || !formData.link || isLoading}
             >
-              Send
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Sending...
+                </div>
+              ) : (
+                'Send'
+              )}
             </button>
           </form>
         </div>

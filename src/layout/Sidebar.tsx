@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
         </ul>
 
         <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
-          <h1 className="text-[16px] text-white">BUYERS MGT</h1>
+          <h1 className="text-[14px] text-white">BUYERS MGT</h1>
           <div className="bg-white border border-white w-[64.5%] ml-0.5"></div>
         </div>
         <ul className="space-y-2">
@@ -109,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
           ))}
         </ul>
         <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
-          <h1 className="text-[16px] text-white">SELLERS MGT</h1>
+          <h1 className="text-[14px] text-white">SELLERS MGT</h1>
           <div className="bg-white border border-white w-[63.5%] ml-0.5"></div>
         </div>
         <ul className="space-y-2">
@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
           ))}
         </ul>
         <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
-          <h1 className="text-[16px] text-white">GENERAL</h1>
+          <h1 className="text-[14px] text-white">GENERAL</h1>
           <div className="bg-white border border-white w-[75.5%] ml-0.5"></div>
         </div>
 
@@ -153,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
       <div className=" mx-4 mt-2 flex items-center justify-center">
         <button
           onClick={handleLogout}
-          className="flex items-center p-2 cursor-pointer gap-2 text-[#FF0000] text-[20px] rounded-lg w-full  transition-colors"
+          className="flex items-center p-2 cursor-pointer gap-2 text-[#FF0000] text-[16px] rounded-lg w-full  transition-colors"
         >
           <img src={images.logout} alt="logout" className="w-6 h-6" />
           {!menuOpen && <span>Logout</span>}

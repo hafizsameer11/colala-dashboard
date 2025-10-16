@@ -1,7 +1,11 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import SocialFeedModel from "../../../components/socialFeedModal";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminSocialFeed, getAdminSocialFeedStatistics } from "../../../utils/queries/users";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -23,6 +27,10 @@ type Post = {
   likes: number;
   comments: number;
   shares: number;
+  media?: any[];
+  recentComments?: any[];
+  store?: any;
+  user?: any;
 };
 
 const SocialFeed = () => {
@@ -30,54 +38,52 @@ const SocialFeed = () => {
   const [search, setSearch] = useState("");
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const storeDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const debouncedSearch = useDebouncedValue(search, 450);
 
-  const handleShowDetails = () => setShowModal(true);
+  // Fetch social feed data
+  const { data: socialFeedData, isLoading: isLoadingPosts, error: postsError } = useQuery({
+    queryKey: ['adminSocialFeed', currentPage],
+    queryFn: () => getAdminSocialFeed(currentPage),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  // Seed posts
-  const posts = useMemo<Post[]>(
-    () => [
-      {
-        id: "1",
-        storeName: "Sasha Stores",
-        location: "Lagos, Nigeria",
-        timeAgo: "20 min ago",
-        avatar: images.sasha,
-        image: images.apple,
-        text: "Get this phone at a cheap price for a limited period of time, get the best product with us",
-        likes: 500,
-        comments: 26,
-        shares: 26,
-      },
-      {
-        id: "2",
-        storeName: "Alex Stores",
-        location: "Abuja, Nigeria",
-        timeAgo: "1 hr ago",
-        avatar: images.sasha,
-        image: images.apple,
-        text: "Same-day deliveries across the city. Limited offer, book now!",
-        likes: 128,
-        comments: 12,
-        shares: 9,
-      },
-      {
-        id: "3",
-        storeName: "Don Stores",
-        location: "Port Harcourt, Nigeria",
-        timeAgo: "Yesterday",
-        avatar: images.sasha,
-        image: images.apple,
-        text: "Weekend mega sale — up to 40% off on selected items.",
-        likes: 980,
-        comments: 73,
-        shares: 44,
-      },
-    ],
-    []
-  );
+  // Fetch statistics
+  const { data: statisticsData, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['adminSocialFeedStatistics'],
+    queryFn: getAdminSocialFeedStatistics,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const handleShowDetails = (postId: number) => {
+    setSelectedPostId(postId);
+    setShowModal(true);
+  };
+
+  // Transform API data to component format
+  const posts = useMemo(() => {
+    if (!socialFeedData?.data?.posts) return [];
+    
+    return socialFeedData.data.posts.map((post: any) => ({
+      id: post.id.toString(),
+      storeName: post.store?.store_name || post.user?.full_name || "Unknown Store",
+      location: post.store?.store_location || "Unknown Location",
+      timeAgo: post.time_ago || post.formatted_date || "Unknown time",
+      avatar: post.store?.profile_image || post.user?.profile_image || images.sasha,
+      image: post.media?.[0]?.url || null,
+      text: post.body || "",
+      likes: post.likes_count || 0,
+      comments: post.comments_count || 0,
+      shares: post.shares_count || 0,
+      media: post.media || [],
+      recentComments: post.recent_comments || [],
+      store: post.store,
+      user: post.user,
+    }));
+  }, [socialFeedData]);
 
   // Unique store options for dropdown
   const storeOptions = useMemo(
@@ -114,12 +120,51 @@ const SocialFeed = () => {
     });
   }, [debouncedSearch, posts, selectedStore]);
 
+  // Get all comments from posts for the comments section
+  const allComments = useMemo(() => {
+    const comments: any[] = [];
+    posts.forEach(post => {
+      if (post.recentComments && post.recentComments.length > 0) {
+        post.recentComments.forEach((comment: any) => {
+          comments.push({
+            ...comment,
+            storeName: post.storeName,
+            postId: post.id,
+          });
+        });
+      }
+    });
+    return comments.slice(0, 10); // Show only first 10 comments
+  }, [posts]);
+
+  // Statistics data
+  const statistics = statisticsData?.data?.current_stats || {
+    total_posts: 0,
+    total_likes: 0,
+    total_comments: 0,
+    total_shares: 0,
+  };
+
+  // Pagination data
+  const pagination = socialFeedData?.data?.pagination || {
+    current_page: 1,
+    last_page: 1,
+    per_page: 20,
+    total: 0,
+  };
+
+  const handleLoadMore = () => {
+    if (currentPage < pagination.last_page) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
   return (
     <>
       <div>
         <PageHeader title="Social Feed" />
         <div className="p-5 flex flex-row gap-5">
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1">
             <div className="flex flex-row justify-between items-center">
               <div className="flex flex-row gap-1.5">
                 <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
@@ -241,7 +286,11 @@ const SocialFeed = () => {
                 Social Feed
               </div>
               <div className="flex flex-col bg-white rounded-b-2xl p-5 gap-5">
-                {filteredPosts.length === 0 ? (
+                {isLoadingPosts ? (
+                  <div className="text-center text-gray-500 py-10">
+                    Loading posts...
+                  </div>
+                ) : filteredPosts.length === 0 ? (
                   <div className="text-center text-gray-500 py-10">
                     No posts match your search.
                   </div>
@@ -253,9 +302,12 @@ const SocialFeed = () => {
                         <div className="flex gap-2">
                           <div>
                             <img
-                              className="w-15 h-15"
+                              className="w-15 h-15 rounded-full object-cover"
                               src={post.avatar}
                               alt=""
+                              onError={(e) => {
+                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMzAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTMwIDI1QzMyLjc2MTQgMjUgMzUgMjcuMjM4NiAzNSAzMEMzNSAzMi43NjE0IDMyLjc2MTQgMzUgMzAgMzVDMjcuMjM4NiAzNSAyNSAzMi43NjE0IDI1IDMwQzI1IDI3LjIzODYgMjcuMjM4NiAyNSAzMCAyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTMwIDM1QzMyLjc2MTQgMzUgMzUgMzIuNzYxNCAzNSAzMEMzNSAyNy4yMzg2IDMyLjc2MTQgMjUgMzAgMjVDMjcuMjM4NiAyNSAyNSAyNy4yMzg2IDI1IDMwQzI1IDMyLjc2MTQgMjcuMjM4NiAzNSAzMCAzNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                              }}
                             />
                           </div>
                           <div className="flex flex-col justify-center">
@@ -270,17 +322,26 @@ const SocialFeed = () => {
                         <div className="flex items-center">
                           <button
                             className="bg-[#E53E3E] px-4 py-3 cursor-pointer rounded-xl text-white font-medium "
-                            onClick={handleShowDetails}
+                            onClick={() => handleShowDetails(parseInt(post.id))}
                           >
                             View Post
                           </button>
                         </div>
                       </div>
 
-                      {/* Image */}
-                      <div>
-                        <img className="w-full" src={post.image} alt="" />
-                      </div>
+                      {/* Image - Only show if image exists */}
+                      {post.image && (
+                        <div>
+                          <img 
+                            className="w-full rounded-lg" 
+                            src={post.image} 
+                            alt=""
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                            }}
+                          />
+                        </div>
+                      )}
 
                       {/* Caption */}
                       <div className="bg-[#F0F0F0] rounded-xl p-5 text-xl font-normal">
@@ -321,51 +382,22 @@ const SocialFeed = () => {
                   ))
                 )}
 
-                {/* Your extra static sections below remain unchanged (if you still want them) */}
-                {/* <div>
-                  <img className="w-full" src={images.apple} alt="" />
-                </div>
-                <div className="bg-[#F0F0F0] rounded-xl p-5 text-xl font-normal">
-                  Get this phone at a cheap price for a limited period of time,
-                  get the best pro duct with us
-                </div>
-                <div className="flex flex-row gap-3">
-                  <div className="flex items-center gap-1">
-                    <div>
-                      <img
-                        className="cursor-pointer"
-                        src={images.heart}
-                        alt=""
-                      />
-                    </div>
-                    <div>500</div>
+                {/* Load More Button */}
+                {currentPage < pagination.last_page && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={handleLoadMore}
+                      className="bg-[#E53E3E] text-white px-8 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
+                      disabled={isLoadingPosts}
+                    >
+                      {isLoadingPosts ? "Loading..." : "Load More Posts"}
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <div>
-                      <img
-                        className="cursor-pointer"
-                        src={images.comment}
-                        alt=""
-                      />
-                    </div>
-                    <div>26</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div>
-                      <img
-                        className="cursor-pointer"
-                        src={images.share}
-                        alt=""
-                      />
-                    </div>
-                    <div>26</div>
-                  </div>
-                </div> */}
-                {/* ... (rest of your static blocks) */}
+                )}
               </div>
             </div>
           </div>
-          <div className="flex flex-col w-170 gap-5">
+          <div className="flex flex-col flex-1 gap-5">
             <div
               className="flex flex-col h-fit rounded-2xl border border-[#989898]"
               style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -374,58 +406,28 @@ const SocialFeed = () => {
                 Stats
               </div>
               <div className="flex bg-white p-5 flex-col gap-5 rounded-b-2xl">
-                <div className="flex flex-row gap-5">
-                  <div
-                    className="flex flex-row rounded-2xl"
-                    style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="bg-[#E53E3E] flex justify-center items-center p-5 rounded-l-2xl">
-                      <img src={images.feed1} alt="" />
-                    </div>
-                    <div className="rounded-r-2xl bg-[#FFF1F1] flex flex-col p-4 pr-8 justify-between">
-                      <div className="text-xl font-semibold">Total Posts</div>
-                      <div className="text-xl font-semibold">200</div>
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row rounded-2xl"
-                    style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="bg-[#E53E3E] flex justify-center items-center p-5 rounded-l-2xl">
-                      <img src={images.feed1} alt="" />
-                    </div>
-                    <div className="rounded-r-2xl bg-[#FFF1F1] flex flex-col p-4 pr-8 justify-between">
-                      <div className="text-xl font-semibold">Total Posts</div>
-                      <div className="text-xl font-semibold">200</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-5">
-                  <div
-                    className="flex flex-row rounded-2xl"
-                    style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="bg-[#E53E3E] flex justify-center items-center p-5 rounded-l-2xl">
-                      <img src={images.feed1} alt="" />
-                    </div>
-                    <div className="rounded-r-2xl bg-[#FFF1F1] flex flex-col p-4 pr-8 justify-between">
-                      <div className="text-xl font-semibold">Total Posts</div>
-                      <div className="text-xl font-semibold">200</div>
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row rounded-2xl"
-                    style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="bg-[#E53E3E] flex justify-center items-center p-5 rounded-l-2xl">
-                      <img src={images.feed1} alt="" />
-                    </div>
-                    <div className="rounded-r-2xl bg-[#FFF1F1] flex flex-col p-4 pr-8 justify-between">
-                      <div className="text-xl font-semibold">Total Posts</div>
-                      <div className="text-xl font-semibold">200</div>
-                    </div>
-                  </div>
-                </div>
+                <StatCardGrid columns={2}>
+                  <StatCard
+                    icon={images.feed1}
+                    title="Total Posts"
+                    value={isLoadingStats ? "Loading..." : statistics.total_posts}
+                  />
+                  <StatCard
+                    icon={images.heart}
+                    title="Total Likes"
+                    value={isLoadingStats ? "Loading..." : statistics.total_likes}
+                  />
+                  <StatCard
+                    icon={images.comment}
+                    title="Total Comments"
+                    value={isLoadingStats ? "Loading..." : statistics.total_comments}
+                  />
+                  <StatCard
+                    icon={images.share}
+                    title="Total Shares"
+                    value={isLoadingStats ? "Loading..." : statistics.total_shares}
+                  />
+                </StatCardGrid>
               </div>
             </div>
             <div
@@ -436,240 +438,42 @@ const SocialFeed = () => {
                 Comments
               </div>
               <div className="bg-white p-5 rounded-b-2xl flex flex-col gap-3 ">
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
+                {allComments.length > 0 ? (
+                  allComments.map((comment, index) => (
+                    <div key={index} className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2">
+                      <div>
+                        <img 
+                          className="w-12 h-12 rounded-full object-cover" 
+                          src={images.sasha} 
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDIwQzI2LjIwOTEgMjAgMjggMTguMjA5MSAyOCAxNkMyOCAxMy43OTA5IDI2LjIwOTEgMTIgMjQgMTJDMjEuNzkwOSAxMiAyMCAxMy43OTA5IDIwIDE2QzIwIDE4LjIwOTEgMjEuNzkwOSAyMCAyNCAyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDI4QzI2LjIwOTEgMjggMjggMjYuMjA5MSAyOCAyNEMyOCAyMS43OTA5IDI2LjIwOTEgMjAgMjQgMjBDMjEuNzkwOSAyMCAyMCAyMS43OTA5IDIwIDI0QzIwIDI2LjIwOTEgMjEuNzkwOSAyOCAyNCAyOFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col justify-center flex-1">
+                        <div className="font-medium text-md">
+                          {comment.body || comment.comment || "No comment text"}{" "}
+                          <span>
+                            <button 
+                              className="text-[#E53E3E] font-bold cursor-pointer"
+                              onClick={() => handleShowDetails(comment.postId)}
+                            >
+                              View Comment
+                            </button>
+                          </span>
+                        </div>
+                        <div className="text-[#000000B2] text-[12px]">
+                          {comment.user_name || comment.storeName || "Unknown User"}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    No comments available
                   </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2 ">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium text-md ">
-                      I like what i am seeing{" "}
-                      <span>
-                        <button className="text-[#E53E3E] font-bold cursor-pointer">
-                          View Comment
-                        </button>
-                      </span>
-                    </div>
-                    <div className="text-[#000000B2] text-[12px]">
-                      Sasha Stores
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -678,6 +482,7 @@ const SocialFeed = () => {
         <SocialFeedModel
           isOpen={showModal}
           onClose={() => setShowModal(false)}
+          postId={selectedPostId}
         />
       </div>
     </>

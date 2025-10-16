@@ -21,6 +21,7 @@ import Subscription from "./pages/sellers_Mgt/subscription/subscription";
 import Promotions from "./pages/sellers_Mgt/promotions/promotions";
 import SocialFeed from "./pages/sellers_Mgt/socialFeed/socialFeed";
 import AllUsers from "./pages/general/allUsers/allUsers";
+import UserDetailsPage from "./pages/general/allUsers/userDetailsPage";
 import Balance from "./pages/general/balance/balance";
 import Chats from "./pages/general/chats/chats";
 import Analytics from "./pages/general/analytics/analytics";
@@ -75,6 +76,7 @@ function App() {
     { path: "promotions", element: <Promotions /> },
     { path: "social-feed", element: <SocialFeed /> },
     { path: "all-users", element: <AllUsers /> },
+    { path: "all-users/:userId", element: <UserDetailsPage /> },
     { path: "balance", element: <Balance /> },
     { path: "chats", element: <Chats /> },
     { path: "analytics", element: <Analytics /> },

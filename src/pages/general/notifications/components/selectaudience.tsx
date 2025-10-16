@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAudienceData } from "../../../../utils/queries/notifications";
 import images from "../../../../constants/images";
 
 interface SelectAudienceProps {
@@ -10,7 +12,10 @@ interface SelectAudienceProps {
 interface User {
   id: string;
   name: string;
-  avatar: string;
+  email: string;
+  user_code: string;
+  profile_picture?: string;
+  store_name?: string; // For sellers
 }
 
 const SelectAudience: React.FC<SelectAudienceProps> = ({
@@ -19,66 +24,51 @@ const SelectAudience: React.FC<SelectAudienceProps> = ({
   onApply,
 }) => {
   const [activeTab, setActiveTab] = useState<"Buyers" | "Sellers">("Buyers");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>(["6", "7"]); // Pre-select some sellers to match image
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Sample users data
-  const buyers: User[] = [
-    {
-      id: "1",
-      name: "Adewale Faizah",
-      avatar: "/public/assets/layout/adam.png",
-    },
-    {
-      id: "2",
-      name: "Chidinma Okoro",
-      avatar: "/public/assets/layout/bella.png",
-    },
-    {
-      id: "3",
-      name: "Babatunde Adebayo",
-      avatar: "/public/assets/layout/carter.png",
-    },
-    {
-      id: "4",
-      name: "Zainab Aliyu",
-      avatar: "/public/assets/layout/chris.png",
-    },
-    {
-      id: "5",
-      name: "Efemena Ovie",
-      avatar: "/public/assets/layout/daisy.png",
-    },
-  ];
+  // Fetch audience data from API
+  const { data: audienceData, isLoading, error } = useQuery({
+    queryKey: ['audienceData', searchQuery],
+    queryFn: () => getAudienceData(searchQuery, 100),
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const sellers: User[] = [
-    { id: "6", name: "Tunde Bakare", avatar: "/public/assets/layout/emma.png" },
-    {
-      id: "7",
-      name: "Kemi Adebayo",
-      avatar: "/public/assets/layout/ethens.png",
-    },
-    {
-      id: "8",
-      name: "Segun Ogundimu",
-      avatar: "/public/assets/layout/jennifer.png",
-    },
-    {
-      id: "9",
-      name: "Funmi Adeleke",
-      avatar: "/public/assets/layout/sasha.png",
-    },
-    { id: "10", name: "Ibrahim Musa", avatar: "/public/assets/layout/tom.png" },
-  ];
+  // Transform API data to component format
+  const buyers: User[] = useMemo(() => {
+    if (!audienceData?.data?.buyers) return [];
+    return audienceData.data.buyers.map((buyer: any) => ({
+      id: buyer.id.toString(),
+      name: buyer.name,
+      email: buyer.email,
+      user_code: buyer.user_code,
+      profile_picture: buyer.profile_picture,
+    }));
+  }, [audienceData]);
+
+  const sellers: User[] = useMemo(() => {
+    if (!audienceData?.data?.sellers) return [];
+    return audienceData.data.sellers.map((seller: any) => ({
+      id: seller.id.toString(),
+      name: seller.name,
+      email: seller.email,
+      user_code: seller.user_code,
+      profile_picture: seller.profile_picture,
+      store_name: seller.store_name,
+    }));
+  }, [audienceData]);
 
   const getCurrentUsers = () => (activeTab === "Buyers" ? buyers : sellers);
 
   const filteredUsers = useMemo(
     () =>
       getCurrentUsers().filter((user) =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase())
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.user_code.toLowerCase().includes(searchQuery.toLowerCase())
       ),
-    [activeTab, searchQuery]
+    [activeTab, searchQuery, buyers, sellers]
   );
 
   const handleUserToggle = (userId: string) => {
@@ -192,6 +182,32 @@ const SelectAudience: React.FC<SelectAudienceProps> = ({
 
         {/* Content */}
         <div className="p-4">
+          {/* Statistics */}
+          {audienceData?.data?.statistics && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-[#E53E3E]">
+                    {audienceData.data.statistics.total_buyers || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Total Buyers</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-[#E53E3E]">
+                    {audienceData.data.statistics.total_sellers || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Total Sellers</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-[#E53E3E]">
+                    {audienceData.data.statistics.total_users || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Total Users</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Audience Type Selection */}
           <div className="mb-4 space-y-3">
             {/* Buyers Row */}
@@ -365,7 +381,22 @@ const SelectAudience: React.FC<SelectAudienceProps> = ({
 
           {/* User List */}
           <div className="space-y-3 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {filteredUsers.map((user) => (
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-500 py-4">
+                <p>Error loading audience data</p>
+                <p className="text-sm mt-2">{error.message}</p>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center text-gray-500 py-4">
+                <p>No {activeTab.toLowerCase()} found</p>
+                {searchQuery && <p className="text-sm mt-2">Try adjusting your search</p>}
+              </div>
+            ) : (
+              filteredUsers.map((user) => (
               <div
                 key={user.id}
                 className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -374,7 +405,7 @@ const SelectAudience: React.FC<SelectAudienceProps> = ({
                 <div className="flex items-center">
                   <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
                     <img
-                      src={user.avatar}
+                      src={user.profile_picture || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iNCIgc3Ryb2tlPSIjOUNBM0FGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4KPC9zdmc+"}
                       alt={user.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -384,9 +415,15 @@ const SelectAudience: React.FC<SelectAudienceProps> = ({
                       }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    {user.name}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900">
+                      {user.name}
+                    </span>
+                    <span className="text-xs text-gray-500">{user.email}</span>
+                    {user.store_name && (
+                      <span className="text-xs text-blue-600">{user.store_name}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -400,7 +437,8 @@ const SelectAudience: React.FC<SelectAudienceProps> = ({
                   />
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Send Button */}

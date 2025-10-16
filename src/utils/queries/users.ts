@@ -1039,3 +1039,109 @@ export const updateStoreLevel = async (storeId: number | string, level: number, 
     throw error;
   }
 };
+
+/**
+ * Get admin social feed posts
+ */
+export const getAdminSocialFeed = async (page: number = 1) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(`${API_ENDPOINTS.ADMIN_SOCIAL_FEED.List}?page=${page}`, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Admin social feed API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get admin social feed post details
+ */
+export const getAdminSocialFeedDetails = async (postId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SOCIAL_FEED.Details(postId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Admin social feed details API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get admin social feed statistics
+ */
+export const getAdminSocialFeedStatistics = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SOCIAL_FEED.Statistics, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Admin social feed statistics API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all users list with pagination
+ */
+export const getAllUsers = async (page: number = 1, search?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = `${API_ENDPOINTS.ALL_USERS.List}?page=${page}`;
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('All users API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all users statistics
+ */
+export const getAllUsersStats = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Stats, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('All users stats API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user details by ID
+ */
+export const getUserDetails = async (userId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Details(userId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('User details API call error:', error);
+    throw error;
+  }
+};

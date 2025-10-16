@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import NewNotification from "./newnotification";
 import NewBanner from "./newbanner";
 import BulkActionDropdown from "../../../../components/BulkActionDropdown";
 import images from "../../../../constants/images";
 import useDebouncedValue from "../../../../hooks/useDebouncedValue";
+import { createNotification } from "../../../../utils/mutations/notifications";
+import { createBanner } from "../../../../utils/mutations/banners";
 
 interface NotificationsFiltersProps {
   onBulkActionSelect?: (action: string) => void;
@@ -25,6 +28,30 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
   const [search, setSearch] = useState(""); // <- NEW
   const debounced = useDebouncedValue(search, 450); // <- debounce delay
 
+  const queryClient = useQueryClient();
+
+  const createNotificationMutation = useMutation({
+    mutationFn: createNotification,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      setIsNewNotificationModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error creating notification:', error);
+    },
+  });
+
+  const createBannerMutation = useMutation({
+    mutationFn: createBanner,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['banners'] });
+      setIsNewBannerModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error creating banner:', error);
+    },
+  });
+
   useEffect(() => {
     onSearchChange?.(debounced.trim());
   }, [debounced, onSearchChange]);
@@ -35,6 +62,59 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
   const handleTabChange = (tab: string) => {
     if (!externalActiveTab) setInternalActiveTab(tab);
     onTabChange?.(tab);
+  };
+
+  const handleNewNotificationSubmit = (data: any) => {
+    const formData = new FormData();
+    formData.append('title', data.subject);
+    formData.append('message', data.message);
+    formData.append('link', data.link);
+    
+    // Parse audience data - it comes as comma-separated string from the modal
+    const audienceUserIds = data.audience ? data.audience.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id)) : [];
+    
+    if (audienceUserIds.length > 0) {
+      formData.append('audience_type', 'specific');
+      // Append each user ID separately for FormData
+      audienceUserIds.forEach((userId: number) => {
+        formData.append('target_user_ids[]', userId.toString());
+      });
+    } else {
+      formData.append('audience_type', 'all');
+    }
+    
+    if (data.attachment) {
+      formData.append('attachment', data.attachment);
+    }
+    
+    createNotificationMutation.mutate(formData);
+  };
+
+  const handleNewBannerSubmit = (data: any) => {
+    const formData = new FormData();
+    formData.append('title', data.title || 'Banner');
+    formData.append('link', data.link);
+    
+    // Parse audience data - it comes as comma-separated string from the modal
+    const audienceUserIds = data.audience ? data.audience.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id)) : [];
+    
+    if (audienceUserIds.length > 0) {
+      formData.append('audience_type', 'specific');
+      // Append each user ID separately for FormData
+      audienceUserIds.forEach((userId: number) => {
+        formData.append('target_user_ids[]', userId.toString());
+      });
+    } else {
+      formData.append('audience_type', 'all');
+    }
+    
+    formData.append('position', 'top'); // Default position
+    
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+    
+    createBannerMutation.mutate(formData);
   };
 
   const TabButtons = () => (
@@ -125,13 +205,15 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
       <NewNotification
         isOpen={isNewNotificationModalOpen}
         onClose={() => setIsNewNotificationModalOpen(false)}
-        onSubmit={(data) => console.log("New notification data:", data)}
+        onSubmit={handleNewNotificationSubmit}
+        isLoading={createNotificationMutation.isPending}
       />
 
       <NewBanner
         isOpen={isNewBannerModalOpen}
         onClose={() => setIsNewBannerModalOpen(false)}
-        onSubmit={(data) => console.log("New banner data:", data)}
+        onSubmit={handleNewBannerSubmit}
+        isLoading={createBannerMutation.isPending}
       />
     </>
   );

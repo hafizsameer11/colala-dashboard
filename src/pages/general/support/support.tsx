@@ -4,6 +4,10 @@ import SupportTable from "./components/supporttable";
 import { useEffect, useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { FilterDropdown } from "./components/FilterDropdown";
+import { useQuery } from "@tanstack/react-query";
+import { getSupportTickets } from "../../../utils/queries/support";
+import StatCard from "../../../components/StatCard";
+import StatCardGrid from "../../../components/StatCardGrid";
 
 type Tab = "All" | "Pending" | "Resolved";
 type IssueType =
@@ -15,6 +19,7 @@ type IssueType =
 
 const AllSupport = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Issue type
   const [issueType, setIssueType] = useState<IssueType>("All Types");
@@ -33,6 +38,16 @@ const AllSupport = () => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Fetch support tickets data
+  const { data: ticketsData, isLoading: isLoadingTickets, error: ticketsError } = useQuery({
+    queryKey: ['supportTickets', currentPage, debouncedSearch, activeTab],
+    queryFn: () => getSupportTickets(currentPage, debouncedSearch || undefined, activeTab.toLowerCase() === 'all' ? undefined : activeTab.toLowerCase()),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use statistics from the main tickets API response
+  const statsData = ticketsData;
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -61,63 +76,39 @@ const AllSupport = () => {
     <>
       <PageHeader title="Support" />
       <div className="p-5">
-        <div className="flex flex-row justify-between items-center">
-          {/* Card 1 */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.support1} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Chats</span>
-              <span className="font-semibold text-2xl">10</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
+        {isLoadingTickets ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
           </div>
-
-          {/* Card 2 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.support1} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Pending Issues</span>
-              <span className="font-semibold text-2xl">2</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
+        ) : statsData?.data ? (
+          <StatCardGrid columns={3}>
+            <StatCard
+              icon={images.support1}
+              title="Total Tickets"
+              value={statsData.data.statistics?.total_tickets || 0}
+              subtitle="All support tickets"
+              iconBgColor="#E53E3E"
+            />
+            <StatCard
+              icon={images.support1}
+              title="Pending Tickets"
+              value={statsData.data.statistics?.pending_tickets || 0}
+              subtitle="Awaiting response"
+              iconBgColor="#E53E3E"
+            />
+            <StatCard
+              icon={images.support1}
+              title="Resolved Tickets"
+              value={statsData.data.statistics?.resolved_tickets || 0}
+              subtitle="Successfully resolved"
+              iconBgColor="#E53E3E"
+            />
+          </StatCardGrid>
+        ) : (
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading support statistics</p>
           </div>
-
-          {/* Card 3 */}
-
-          <div
-            className="flex flex-row rounded-2xl w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.support1} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Resolved Issues</span>
-              <span className="font-semibold text-2xl">0</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
         <div className="mt-5 flex flex-row justify-between">
           <div className="flex flex-row items-center gap-2">
             <div>
@@ -184,6 +175,11 @@ const AllSupport = () => {
           filterStatus={activeTab}
           issueType={issueType}
           searchTerm={debouncedSearch}
+          ticketsData={ticketsData}
+          isLoading={isLoadingTickets}
+          error={ticketsError}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
           onRowSelect={(selectedIds) =>
             console.log("Selected support IDs:", selectedIds)
           }

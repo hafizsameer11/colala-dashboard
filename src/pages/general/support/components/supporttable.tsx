@@ -22,6 +22,11 @@ interface SupportTableProps {
     | "Delivery"
     | "Account";
   searchTerm?: string; // debounced
+  ticketsData?: any;
+  isLoading?: boolean;
+  error?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const SupportTable: React.FC<SupportTableProps> = ({
@@ -30,77 +35,31 @@ const SupportTable: React.FC<SupportTableProps> = ({
   filterStatus = "All",
   issueType = "All Types",
   searchTerm = "",
+  ticketsData,
+  isLoading = false,
+  error,
+  currentPage = 1,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedSupport, setSelectedSupport] = useState<Support | null>(null);
 
-  const supports: Support[] = [
-    {
-      id: "1",
-      storeName: "Pet Paradise",
-      issueType: "Order Dispute",
-      lastMessage: "What are the ingredients in your gr...",
-      date: "20-07-2025/07:58PM",
-      status: "Pending",
-      other: "View Chat",
-    },
-    {
-      id: "2",
-      storeName: "Pet Paradise",
-      issueType: "Payment",
-      lastMessage: "Card failed — need help updating...",
-      date: "20-07-2025/07:55PM",
-      status: "Pending",
-      other: "View Chat",
-    },
-    {
-      id: "3",
-      storeName: "Pet Paradise",
-      issueType: "Delivery",
-      lastMessage: "Change delivery address to...",
-      date: "20-07-2025/07:58PM",
-      status: "Resolved",
-      other: "View Chat",
-    },
-    {
-      id: "4",
-      storeName: "Pet Paradise",
-      issueType: "Order Dispute",
-      lastMessage: "Still waiting for a refund...",
-      date: "20-07-2025/07:58PM",
-      status: "Pending",
-      other: "View Chat",
-    },
-    {
-      id: "5",
-      storeName: "Pet Paradise",
-      issueType: "Account",
-      lastMessage: "Can't log in to my account...",
-      date: "20-07-2025/07:58PM",
-      status: "Pending",
-      other: "View Chat",
-    },
-    {
-      id: "6",
-      storeName: "Pet Paradise",
-      issueType: "Payment",
-      lastMessage: "Payment reversed, please verify...",
-      date: "20-07-2025/07:58PM",
-      status: "Pending",
-      other: "View Chat",
-    },
-    {
-      id: "7",
-      storeName: "Pet Paradise",
-      issueType: "Order Dispute",
-      lastMessage: "Item received is different...",
-      date: "20-07-2025/07:58PM",
-      status: "Pending",
-      other: "View Chat",
-    },
-  ];
+  // Transform API data to component format
+  const supports: Support[] = useMemo(() => {
+    if (!ticketsData?.data?.tickets) return [];
+    
+    return ticketsData.data.tickets.map((ticket: any) => ({
+      id: ticket.id.toString(),
+      storeName: ticket.user_name || "Unknown User",
+      issueType: ticket.category || "General",
+      lastMessage: ticket.description || "No description",
+      date: ticket.formatted_date || ticket.created_at,
+      status: ticket.status === "open" ? "Pending" : "Resolved",
+      other: "View Ticket",
+    }));
+  }, [ticketsData]);
 
   const handleShowDetails = (support: Support) => {
     setSelectedSupport(support);
@@ -171,8 +130,38 @@ const SupportTable: React.FC<SupportTableProps> = ({
     onRowSelect?.(newSelectedRows);
   };
 
+  if (isLoading) {
+    return (
+      <div className="border border-[#989898] rounded-2xl w-full mt-1 mb-4">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-[#989898] rounded-2xl w-full mt-1 mb-4">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading support tickets</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="border border-[#989898] rounded-2xl w-[1160px] ml-6 mt-1 mb-4">
+    <div className="border border-[#989898] rounded-2xl w-full mt-1 mb-4">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
         {title}
       </div>
@@ -239,10 +228,10 @@ const SupportTable: React.FC<SupportTableProps> = ({
                 </td>
                 <td className="p-4 text-center">
                   <button
-                    onClick={() => setShowModal(true)}
+                    onClick={() => handleShowDetails(support)}
                     className="px-6 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F]"
                   >
-                    View Chat
+                    View Ticket
                   </button>
                 </td>
               </tr>
@@ -263,10 +252,44 @@ const SupportTable: React.FC<SupportTableProps> = ({
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        {ticketsData?.data?.pagination && (
+          <div className="flex justify-between items-center p-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * (ticketsData.data.pagination.per_page || 20)) + 1} to{" "}
+              {Math.min(currentPage * (ticketsData.data.pagination.per_page || 20), ticketsData.data.pagination.total || 0)} of{" "}
+              {ticketsData.data.pagination.total || 0} results
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 text-sm">
+                Page {currentPage} of {ticketsData.data.pagination.last_page || 1}
+              </span>
+              <button
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= (ticketsData.data.pagination.last_page || 1)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Support Modal */}
-      <SupportModel isOpen={showModal} onClose={() => setShowModal(false)} />
+      <SupportModel 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)} 
+        ticketData={selectedSupport}
+      />
     </div>
   );
 };

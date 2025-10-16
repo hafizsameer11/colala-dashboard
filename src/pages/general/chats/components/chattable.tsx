@@ -17,6 +17,11 @@ interface ChatsTableProps {
   onRowSelect?: (selectedIds: string[]) => void;
   filterType?: "General" | "Unread" | "Support" | "Dispute";
   searchTerm?: string; // debounced
+  chatsData?: any;
+  isLoading?: boolean;
+  error?: any;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const ChatsTable: React.FC<ChatsTableProps> = ({
@@ -24,22 +29,32 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
   onRowSelect,
   filterType = "General",
   searchTerm = "",
+  chatsData,
+  isLoading = false,
+  error,
+  currentPage = 1,
+  onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
-  // Sample data (now includes unread flags)
-  const chats: Chat[] = [
-    { id: "1", storeName: "Pet Paradise", userName: "David Chen",   lastMessage: "What are the ingredients in your gr...",  chatDate: "20-07-2025/07:58PM", type: "Dispute", other: "View Chat", isUnread: true },
-    { id: "2", storeName: "Fitness Forward", userName: "Sofia Rossi", lastMessage: "I'd like to return the yoga mat I...",    chatDate: "20-07-2025/07:21PM", type: "General", other: "View Chat", isUnread: true },
-    { id: "3", storeName: "Fresh Blooms Co.", userName: "Elena Petrova", lastMessage: "Can I change the delivery address for...", chatDate: "20-07-2025/08:50PM", type: "Dispute", other: "View Chat" },
-    { id: "4", storeName: "AutoPro Parts",   userName: "Kenji Tanaka", lastMessage: "Is this compatible with a 2023 Hon...", chatDate: "20-07-2025/08:45PM", type: "General", other: "View Chat" },
-    { id: "5", storeName: "Gadget Haven",    userName: "Qamar Malik",  lastMessage: "I need this delivered to my location...", chatDate: "20-07-2025/09:15PM", type: "General", other: "View Chat" },
-    { id: "6", storeName: "Artisan Coffee Roasters", userName: "Liam O'Connell", lastMessage: "Do you offer a subscription servi...", chatDate: "20-07-2025/06:45PM", type: "General", other: "View Chat" },
-    { id: "7", storeName: "The Book Nook",   userName: "Fatima Al-Sayed", lastMessage: "My order seems to be delayed, any...", chatDate: "20-07-2025/08:32PM", type: "Support", other: "View Chat" },
-  ];
+  // Transform API data to component format
+  const chats: Chat[] = useMemo(() => {
+    if (!chatsData?.data?.chats) return [];
+    
+    return chatsData.data.chats.map((chat: any) => ({
+      id: chat.id.toString(),
+      storeName: chat.store_info?.store_name || "Unknown Store",
+      userName: chat.customer_info?.customer_name || "Unknown User",
+      lastMessage: chat.last_message || "No messages yet",
+      chatDate: chat.formatted_date || chat.created_at,
+      type: chat.type === "general" ? "General" : chat.type === "order" ? "Support" : "Dispute",
+      other: "View Chat",
+      isUnread: !chat.is_read,
+    }));
+  }, [chatsData]);
 
   const handleShowDetails = (chat: Chat) => {
     setSelectedChat(chat);
@@ -94,8 +109,38 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
     onRowSelect?.(newSelectedRows);
   };
 
+  if (isLoading) {
+    return (
+      <div className="border border-[#989898] rounded-2xl w-full mt-1 mb-4">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-[#989898] rounded-2xl w-full mt-1 mb-4">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="text-center text-red-500">
+            <p className="text-sm">Error loading chats</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="border border-[#989898] rounded-2xl w-[1160px] ml-6 mt-1 mb-4">
+    <div className="border border-[#989898] rounded-2xl w-full mt-1 mb-4">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
         {title}
       </div>
@@ -178,10 +223,44 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        {chatsData?.data?.pagination && (
+          <div className="flex justify-between items-center p-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * (chatsData.data.pagination.per_page || 20)) + 1} to{" "}
+              {Math.min(currentPage * (chatsData.data.pagination.per_page || 20), chatsData.data.pagination.total || 0)} of{" "}
+              {chatsData.data.pagination.total || 0} results
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 text-sm">
+                Page {currentPage} of {chatsData.data.pagination.last_page || 1}
+              </span>
+              <button
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= (chatsData.data.pagination.last_page || 1)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chat Modal */}
-      <ChatsModel isOpen={showModal} onClose={() => setShowModal(false)} />
+      <ChatsModel 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)} 
+        chatData={selectedChat}
+      />
     </div>
   );
 };
