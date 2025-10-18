@@ -23,11 +23,17 @@ interface LatestOrdersProps {
   activeTab?: string;
   searchQuery?: string;
   orders?: Order[];
-  pagination?: any;
+  pagination?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
-  error?: any;
+  error?: string | null;
   userId?: string | number;
+  onViewChat?: (orderId: string | number) => void;
 }
 
 const getStatusStyle = (status?: string) => {
@@ -54,32 +60,35 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   activeTab = "All",
   searchQuery = "",
   orders = [],
-  pagination = null,
-  onPageChange,
   isLoading = false,
   error = null,
-  userId,
+  onViewChat,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
   // Normalize orders data from API
-  const normalizeOrder = (order: any): Order => ({
+  const normalizeOrder = (order: Order): Order => ({
     id: order.id,
     order_no: order.order_no || 'N/A',
-    store_name: order.store?.name || 'Unknown Store',
-    product_name: order.product?.name || 'Unknown Product',
-    price: order.pricing?.subtotal_with_shipping || '₦0.00',
+    store_name: order.store_name || 'Unknown Store',
+    product_name: order.product_name || 'Unknown Product',
+    price: order.price || '₦0.00',
     order_date: order.order_date || 'Unknown Date',
     status: order.status || 'Unknown Status',
     status_color: order.status_color,
     // Legacy fields for backward compatibility
-    storeName: order.store?.name || 'Unknown Store',
-    productName: order.product?.name || 'Unknown Product',
+    storeName: order.store_name || 'Unknown Store',
+    productName: order.product_name || 'Unknown Product',
     orderDate: order.order_date || 'Unknown Date',
   });
 
+  // Debug: Log the orders data
+  console.log('LatestOrders - orders data:', orders);
+  console.log('LatestOrders - first order:', orders[0]);
+  
   const normalizedOrders = orders.map(normalizeOrder);
+  console.log('LatestOrders - normalized orders:', normalizedOrders);
 
   // 1) Filter by tab
   const byTab = useMemo(() => {
@@ -151,6 +160,12 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   const handleShowDetails = (order: Order) => {
     setSelectedOrderId(order.id);
     setShowModal(true);
+  };
+
+  const handleViewChat = (order: Order) => {
+    if (onViewChat) {
+      onViewChat(order.id);
+    }
   };
 
   return (
@@ -226,7 +241,10 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                     >
                       Details
                     </button>
-                    <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                    <button 
+                      onClick={() => handleViewChat(order)}
+                      className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer"
+                    >
                       View Chat
                     </button>
                   </td>

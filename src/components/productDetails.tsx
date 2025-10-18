@@ -19,13 +19,19 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   setQuantity,
   productData,
 }) => {
+  // Debug: Log the product data structure
+  console.log('ProductDetails - productData:', productData);
+  console.log('ProductDetails - images:', productData?.complete?.images);
+  
   return (
     <div className="mt-5">
       {/* Video Section */}
-      {productData?.compelete?.product?.video && (
+      {productData?.complete?.product?.video && (
         <div className="relative rounded-2xl overflow-hidden">
           <img
-            src={`https://colala.hmstech.xyz/storage/${productData.compelete.product.video}`}
+            src={productData.complete.product.video.startsWith('http') 
+              ? productData.complete.product.video 
+              : `https://colala.hmstech.xyz/storage/${productData.complete.product.video}`}
             alt="Product video thumbnail"
             className="w-full h-auto object-cover rounded-2xl"
             onError={(e) => {
@@ -45,12 +51,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       )}
 
       {/* Product Images */}
-      {productData?.compelete?.images && productData.compelete.images.length > 0 && (
+      {productData?.complete?.images && productData.complete.images.length > 0 && (
         <div className="flex flex-row mt-5 gap-3">
-          {productData.compelete.images.slice(0, 3).map((image: any, index: number) => (
+          {productData.complete.images.slice(0, 3).map((image: any, index: number) => (
             <div key={index}>
               <img 
-                src={`https://colala.hmstech.xyz/storage/${image.path}`}
+                src={image.path.startsWith('http') 
+                  ? image.path 
+                  : `https://colala.hmstech.xyz/storage/${image.path}`}
                 alt={`Product image ${index + 1}`}
                 className="w-full h-auto object-cover rounded-lg"
                 onError={(e) => {

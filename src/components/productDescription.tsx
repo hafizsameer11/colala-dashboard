@@ -9,7 +9,7 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ productData }) 
       <div className="mb-5">
         <h3 className="text-sm font-medium text-[#00000080] mb-2">Product Name</h3>
         <h2 className="text-lg font-semibold text-[#000000]">
-          {productData?.compelete?.product?.name || 'Product Name'}
+          {productData?.complete?.product?.name || 'Product Name'}
         </h2>
       </div>
 
@@ -17,7 +17,7 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ productData }) 
       <div className="mb-5 border-t border-b border-[#00000080] pt-3 pb-3">
         <h3 className="text-sm font-medium text-[#00000080] mb-2">Description</h3>
         <p className="text-[#000000] text-lg font-semibold leading-relaxed">
-          {productData?.compelete?.product?.description || 'No description available'}
+          {productData?.complete?.product?.description || 'No description available'}
         </p>
       </div>
 
@@ -28,69 +28,88 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ productData }) 
         </h3>
 
         <div className="space-y-1 w-60">
-          {/* Brand */}
-          <div className="flex justify-between items-center py-1 ">
-            <span className="text-md text-[#000000B2] font-semibold">Brand</span>
-            <span className="text-md font-medium text-[#000000]">Apple</span>
-          </div>
-
-          {/* Model */}
+          {/* Product ID */}
           <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Model</span>
+            <span className="text-md text-[#000000B2] font-semibold">Product ID</span>
             <span className="text-md font-medium text-[#000000]">
-              12 pro Max
+              {productData?.complete?.product?.id || 'N/A'}
             </span>
           </div>
 
-          {/* Color */}
+          {/* Price */}
           <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Color</span>
-            <span className="text-md font-medium text-[#000000]">Black</span>
-          </div>
-
-          {/* Storage */}
-          <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Storage</span>
-            <span className="text-md font-medium text-[#000000]">64 gig</span>
-          </div>
-
-          {/* Resolution */}
-          <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Resolution</span>
+            <span className="text-md text-[#000000B2] font-semibold">Price</span>
             <span className="text-md font-medium text-[#000000]">
-              1080 x 1920
+              ₦{productData?.complete?.product?.price || '0.00'}
             </span>
           </div>
 
-          {/* Display */}
+          {/* Discount Price */}
+          {productData?.complete?.product?.discount_price && (
+            <div className="flex justify-between items-center py-1">
+              <span className="text-md text-[#000000B2] font-semibold">Discount Price</span>
+              <span className="text-md font-medium text-[#E53E3E]">
+                ₦{productData.complete.product.discount_price}
+              </span>
+            </div>
+          )}
+
+          {/* Status */}
           <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Display</span>
-            <span className="text-md font-medium text-[#000000]">IPS LCD</span>
+            <span className="text-md text-[#000000B2] font-semibold">Status</span>
+            <span className="text-md font-medium text-[#000000] capitalize">
+              {productData?.complete?.product?.status || 'N/A'}
+            </span>
           </div>
 
-          {/* Screen size */}
+          {/* Quantity Available */}
           <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Screen size</span>
-            <span className="text-md font-medium text-[#000000]">6.5</span>
-          </div>
-
-          {/* Battery */}
-          <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Battery</span>
-            <span className="text-md font-medium text-[#000000]">3000 mah</span>
-          </div>
-
-          {/* Sim */}
-          <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Sim</span>
-            <span className="text-md font-medium text-[#000000]">Nanosim</span>
-          </div>
-
-          {/* Camera */}
-          <div className="flex justify-between items-center py-1">
-            <span className="text-md text-[#000000B2] font-semibold">Camera</span>
+            <span className="text-md text-[#000000B2] font-semibold">Available</span>
             <span className="text-md font-medium text-[#000000]">
-              20 mega pixel
+              {productData?.complete?.product?.quantity || '0'} units
+            </span>
+          </div>
+
+          {/* Featured */}
+          <div className="flex justify-between items-center py-1">
+            <span className="text-md text-[#000000B2] font-semibold">Featured</span>
+            <span className="text-md font-medium text-[#000000]">
+              {productData?.complete?.product?.is_featured ? 'Yes' : 'No'}
+            </span>
+          </div>
+
+          {/* Created Date */}
+          <div className="flex justify-between items-center py-1">
+            <span className="text-md text-[#000000B2] font-semibold">Created</span>
+            <span className="text-md font-medium text-[#000000]">
+              {productData?.complete?.product?.created_at 
+                ? new Date(productData.complete.product.created_at).toLocaleDateString() 
+                : 'N/A'
+              }
+            </span>
+          </div>
+
+          {/* Store Name */}
+          <div className="flex justify-between items-center py-1">
+            <span className="text-md text-[#000000B2] font-semibold">Store</span>
+            <span className="text-md font-medium text-[#000000]">
+              {productData?.complete?.store?.store_name || 'N/A'}
+            </span>
+          </div>
+
+          {/* Store Location */}
+          <div className="flex justify-between items-center py-1">
+            <span className="text-md text-[#000000B2] font-semibold">Location</span>
+            <span className="text-md font-medium text-[#000000]">
+              {productData?.complete?.store?.store_location || 'N/A'}
+            </span>
+          </div>
+
+          {/* Store Rating */}
+          <div className="flex justify-between items-center py-1">
+            <span className="text-md text-[#000000B2] font-semibold">Store Rating</span>
+            <span className="text-md font-medium text-[#000000]">
+              {productData?.complete?.store?.average_rating || '0.0'} ⭐
             </span>
           </div>
         </div>

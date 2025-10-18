@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
-import AddUserModal from "../../../../../components/addUserModel";
 import EditUserModal from "../../../../../components/editUserModel";
 
 interface ActivityProps {
@@ -30,9 +29,9 @@ interface ActivityProps {
       total_spent?: number;
       average_order_value?: number;
     };
-    recent_activities?: Array<{
+    activities?: Array<{
       id: number;
-      description: string;
+      activity: string;
       created_at: string;
     }>;
     // Legacy fields for backward compatibility
@@ -43,7 +42,6 @@ interface ActivityProps {
 }
 
 const Activity: React.FC<ActivityProps> = ({ userData }) => {
-  const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -221,7 +219,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                   <span className="font-bold">{userData.loyalty_points || 0}</span>
                   <span
                     className="cursor-pointer underline"
-                    onClick={() => setShowModal(true)}
+                    onClick={() => setShowEditModal(true)}
                   >
                     View Details
                   </span>
@@ -287,8 +285,8 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {userData.recent_activities && userData.recent_activities.length > 0 ? (
-                    userData.recent_activities.map((activity) => (
+                  {userData.activities && userData.activities.length > 0 ? (
+                    userData.activities.map((activity) => (
                       <tr key={activity.id} className="hover:bg-gray-50">
                         <td className="py-3 px-4">
                           <input
@@ -297,7 +295,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                           />
                         </td>
                         <td className="py-3 px-4 text-gray-800">
-                          {activity?.description}
+                          {activity?.activity}
                         </td>
                         <td className="py-3 px-4 text-center text-gray-600">
                           {new Date(activity.created_at).toLocaleDateString()}
@@ -318,9 +316,6 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
         </div>
       </div>
 
-      {/* Add User Modal */}
-      <AddUserModal isOpen={showModal} onClose={() => setShowModal(false)} />
-      
       {/* Edit User Modal */}
       <EditUserModal 
         isOpen={showEditModal} 

@@ -2,7 +2,7 @@ import images from "../constants/images";
 import React, { useState } from "react";
 
 // ColorPicker component
-const ColorPicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
+const ColorPicker: React.FC<{ variants?: Array<{ color?: string; size?: string }> }> = ({ variants = [] }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
   const colors = variants
@@ -32,7 +32,7 @@ const ColorPicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
 };
 
 // SizePicker component
-const SizePicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
+const SizePicker: React.FC<{ variants?: Array<{ color?: string; size?: string }> }> = ({ variants = [] }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
   const sizes = variants
@@ -65,10 +65,49 @@ const SizePicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
   );
 };
 
+interface ProductData {
+  complete?: {
+    product: {
+      id: number;
+      name: string;
+      description: string;
+      price: string;
+      discount_price?: string;
+      quantity: number;
+      status: string;
+      is_featured?: boolean;
+      created_at: string;
+      average_rating?: number;
+      variants?: Array<{
+        color?: string;
+        size?: string;
+      }>;
+    };
+    images: Array<{
+      id: number;
+      path: string;
+      is_main: number;
+    }>;
+    store: {
+      id: number;
+      store_name: string;
+      store_email: string;
+      store_phone: string;
+      store_location: string;
+      profile_image: string;
+      banner_image: string;
+      theme_color: string;
+      average_rating: number;
+      total_sold: number;
+      followers_count: number;
+    };
+  };
+}
+
 interface ProductOverviewProps {
   quantity: number;
   setQuantity: (quantity: number) => void;
-  productData?: any;
+  productData?: ProductData;
 }
 
 const ProductOverview: React.FC<ProductOverviewProps> = ({
@@ -79,82 +118,103 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
   const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
   return (
     <div className="">
+      {/* Main Product Image */}
+      {productData?.complete?.images && productData.complete.images.length > 0 && (
+        <div className="mb-6">
+          <img 
+            src={productData.complete.images[0].path.startsWith('http') 
+              ? productData.complete.images[0].path 
+              : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`}
+            alt={productData?.complete?.product?.name || 'Product'}
+            className="w-full h-80 object-cover rounded-2xl"
+            onError={(e) => {
+              e.currentTarget.src = images.iphone;
+            }}
+          />
+        </div>
+      )}
+      
       <div>
         <div className="flex flex-row justify-between w-80">
           <span className="font-semibold text-[17px]">
-            {productData?.compelete?.product?.name || 'Product Name'}
+            {productData?.complete?.product?.name || 'Product Name'}
           </span>
           <div className="flex items-center gap-1">
             <img className="w-5 h-5" src={images.start1} alt="" />
             <span className="text-[#00000080] text-[17px]">
-              {productData?.compelete?.product?.average_rating || '0.0'}
+              {productData?.complete?.product?.average_rating || '0.0'}
             </span>
           </div>
         </div>
         <div className="mt-2">
           <span className="font-bold text-[#E53E3E] text-[17px]">
-            ₦{productData?.compelete?.product?.discount_price || productData?.compelete?.product?.price || '0.00'}
+            ₦{productData?.complete?.product?.discount_price || productData?.complete?.product?.price || '0.00'}
           </span>
-          {productData?.compelete?.product?.discount_price && (
+          {productData?.complete?.product?.discount_price && (
             <span className="line-through text-[#00000080] text-[14px] ml-2">
-              ₦{productData.compelete.product.price}
+              ₦{productData.complete.product.price}
             </span>
           )}
         </div>
-        <div className="mt-4 space-y-2">
-          {/* Information tag 1 - Orange */}
-          <div className="flex items-center bg-[#FFA500] text-white rounded-md">
-            <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
-              {/* Right-side tilted shape */}
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-              {/* Cart Icon */}
-              <img className="w-5 h-5" src={images.cart1} alt="" />
-            </div>
-            <span className="text-sm font-medium">Information tag 1</span>
-          </div>
+        {/* Information Tags - Only show if product has specific features */}
+        {(productData?.complete?.product?.is_featured || 
+          productData?.complete?.product?.discount_price || 
+          (productData?.complete?.store?.average_rating || 0) > 4) && (
+          <div className="mt-4 space-y-2">
+            {/* Featured Product Tag */}
+            {productData?.complete?.product?.is_featured && (
+              <div className="flex items-center bg-[#FFA500] text-white rounded-md">
+                <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
+                  <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                  <img className="w-5 h-5" src={images.cart1} alt="" />
+                </div>
+                <span className="text-sm font-medium">Featured Product</span>
+              </div>
+            )}
 
-          {/* Information tag 2 - Blue */}
-          <div className="flex items-center bg-[#0000FF] text-white rounded-md">
-            <div className="relative w-15 h-10 bg-[#14146F] overflow-hidden rounded-md flex items-center px-3">
-              {/* Right-side tilted shape */}
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#0000FF] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-              {/* Cart Icon */}
-              <img className="w-5 h-5" src={images.cart1} alt="" />
-            </div>
-            <span className="text-sm font-medium">Information tag 2</span>
-          </div>
+            {/* Discount Available Tag */}
+            {productData?.complete?.product?.discount_price && (
+              <div className="flex items-center bg-[#0000FF] text-white rounded-md">
+                <div className="relative w-15 h-10 bg-[#14146F] overflow-hidden rounded-md flex items-center px-3">
+                  <div className="absolute top-0 right-0 w-1/3 h-full bg-[#0000FF] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                  <img className="w-5 h-5" src={images.cart1} alt="" />
+                </div>
+                <span className="text-sm font-medium">Discount Available</span>
+              </div>
+            )}
 
-          {/* Information tag 3 - Purple */}
-          <div className="flex items-center bg-[#800080] text-white rounded-md">
-            <div className="relative w-15 h-10 bg-[#050531] overflow-hidden rounded-md flex items-center px-3">
-              {/* Right-side tilted shape */}
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#800080] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-              {/* Cart Icon */}
-              <img className="w-5 h-5" src={images.cart1} alt="" />
-            </div>
-            <span className="text-sm font-medium">Information tag 3</span>
+            {/* High Rated Store Tag */}
+            {(productData?.complete?.store?.average_rating || 0) > 4 && (
+              <div className="flex items-center bg-[#800080] text-white rounded-md">
+                <div className="relative w-15 h-10 bg-[#050531] overflow-hidden rounded-md flex items-center px-3">
+                  <div className="absolute top-0 right-0 w-1/3 h-full bg-[#800080] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                  <img className="w-5 h-5" src={images.cart1} alt="" />
+                </div>
+                <span className="text-sm font-medium">Highly Rated Store</span>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Colors Section - Only show if there are color variants */}
-        {productData?.compelete?.product?.variants?.some((v: any) => v.color) && (
+        {productData?.complete?.product?.variants?.some((v) => v.color) && (
           <div className="border-t border-b border-[#00000080] mt-2">
             <div className="flex flex-col gap-3">
               <span className="text-lg font-medium pt-3">Colors</span>
               <div>
-                <ColorPicker variants={productData?.compelete?.product?.variants || []} />
+                <ColorPicker variants={productData?.complete?.product?.variants || []} />
               </div>
             </div>
           </div>
         )}
 
         {/* Size Section - Only show if there are size variants */}
-        {productData?.compelete?.product?.variants?.some((v: any) => v.size) && (
+        {productData?.complete?.product?.variants?.some((v) => v.size) && (
           <div className="border-b border-[#00000080]">
             <div className="flex flex-col gap-3">
               <span className="text-lg font-medium pt-3">Size</span>
               <div>
-                <SizePicker variants={productData?.compelete?.product?.variants || []} />
+                <SizePicker variants={productData?.complete?.product?.variants || []} />
               </div>
             </div>
           </div>
@@ -165,7 +225,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
           <div className="flex flex-col py-4">
             <span className="text-[#00000080] text-sm">Subtotal</span>
             <span className="text-[#E53E3E] font-bold text-lg">
-              ₦{((parseFloat(productData?.compelete?.product?.discount_price || productData?.compelete?.product?.price || '0') * quantity).toFixed(2))}
+              ₦{((parseFloat(productData?.complete?.product?.discount_price || productData?.complete?.product?.price || '0') * quantity).toFixed(2))}
             </span>
           </div>
 
@@ -217,7 +277,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                 className="bg-[#000000] rounded-2xl text-white px-13 py-3.5 cursor-pointer"
               >
                 {isPhoneRevealed 
-                  ? (productData?.compelete?.store?.store_phone || 'Phone: N/A')
+                  ? (productData?.complete?.store?.store_phone || 'Phone: N/A')
                   : 'Reveal Phone Number'
                 }
               </button>
@@ -246,8 +306,8 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                   {/* Cover Image with Avatar */}
                     <div className="relative h-30">
                       <img
-                        src={productData?.compelete?.store?.banner_image 
-                          ? `https://colala.hmstech.xyz/storage/${productData.compelete.store.banner_image}` 
+                        src={productData?.complete?.store?.banner_image 
+                          ? `https://colala.hmstech.xyz/storage/${productData.complete.store.banner_image}` 
                           : images.cover
                         }
                         alt="Store cover"
@@ -259,8 +319,8 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                       {/* Store Avatar positioned over cover */}
                       <div className="absolute -bottom-8 left-4">
                         <img
-                          src={productData?.compelete?.store?.profile_image 
-                            ? `https://colala.hmstech.xyz/storage/${productData.compelete.store.profile_image}` 
+                          src={productData?.complete?.store?.profile_image 
+                            ? `https://colala.hmstech.xyz/storage/${productData.complete.store.profile_image}` 
                             : images.icon
                           }
                           alt="Store profile"
@@ -277,14 +337,14 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                     {/* Store Name and Rating */}
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="flex items-end justify-between font-semibold -mt-14 ml-20 mb-1">
-                        {productData?.compelete?.store?.store_name || 'Store Name'}
+                        {productData?.complete?.store?.store_name || 'Store Name'}
                       </h3>
                       <div className="flex items-center space-x-1">
                         <span className="">
                           <img src={images.start1} alt="" />
                         </span>
                         <span className="text-sm text-[#00000080] font-medium">
-                          {productData?.compelete?.store?.average_rating || '0.0'}
+                          {productData?.complete?.store?.average_rating || '0.0'}
                         </span>
                       </div>
                     </div>
@@ -307,7 +367,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                         className="w-4 h-4"
                       />
                       <span className="text-sm text-[#00000080]">
-                        {productData?.compelete?.store?.store_location || 'Location'}
+                        {productData?.complete?.store?.store_location || 'Location'}
                       </span>
                     </div>
 

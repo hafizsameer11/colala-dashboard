@@ -6,11 +6,110 @@ import OrderOverview from "./orderOverview";
 import ProductCart from "./productCart";
 import { getBuyerOrderDetails } from "../utils/queries/users";
 
+interface OrderItem {
+  id: number;
+  complete?: {
+    product: {
+      id: number;
+      name: string;
+      description: string;
+      price: string;
+      discount_price: string;
+      quantity: number;
+      status: string;
+      created_at: string;
+    };
+    images: Array<{
+      id: number;
+      path: string;
+      is_main: number;
+      type?: string;
+    }>;
+    variants: unknown[];
+    store: {
+      id: number;
+      store_name: string;
+      store_email: string;
+      store_phone: string;
+      store_location: string;
+      profile_image: string;
+      banner_image: string;
+      theme_color: string;
+      average_rating: number;
+      total_sold: number;
+      followers_count: number;
+    };
+    reviews: unknown[];
+  };
+  product: {
+    id: number;
+    name: string;
+    images: Array<{
+      id: number;
+      path: string;
+      is_main: number;
+    }>;
+  };
+  variant?: unknown;
+  quantity: number;
+  price?: string;
+  total: number;
+}
+
+interface OrderData {
+  id: number;
+  order_no: string;
+  status: string;
+  status_color: string;
+  store: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    location: string;
+  };
+  customer: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  delivery_address: {
+    id: number;
+    full_address?: string;
+    state: string;
+    local_government?: string;
+    contact_name?: string;
+    contact_phone?: string;
+  };
+  items: OrderItem[];
+  pricing: {
+    items_subtotal: string;
+    shipping_fee: string;
+    discount: string;
+    subtotal_with_shipping: string;
+  };
+  tracking: Array<{
+    id: number;
+    status: string;
+    description?: string;
+    location?: string;
+    created_at: string;
+  }>;
+  chat: {
+    id: number;
+    is_dispute: boolean;
+    last_message?: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
 interface BuyerOrderDetailsProps {
   isOpen: boolean;
   onClose: () => void;
   orderId?: string | number;
-  order?: any; // Optional order data
+  order?: OrderData; // Optional order data
 }
 
 const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
@@ -43,6 +142,11 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
 
   // Use API data or fallback to passed order prop
   const orderData = orderDetailsData?.data || order;
+  
+  // Debug: Log the order data structure
+  console.log('BuyerOrderDetails - orderData:', orderData);
+  console.log('BuyerOrderDetails - first item:', orderData?.items?.[0]);
+  console.log('BuyerOrderDetails - complete data:', orderData?.items?.[0]?.complete);
 
   if (!isOpen) return null;
 
@@ -153,7 +257,7 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                 </div>
 
                 {/* Cart Content */}
-                <ProductCart />
+                <ProductCart orderData={orderData} />
               </div>
             )}
 
@@ -176,14 +280,14 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                     ) : (
                       <>
                         {/* Product Items */}
-                        {orderData?.items?.map((item: any, index: number) => (
+                        {orderData?.items?.map((item: OrderItem, index: number) => (
                           <div key={index} className={`flex flex-row ${index > 0 ? 'mt-3' : ''}`}>
                             <div>
                               <picture>
                                 <img
                                   className="w-35 h-35 rounded-l-2xl object-cover"
-                                  src={item.product?.images?.[0]?.path || item.complete?.images?.[0]?.path || images.iphone}
-                                  alt={item.product?.name || item.complete?.product?.name || 'Product'}
+                                  src={item.complete?.images?.[0]?.path || item.product?.images?.[0]?.path || images.iphone}
+                                  alt={item.complete?.product?.name || item.product?.name || 'Product'}
                                   onError={(e) => {
                                     e.currentTarget.src = images.iphone;
                                   }}
@@ -192,10 +296,10 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                             </div>
                             <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
                               <span className="text-black text-[17px]">
-                                {item.product?.name || item.complete?.product?.name || 'Unknown Product'}
+                                {item.complete?.product?.name || item.product?.name || 'Unknown Product'}
                               </span>
                               <span className="text-[#E53E3E] font-bold text-[17px]">
-                                ₦{item.total || item.complete?.product?.price || '0.00'}
+                                ₦{item.complete?.product?.discount_price || item.complete?.product?.price || item.total || '0.00'}
                               </span>
                               <div className="flex flex-row justify-between items-center mt-3">
                                 <div>
@@ -254,7 +358,7 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                           </div>
                           <div className="flex flex-row gap-28 p-2">
                             <span className="text-[#00000080]">Date</span>
-                            <span>{orderData?.created_at || 'N/A'}</span>
+                            <span>{orderData?.created_at ? new Date(orderData.created_at).toLocaleDateString() : 'N/A'}</span>
                           </div>
                         </div>
                       </div>
@@ -339,7 +443,7 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                     quantity={quantity}
                     setQuantity={setQuantity}
                     productData={{
-                      compelete: orderData?.items?.[0]?.complete || orderData?.items?.[0]
+                      complete: orderData?.items?.[0]?.complete || orderData?.items?.[0]
                     }}
                   />
                 )}

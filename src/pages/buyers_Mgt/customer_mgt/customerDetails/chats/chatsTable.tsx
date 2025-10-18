@@ -31,6 +31,8 @@ interface ChatsTableProps {
   isLoading?: boolean;
   error?: any;
   userId?: string | number;
+  selectedChatId?: string | number | null;
+  onChatOpened?: () => void;
 }
 
 const ChatsTable: React.FC<ChatsTableProps> = ({
@@ -44,6 +46,8 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
   isLoading = false,
   error = null,
   userId,
+  selectedChatId,
+  onChatOpened,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -90,6 +94,31 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
     setSelectedRows([]);
     setSelectAll(false);
   }, [searchQuery]);
+
+  // Handle selected chat from order navigation
+  useEffect(() => {
+    if (selectedChatId && filteredChats.length > 0 && !showModal) {
+      console.log("Looking for chat with ID:", selectedChatId);
+      console.log("Available chat IDs:", filteredChats.map(chat => chat.id));
+      const targetChat = filteredChats.find(chat => 
+        String(chat.id) === String(selectedChatId)
+      );
+      
+      if (targetChat) {
+        console.log("Found target chat:", targetChat);
+        setSelectedChat(targetChat);
+        // Add a small delay to ensure the component is fully rendered
+        setTimeout(() => {
+          setShowModal(true);
+          // Notify parent that chat was opened
+          onChatOpened?.();
+        }, 100);
+      } else {
+        console.log("Chat not found in current filtered results");
+        console.log("Available chats:", filteredChats);
+      }
+    }
+  }, [selectedChatId, filteredChats, showModal]);
 
   const handleShowDetails = (chat: Chat) => {
     setSelectedChat(chat);
@@ -188,12 +217,14 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredChats.map((chat, index) => (
+              filteredChats.map((chat, index) => {
+                const isSelected = selectedChatId && String(chat.id) === String(selectedChatId);
+                return (
                 <tr
                   key={chat.id}
                   className={`border-t border-[#E5E5E5] transition-colors ${
                     index === filteredChats.length - 1 ? "" : "border-b"
-                  }`}
+                  } ${isSelected ? "bg-blue-50 border-blue-200" : ""}`}
                 >
                   <td className="p-4">
                     <input
@@ -224,7 +255,8 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
                     </button>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
             {!isLoading && !error && filteredChats.length === 0 && (
               <tr>

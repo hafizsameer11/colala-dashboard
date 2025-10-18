@@ -8,9 +8,10 @@ import { getUserOrders } from "../../../../../utils/queries/users";
 
 interface OrdersProps {
   userId?: string | number;
+  onViewChat?: (orderId: string | number) => void;
 }
 
-const Orders: React.FC<OrdersProps> = ({ userId }) => {
+const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 400);
@@ -18,7 +19,7 @@ const Orders: React.FC<OrdersProps> = ({ userId }) => {
   const tabs = [
     "All",
     "placed",
-    "pending", 
+    "pending",
     "out_for_delivery",
     "delivered",
   ];
@@ -43,9 +44,8 @@ const Orders: React.FC<OrdersProps> = ({ userId }) => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-2.5 text-black"
-            }`}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-8 bg-[#E53E3E] text-white" : "px-2.5 text-black"
+              }`}
           >
             {tab}
           </button>
@@ -175,8 +175,9 @@ const Orders: React.FC<OrdersProps> = ({ userId }) => {
             orders={ordersData?.data?.orders?.data || []}
             pagination={ordersData?.data?.pagination || null}
             isLoading={isLoading}
-            error={error}
+            error={error?.message || null}
             userId={userId}
+            onViewChat={onViewChat}
           />
         </div>
       </div>

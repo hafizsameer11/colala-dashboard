@@ -1,5 +1,5 @@
 import images from "../../../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import ChatsTable from "./chatsTable";
@@ -11,13 +11,15 @@ import 'jspdf-autotable';
 
 interface ChatsProps {
   userId?: string;
+  selectedChatId?: string | number | null;
+  onChatOpened?: () => void;
 }
 
-const Chats: React.FC<ChatsProps> = ({ userId }) => {
+const Chats: React.FC<ChatsProps> = ({ userId, selectedChatId, onChatOpened }) => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedChats, setSelectedChats] = useState<any[]>([]);
+  const [selectedChats, setSelectedChats] = useState<unknown[]>([]);
   const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = ["All", "Unread", "Dispute"];
@@ -52,15 +54,19 @@ const Chats: React.FC<ChatsProps> = ({ userId }) => {
   };
 
   // Filter chats based on active tab
-  const filteredChats = chatsData?.data?.chats?.data?.filter((chat: any) => {
+  const filteredChats = chatsData?.data?.chats?.data?.filter((chat: unknown) => {
+    const chatObj = chat as { is_read?: boolean; is_dispute?: boolean };
     switch (activeTab) {
-      case "Unread":
-        return !chat.is_read;
-      case "Dispute":
-        return chat.is_dispute;
+      case "Unread": {
+        return !chatObj.is_read;
+      }
+      case "Dispute": {
+        return chatObj.is_dispute;
+      }
       case "All":
-      default:
+      default: {
         return true;
+      }
     }
   }) || [];
 
@@ -73,18 +79,30 @@ const Chats: React.FC<ChatsProps> = ({ userId }) => {
     }
 
     switch (action) {
-      case "Export as CSV":
+      case "Export as CSV": {
         // Export selected chats to CSV
-        const csvData = selectedChats.map((chat: any) => ({
-          'Chat ID': chat.id,
-          'Store Name': chat.store_name || 'N/A',
-          'User Name': chat.user_name || 'N/A',
-          'Last Message': chat.last_message || 'N/A',
-          'Chat Date': chat.chat_date || 'N/A',
-          'Is Read': chat.is_read ? 'Yes' : 'No',
-          'Is Dispute': chat.is_dispute ? 'Yes' : 'No',
-          'Unread Count': chat.unread_count || 0
-        }));
+        const csvData = selectedChats.map((chat: unknown) => {
+          const chatObj = chat as {
+            id: string | number;
+            store_name?: string;
+            user_name?: string;
+            last_message?: string;
+            chat_date?: string;
+            is_read?: boolean;
+            is_dispute?: boolean;
+            unread_count?: number;
+          };
+          return {
+            'Chat ID': chatObj.id,
+            'Store Name': chatObj.store_name || 'N/A',
+            'User Name': chatObj.user_name || 'N/A',
+            'Last Message': chatObj.last_message || 'N/A',
+            'Chat Date': chatObj.chat_date || 'N/A',
+            'Is Read': chatObj.is_read ? 'Yes' : 'No',
+            'Is Dispute': chatObj.is_dispute ? 'Yes' : 'No',
+            'Unread Count': chatObj.unread_count || 0
+          };
+        });
         
         const csv = Papa.unparse(csvData);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -97,25 +115,37 @@ const Chats: React.FC<ChatsProps> = ({ userId }) => {
         link.click();
         document.body.removeChild(link);
         break;
+      }
         
-      case "Export as PDF":
+      case "Export as PDF": {
         // Export selected chats to PDF
         const doc = new jsPDF();
         doc.setFontSize(16);
         doc.text('Chats Report', 14, 22);
         
         const headers = ['Chat ID', 'Store Name', 'User Name', 'Last Message', 'Chat Date', 'Is Read', 'Is Dispute'];
-        const tableData = selectedChats.map((chat: any) => [
-          chat.id,
-          chat.store_name || 'N/A',
-          chat.user_name || 'N/A',
-          chat.last_message || 'N/A',
-          chat.chat_date || 'N/A',
-          chat.is_read ? 'Yes' : 'No',
-          chat.is_dispute ? 'Yes' : 'No'
-        ]);
+        const tableData = selectedChats.map((chat: unknown) => {
+          const chatObj = chat as {
+            id: string | number;
+            store_name?: string;
+            user_name?: string;
+            last_message?: string;
+            chat_date?: string;
+            is_read?: boolean;
+            is_dispute?: boolean;
+          };
+          return [
+            chatObj.id,
+            chatObj.store_name || 'N/A',
+            chatObj.user_name || 'N/A',
+            chatObj.last_message || 'N/A',
+            chatObj.chat_date || 'N/A',
+            chatObj.is_read ? 'Yes' : 'No',
+            chatObj.is_dispute ? 'Yes' : 'No'
+          ];
+        });
         
-        (doc as any).autoTable({
+        (doc as unknown as { autoTable: (options: unknown) => void }).autoTable({
           head: [headers],
           body: tableData,
           startY: 30,
@@ -125,22 +155,34 @@ const Chats: React.FC<ChatsProps> = ({ userId }) => {
         
         doc.save(`chats_${new Date().toISOString().split('T')[0]}.pdf`);
         break;
+      }
         
-      case "Delete":
+      case "Delete": {
         if (confirm(`Are you sure you want to delete ${selectedChats.length} chat(s)?`)) {
           console.log("Deleting chats:", selectedChats);
           // Add delete logic here
         }
         break;
+      }
         
-      default:
+      default: {
         console.log("Unknown action:", action);
+      }
     }
   };
 
-  const handleSelectedChatsChange = (chats: any[]) => {
+  const handleSelectedChatsChange = (chats: unknown[]) => {
     setSelectedChats(chats);
   };
+
+  // Handle selected chat from order navigation
+  useEffect(() => {
+    if (selectedChatId) {
+      console.log("Selected chat ID from order:", selectedChatId);
+      // You can add logic here to scroll to or highlight the specific chat
+      // For now, we'll just log it and the ChatsTable can handle the highlighting
+    }
+  }, [selectedChatId]);
 
   return (
     <div>
@@ -292,6 +334,8 @@ const Chats: React.FC<ChatsProps> = ({ userId }) => {
           error={error}
           userId={userId}
           onSelectedChatsChange={handleSelectedChatsChange}
+          selectedChatId={selectedChatId}
+          onChatOpened={onChatOpened}
         />
       </div>
     </div>
