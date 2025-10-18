@@ -6,10 +6,20 @@ import { getChatDetails } from "../../../../utils/queries/chats";
 interface ChatsModelProps {
   isOpen: boolean;
   onClose: () => void;
-  chatData?: any;
+  chatData?: {
+    id: string | number;
+    storeName?: string;
+    userName?: string;
+    lastMessage?: string;
+    chatDate?: string;
+    type?: string;
+    other?: string;
+    isUnread?: boolean;
+  };
+  buyerPart?: boolean;
 }
 
-const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData }) => {
+const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buyerPart }) => {
   const [newMessages, setNewMessages] = useState<
     Array<{ text: string; time: string }>
   >([]);
@@ -18,7 +28,10 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData }) =>
   // Fetch chat details
   const { data: chatDetails, isLoading, error } = useQuery({
     queryKey: ['chatDetails', chatData?.id],
-    queryFn: () => getChatDetails(chatData?.id),
+    queryFn: () => {
+      if (!chatData?.id) throw new Error('No chat ID provided');
+      return getChatDetails(chatData.id);
+    },
     enabled: !!chatData?.id && isOpen,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -159,7 +172,12 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData }) =>
           )}
           {/* Messages from API */}
           {chatDetails.data.messages && chatDetails.data.messages.length > 0 ? (
-            chatDetails.data.messages.map((message: any, index: number) => (
+            chatDetails.data.messages.map((message: {
+              sender: string;
+              message?: string;
+              text?: string;
+              created_at?: string;
+            }, index: number) => (
               <div key={index} className="flex flex-row justify-between">
                 {message.sender === 'buyer' ? (
                   <div></div>
@@ -207,36 +225,38 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData }) =>
           </div>
         )}
 
-        {/* Message Input */}
-        <div className="sticky bottom-0 bg-white  p-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Type a message"
-              className="w-full pl-12 pr-16 py-5 border border-[#CDCDCD] rounded-2xl  bg-[#FFFFFF]"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSend();
-              }}
-            />
-            {/* Attachment Icon */}
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-              <img
-                className="cursor-pointer"
-                src={images.link1}
-                alt="Attachment"
+        {/* Message Input - Only show if not buyerPart */}
+        {!buyerPart && (
+          <div className="sticky bottom-0 bg-white  p-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Type a message"
+                className="w-full pl-12 pr-16 py-5 border border-[#CDCDCD] rounded-2xl  bg-[#FFFFFF]"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSend();
+                }}
               />
+              {/* Attachment Icon */}
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                <img
+                  className="cursor-pointer"
+                  src={images.link1}
+                  alt="Attachment"
+                />
+              </div>
+              {/* Send Button */}
+              <button
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2"
+                onClick={handleSend}
+              >
+                <img className="cursor-pointer" src={images.share3} alt="Send" />
+              </button>
             </div>
-            {/* Send Button */}
-            <button
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2"
-              onClick={handleSend}
-            >
-              <img className="cursor-pointer" src={images.share3} alt="Send" />
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

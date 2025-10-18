@@ -7,12 +7,15 @@ import { useQuery } from "@tanstack/react-query";
 import { getChats } from "../../../utils/queries/chats";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
+import { useLocation } from "react-router-dom";
 
 type Tab = "General" | "Unread" | "Support" | "Dispute";
 
 const Chats = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>("General");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | number | null>(null);
   const tabs: Tab[] = ["General", "Unread", "Support", "Dispute"];
 
   // Debounced search
@@ -22,6 +25,16 @@ const Chats = () => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Handle navigation from orders page
+  useEffect(() => {
+    if (location.state?.selectedOrderId && location.state?.fromOrders) {
+      console.log("Navigated from orders with order ID:", location.state.selectedOrderId);
+      setSelectedOrderId(location.state.selectedOrderId);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Fetch chats data
   const { data: chatsData, isLoading: isLoadingChats, error: chatsError } = useQuery({
@@ -54,6 +67,11 @@ const Chats = () => {
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Orders:", action);
+  };
+
+  const handleChatOpened = () => {
+    console.log("Chat opened, clearing selectedOrderId");
+    setSelectedOrderId(null);
   };
 
   return (
@@ -138,6 +156,8 @@ const Chats = () => {
         onRowSelect={(selectedIds) => {
           console.log("Selected chat IDs:", selectedIds);
         }}
+        selectedOrderId={selectedOrderId}
+        onChatOpened={handleChatOpened}
       />
     </>
   );

@@ -22,6 +22,8 @@ interface ChatsTableProps {
   error?: any;
   currentPage?: number;
   onPageChange?: (page: number) => void;
+  selectedOrderId?: string | number | null;
+  onChatOpened?: () => void;
 }
 
 const ChatsTable: React.FC<ChatsTableProps> = ({
@@ -34,6 +36,8 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
   error,
   currentPage = 1,
   onPageChange,
+  selectedOrderId,
+  onChatOpened,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -56,11 +60,6 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
     }));
   }, [chatsData]);
 
-  const handleShowDetails = (chat: Chat) => {
-    setSelectedChat(chat);
-    setShowModal(true);
-  };
-
   // Filtering by tab + searching
   const filteredChats = useMemo(() => {
     const term = (searchTerm || "").toLowerCase();
@@ -80,6 +79,40 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
       return haystack.includes(term);
     });
   }, [chats, filterType, searchTerm]);
+
+  const handleShowDetails = (chat: Chat) => {
+    setSelectedChat(chat);
+    setShowModal(true);
+    onChatOpened?.();
+  };
+
+  // Handle automatic chat opening when selectedOrderId is provided
+  useEffect(() => {
+    if (selectedOrderId && filteredChats.length > 0 && !showModal) {
+      console.log("Looking for chat with order ID:", selectedOrderId);
+      console.log("Available chats:", filteredChats.map(chat => ({ id: chat.id, storeName: chat.storeName })));
+      
+      // Try to find a chat that matches the order ID
+      // This might need to be adjusted based on how the API links orders to chats
+      const targetChat = filteredChats.find(chat => 
+        String(chat.id) === String(selectedOrderId) || 
+        chat.storeName.toLowerCase().includes(String(selectedOrderId).toLowerCase())
+      );
+      
+      if (targetChat) {
+        console.log("Found target chat:", targetChat);
+        setSelectedChat(targetChat);
+        // Add a small delay to ensure the component is fully rendered
+        setTimeout(() => {
+          setShowModal(true);
+          onChatOpened?.();
+        }, 100);
+      } else {
+        console.log("Chat not found for order ID:", selectedOrderId);
+        console.log("Available chats:", filteredChats);
+      }
+    }
+  }, [selectedOrderId, filteredChats, showModal, onChatOpened]);
 
   // keep selection in sync with the current filtered view
   useEffect(() => {

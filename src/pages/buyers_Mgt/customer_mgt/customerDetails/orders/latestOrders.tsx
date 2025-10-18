@@ -10,6 +10,18 @@ interface Order {
   order_date?: string;
   status?: string;
   status_color?: string;
+  // Nested structure support
+  store?: {
+    name?: string;
+    id?: number;
+  };
+  product?: {
+    name?: string;
+    id?: number;
+  };
+  pricing?: {
+    subtotal_with_shipping?: string;
+  };
   // Legacy fields for backward compatibility
   storeName?: string;
   productName?: string;
@@ -68,20 +80,44 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   const [selectAll, setSelectAll] = useState(false);
 
   // Normalize orders data from API
-  const normalizeOrder = (order: Order): Order => ({
-    id: order.id,
-    order_no: order.order_no || 'N/A',
-    store_name: order.store_name || 'Unknown Store',
-    product_name: order.product_name || 'Unknown Product',
-    price: order.price || '₦0.00',
-    order_date: order.order_date || 'Unknown Date',
-    status: order.status || 'Unknown Status',
-    status_color: order.status_color,
-    // Legacy fields for backward compatibility
-    storeName: order.store_name || 'Unknown Store',
-    productName: order.product_name || 'Unknown Product',
-    orderDate: order.order_date || 'Unknown Date',
-  });
+  const normalizeOrder = (order: unknown): Order => {
+    const orderObj = order as {
+      id: string | number;
+      order_no?: string;
+      store_name?: string;
+      product_name?: string;
+      price?: string;
+      order_date?: string;
+      status?: string;
+      status_color?: string;
+      store?: { name?: string };
+      product?: { name?: string };
+      pricing?: { subtotal_with_shipping?: string };
+    };
+    
+    // Handle both flattened and nested data structures
+    const storeName = orderObj.store?.name || orderObj.store_name || 'Unknown Store';
+    const productName = orderObj.product?.name || orderObj.product_name || 'Unknown Product';
+    const price = orderObj.pricing?.subtotal_with_shipping || orderObj.price || '₦0.00';
+    const orderDate = orderObj.order_date || 'Unknown Date';
+    const status = orderObj.status || 'Unknown Status';
+    const statusColor = orderObj.status_color;
+    
+    return {
+      id: orderObj.id,
+      order_no: orderObj.order_no || 'N/A',
+      store_name: storeName,
+      product_name: productName,
+      price: price,
+      order_date: orderDate,
+      status: status,
+      status_color: statusColor,
+      // Legacy fields for backward compatibility
+      storeName: storeName,
+      productName: productName,
+      orderDate: orderDate,
+    };
+  };
 
   // Debug: Log the orders data
   console.log('LatestOrders - orders data:', orders);
@@ -92,9 +128,26 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
 
   // 1) Filter by tab
   const byTab = useMemo(() => {
-    return activeTab === "All"
-      ? normalizedOrders
-      : normalizedOrders.filter((o) => o.status?.toLowerCase() === activeTab.toLowerCase());
+    if (activeTab === "All") {
+      return normalizedOrders;
+    }
+    
+    // Map tab names to status values
+    const statusMap: { [key: string]: string[] } = {
+      "Order Placed": ["placed", "order placed"],
+      "Out for delivery": ["out for delivery", "out_for_delivery", "shipped"],
+      "Delivered": ["delivered"],
+      "Completed": ["completed"],
+      "Disputed": ["disputed"],
+      "Uncompleted": ["uncompleted", "cancelled", "failed"]
+    };
+    
+    const statusValues = statusMap[activeTab] || [activeTab.toLowerCase()];
+    
+    return normalizedOrders.filter((o) => {
+      const orderStatus = o.status?.toLowerCase() || '';
+      return statusValues.some(status => orderStatus.includes(status));
+    });
   }, [normalizedOrders, activeTab]);
 
   // 2) Filter by search (case-insensitive)

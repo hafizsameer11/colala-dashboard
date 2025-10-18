@@ -11,12 +11,24 @@ import { getBuyerOrders } from "../../../utils/queries/users";
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import ChatsModel from "../../general/chats/components/chatmodel";
 
-const ordersMgt = () => {
+const OrdersMgt = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<unknown[]>([]);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [selectedChatData, setSelectedChatData] = useState<{
+    id: string | number;
+    storeName: string;
+    userName: string;
+    lastMessage: string;
+    chatDate: string;
+    type: string;
+    other: string;
+    isUnread: boolean;
+  } | null>(null);
   const debouncedQuery = useDebouncedValue(query, 400);
 
   // Fetch buyer orders data from API
@@ -68,18 +80,30 @@ const ordersMgt = () => {
     }
 
     switch (action) {
-      case "Export as CSV":
+      case "Export as CSV": {
         // Export selected orders to CSV
-        const csvData = selectedOrders.map((order: any) => ({
-          'Order ID': order.id,
-          'Order No': order.order_no || 'N/A',
-          'Buyer Name': order.buyer?.name || 'N/A',
-          'Store Name': order.store?.name || 'N/A',
-          'Product Name': order.product?.name || 'N/A',
-          'Status': order.status || 'N/A',
-          'Order Date': order.order_date || 'N/A',
-          'Total Price': order.pricing?.subtotal_with_shipping || 'N/A'
-        }));
+        const csvData = selectedOrders.map((order: unknown) => {
+          const orderObj = order as {
+            id: string | number;
+            order_no?: string;
+            buyer?: { name?: string };
+            store?: { name?: string };
+            product?: { name?: string };
+            status?: string;
+            order_date?: string;
+            pricing?: { subtotal_with_shipping?: string };
+          };
+          return {
+            'Order ID': orderObj.id,
+            'Order No': orderObj.order_no || 'N/A',
+            'Buyer Name': orderObj.buyer?.name || 'N/A',
+            'Store Name': orderObj.store?.name || 'N/A',
+            'Product Name': orderObj.product?.name || 'N/A',
+            'Status': orderObj.status || 'N/A',
+            'Order Date': orderObj.order_date || 'N/A',
+            'Total Price': orderObj.pricing?.subtotal_with_shipping || 'N/A'
+          };
+        });
         
         const csv = Papa.unparse(csvData);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -92,25 +116,37 @@ const ordersMgt = () => {
         link.click();
         document.body.removeChild(link);
         break;
+      }
         
-      case "Export as PDF":
+      case "Export as PDF": {
         // Export selected orders to PDF
         const doc = new jsPDF();
         doc.setFontSize(16);
         doc.text('Orders Report', 14, 22);
         
         const headers = ['Order ID', 'Order No', 'Buyer Name', 'Store Name', 'Product Name', 'Status', 'Order Date'];
-        const tableData = selectedOrders.map((order: any) => [
-          order.id,
-          order.order_no || 'N/A',
-          order.buyer?.name || 'N/A',
-          order.store?.name || 'N/A',
-          order.product?.name || 'N/A',
-          order.status || 'N/A',
-          order.order_date || 'N/A'
-        ]);
+        const tableData = selectedOrders.map((order: unknown) => {
+          const orderObj = order as {
+            id: string | number;
+            order_no?: string;
+            buyer?: { name?: string };
+            store?: { name?: string };
+            product?: { name?: string };
+            status?: string;
+            order_date?: string;
+          };
+          return [
+            orderObj.id,
+            orderObj.order_no || 'N/A',
+            orderObj.buyer?.name || 'N/A',
+            orderObj.store?.name || 'N/A',
+            orderObj.product?.name || 'N/A',
+            orderObj.status || 'N/A',
+            orderObj.order_date || 'N/A'
+          ];
+        });
         
-        (doc as any).autoTable({
+        (doc as unknown as { autoTable: (options: unknown) => void }).autoTable({
           head: [headers],
           body: tableData,
           startY: 30,
@@ -120,25 +156,89 @@ const ordersMgt = () => {
         
         doc.save(`orders_${new Date().toISOString().split('T')[0]}.pdf`);
         break;
+      }
         
-      case "Delete":
+      case "Delete": {
         if (confirm(`Are you sure you want to delete ${selectedOrders.length} order(s)?`)) {
           console.log("Deleting orders:", selectedOrders);
           // Add delete logic here
         }
         break;
+      }
         
-      default:
+      default: {
         console.log("Unknown action:", action);
+      }
     }
   };
 
-  const handleSelectedOrdersChange = (orders: any[]) => {
+  const handleSelectedOrdersChange = (orders: unknown[]) => {
     setSelectedOrders(orders);
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleViewChat = (orderId: string | number) => {
+    console.log("Opening chat modal for order:", orderId);
+    
+    // Find the order data to get chat information
+    const order = ordersData?.data?.store_orders?.data?.find((order: unknown) => {
+      const orderObj = order as {
+        id: string | number;
+        chat?: {
+          id: string | number;
+          last_message?: string;
+          is_dispute?: boolean;
+        };
+        store?: { name?: string };
+        buyer?: { name?: string };
+        order_date?: string;
+      };
+      return orderObj.id === orderId;
+    });
+    
+    if (order) {
+      const orderObj = order as {
+        id: string | number;
+        chat?: {
+          id: string | number;
+          last_message?: string;
+          is_dispute?: boolean;
+        };
+        store?: { name?: string };
+        buyer?: { name?: string };
+        order_date?: string;
+      };
+      
+      if (orderObj.chat) {
+        // Create chat data object that matches the expected format
+        const chatData = {
+          id: orderObj.chat.id,
+          storeName: orderObj.store?.name || 'Unknown Store',
+          userName: orderObj.buyer?.name || 'Unknown User',
+          lastMessage: orderObj.chat.last_message || 'No messages yet',
+          chatDate: orderObj.order_date || 'Unknown Date',
+          type: orderObj.chat.is_dispute ? 'Dispute' : 'Support',
+          other: 'View Chat',
+          isUnread: false
+        };
+        
+        setSelectedChatData(chatData);
+        setShowChatModal(true);
+      } else {
+        console.log("No chat found for order:", orderId);
+        // You could show a toast notification here
+      }
+    } else {
+      console.log("Order not found:", orderId);
+    }
+  };
+
+  const handleCloseChatModal = () => {
+    setShowChatModal(false);
+    setSelectedChatData(null);
   };
 
   return (
@@ -220,12 +320,21 @@ const ordersMgt = () => {
             pagination={ordersData?.data?.store_orders || null}
             onPageChange={handlePageChange}
             isLoading={isLoading}
-            error={error}
+            error={error?.message || null}
+            onViewChat={handleViewChat}
           />
         </div>
       </div>
+
+      {/* Chat Modal */}
+      <ChatsModel 
+        isOpen={showChatModal} 
+        onClose={handleCloseChatModal} 
+        chatData={selectedChatData}
+        buyerPart={true}
+      />
     </>
   );
 };
 
-export default ordersMgt;
+export default OrdersMgt;
