@@ -71,20 +71,25 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
 
   // Normalize API data to UI format
   const normalizedSubscriptions: Subscription[] = useMemo(() => {
-    return subscriptions.map((sub: ApiSubscription) => ({
+    console.log('SubscriptionTable Debug - Raw subscriptions data:', subscriptions);
+    
+    const transformed = subscriptions.map((sub: ApiSubscription) => ({
       id: sub.id.toString(),
-      storeName: sub.store_name,
-      ownerName: sub.owner_name,
-      plan: sub.plan_name,
-      price: sub.price,
-      currency: sub.currency,
-      status: sub.status,
-      startDate: sub.start_date,
-      endDate: sub.end_date,
-      daysLeft: Math.round(sub.days_left),
-      subscriptionDate: sub.formatted_date,
-      statusColor: sub.status_color,
+      storeName: sub.store_name || "N/A",
+      ownerName: sub.owner_name || "N/A",
+      plan: sub.plan_name || "Basic", // Default to "Basic" if plan_name is null/undefined
+      price: sub.price || "0",
+      currency: sub.currency || "USD",
+      status: sub.status || "active",
+      startDate: sub.start_date || "",
+      endDate: sub.end_date || "",
+      daysLeft: Math.round(sub.days_left || 0),
+      subscriptionDate: sub.formatted_date || "",
+      statusColor: sub.status_color || "green",
     }));
+    
+    console.log('SubscriptionTable Debug - Transformed subscriptions:', transformed);
+    return transformed;
   }, [subscriptions]);
 
   // Filter subscriptions based on activeTab and searchTerm
@@ -105,7 +110,8 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
     return normalizedSubscriptions.filter((sub) => statusOk(sub) && searchOk(sub));
   }, [normalizedSubscriptions, activeTab, searchTerm]);
 
-  const getPlanTabName = (planName: string): "Basic" | "Standard" | "Ultra" => {
+  const getPlanTabName = (planName: string | undefined | null): "Basic" | "Standard" | "Ultra" => {
+    if (!planName) return "Basic"; // Default fallback for undefined/null
     const lower = planName.toLowerCase();
     if (lower.includes("basic")) return "Basic";
     if (lower.includes("standard")) return "Standard";

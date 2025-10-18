@@ -223,15 +223,6 @@ const API_ENDPOINTS = {
     UpdateLevel: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/level`, // PUT
   },
 
-  // CATEGORIES
-  CATEGORIES: {
-    List: API_DOMAIN + "/categories", // GET
-  },
-
-  // BRANDS
-  BRANDS: {
-    List: API_DOMAIN + "/brands", // GET
-  },
 
   // ADMIN SOCIAL FEED
   ADMIN_SOCIAL_FEED: {

@@ -4,16 +4,16 @@ import ViewStoreModal from "./viewStoreModal";
 
 interface ApiStore {
   id: number;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  owner_name: string;
-  owner_email: string;
-  status: string;
-  onboarding_level: number;
-  created_at: string;
-  formatted_date: string;
-  status_color: string;
+  store_name: string;
+  profile_image: string | null;
+  banner_image: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+  status?: string;
+  onboarding_level?: number;
+  created_at?: string;
+  formatted_date?: string;
+  status_color?: string;
 }
 
 interface StoreKYC {
@@ -65,17 +65,35 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
 
   // Transform API data to UI format
   const normalizedStores = useMemo(() => {
-    return stores.map((store: ApiStore): StoreKYC => ({
-      id: store.id.toString(),
-      storeName: store.name || store.owner_name,
-      emailAddress: store.owner_email || store.email || "N/A",
-      phoneNumber: store.phone || "N/A",
-      submissionDate: store.formatted_date,
-      level: store.onboarding_level,
-      status: store.status === "pending" ? "Pending" : 
-              store.status === "approved" ? "Successful" : 
-              store.status === "rejected" ? "Rejected" : "Pending"
-    }));
+    console.log('StoreKYCTable Debug - Raw stores data:', stores);
+    
+    const transformed = stores.map((store: ApiStore): StoreKYC => {
+      // Handle the actual API response structure
+      const storeName = store.store_name || "N/A";
+      const emailAddress = store.owner_email || "N/A";
+      const phoneNumber = "N/A"; // Not available in current API response
+      const submissionDate = store.formatted_date || store.created_at || new Date().toLocaleDateString();
+      const level = store.onboarding_level || 1; // Default to level 1
+      
+      // Since the API doesn't provide status, we'll default to "Pending"
+      // This could be enhanced based on business logic
+      const status = store.status === "pending" ? "Pending" : 
+                    store.status === "approved" ? "Successful" : 
+                    store.status === "rejected" ? "Rejected" : "Pending";
+      
+      return {
+        id: store.id.toString(),
+        storeName,
+        emailAddress,
+        phoneNumber,
+        submissionDate,
+        level,
+        status
+      };
+    });
+    
+    console.log('StoreKYCTable Debug - Transformed stores:', transformed);
+    return transformed;
   }, [stores]);
 
   // Use real API data

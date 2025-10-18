@@ -36,6 +36,7 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
 
   const stores: Store[] = storesData?.data?.stores || [];
 
+
   // Filter stores based on search term
   const filteredStores = stores.filter(store =>
     store.store_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -75,6 +76,7 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
           />
         </div>
 
+
         {/* Content */}
         <div className="overflow-y-auto max-h-96">
           {isLoading ? (
@@ -85,6 +87,7 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
           ) : error ? (
             <div className="text-center py-12">
               <div className="text-red-500 mb-4">Failed to load stores</div>
+              <div className="text-sm text-gray-500 mb-4">Error: {error.message}</div>
               <button
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
@@ -92,9 +95,14 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
                 Retry
               </button>
             </div>
+          ) : stores.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-lg mb-2">No stores available</div>
+              <div className="text-sm">Please check if stores are properly configured in the system.</div>
+            </div>
           ) : filteredStores.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              {searchTerm ? 'No stores found matching your search.' : 'No stores available.'}
+              No stores found matching your search.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
