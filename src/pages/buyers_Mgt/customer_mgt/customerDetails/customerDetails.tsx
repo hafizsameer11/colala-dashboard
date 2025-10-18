@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../../components/PageHeader";
@@ -14,6 +14,13 @@ const CustomerDetails: React.FC = () => {
   const { state } = useLocation();
   const [activeTab, setActiveTab] = useState("Activity");
   const [selectedChatId, setSelectedChatId] = useState<string | number | null>(null);
+
+  // Handle activeTab from navigation state
+  useEffect(() => {
+    if (state?.activeTab) {
+      setActiveTab(state.activeTab);
+    }
+  }, [state?.activeTab]);
 
   // Fetch user profile data from API
   const { data: profileData, isLoading, error } = useQuery({

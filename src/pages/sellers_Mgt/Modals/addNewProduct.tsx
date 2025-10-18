@@ -1,13 +1,50 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { createProduct, getCategories, getBrands } from "../../../utils/queries/users";
 import images from "../../../constants/images";
+import AddAddressModal from "./addAddressModal";
+import AddNewDeliveryPricing from "./addNewDeliveryPricing";
 
 interface AddNewProductProps {
   isOpen: boolean;
   onClose: () => void;
+  selectedStore?: any;
 }
 
-const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
+const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selectedStore }) => {
+  const queryClient = useQueryClient();
+
+  // Fetch categories and brands data
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: brandsData, isLoading: brandsLoading } = useQuery({
+    queryKey: ['brands'],
+    queryFn: getBrands,
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Create product mutation
+  const createProductMutation = useMutation({
+    mutationFn: createProduct,
+    onSuccess: () => {
+      // Invalidate and refetch products data
+      queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProducts'] });
+      // Reset form and close modal
+      resetForm();
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Failed to create product:', error);
+      setIsSubmitting(false);
+    },
+  });
 
   // Form field states
   const [productName, setProductName] = useState("");
@@ -20,6 +57,21 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
   const [selectedVarient, setSelectedVarient] = useState("");
   const [selectedCoupon, setSelectedCoupon] = useState("");
   const [loyaltyPoints, setLoyaltyPoints] = useState(false);
+  const [hasVariants, setHasVariants] = useState(false);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [showAddDeliveryModal, setShowAddDeliveryModal] = useState(false);
+  
+  // Variant states
+  const [variants, setVariants] = useState<Array<{
+    id?: number;
+    sku?: string;
+    color?: string;
+    size?: string;
+    price?: string;
+    discount_price?: string;
+    stock?: string;
+    images?: File[];
+  }>>([]);
   const [informationTag1, setInformationTag1] = useState("");
   const [informationTag2, setInformationTag2] = useState("");
   const [informationTag3, setInformationTag3] = useState("");
@@ -58,12 +110,11 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
     productImages: "",
   });
 
-  const categories = ["Electronics", "Fashion", "Home Appliances"];
-  const brands = ["Samsung", "Apple", "LG"];
+  // Extract categories and brands from API data
+  const categories = categoriesData?.data || [];
+  const brands = brandsData?.data || [];
   const varients = ["16GB", "32GB", "64GB"];
   const coupons = ["BLACKFRIDAY", "CYBERMONDAY", "NEWYEAR"];
-  const availableLocations = ["Warehouse A", "Warehouse B", "Warehouse C"];
-  const deliveryLocations = ["City A", "City B", "City C"];
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -78,6 +129,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
       });
     };
   }, [productVideo, productImages]);
+
+  if (!isOpen) return null;
 
   const toggleDropdown = (dropdownName: string) => {
     setDropdownStates((prev) => ({
@@ -117,15 +170,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
     closeAllDropdowns();
   };
 
-  const handleAvailableLocationSelect = (location: string) => {
-    setSelectedAvailableLocation(location);
-    closeAllDropdowns();
-  };
-
-  const handleDeliveryLocationSelect = (location: string) => {
-    setSelectedDeliveryLocation(location);
-    closeAllDropdowns();
-  };
 
   // File upload handlers
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,42 +239,91 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
 
     try {
-      // Create product data object
-      const productData = {
-        productName,
-        category: selectedCategory,
-        brand: selectedBrand,
-        shortDescription,
-        fullDescription,
-        price: parseFloat(price),
-        discountPrice: discountPrice ? parseFloat(discountPrice) : null,
-        variant: selectedVarient,
-        couponCode: selectedCoupon,
-        loyaltyPointsAllowed: loyaltyPoints,
-        informationTags: [
-          informationTag1,
-          informationTag2,
-          informationTag3,
-        ].filter((tag) => tag.trim() !== ""),
-        availableLocation: selectedAvailableLocation,
-        deliveryLocation: selectedDeliveryLocation,
-        video: productVideo,
-        images: productImages,
-      };
+      // Create FormData for the API
+      const formData = new FormData();
+      
+      // Add required fields according to backend validation
+      formData.append('store_id', selectedStore?.id?.toString() || '');
+      formData.append('name', productName);
+      formData.append('description', fullDescription);
+      formData.append('price', price);
+      formData.append('quantity', '0'); // Default quantity
+      
+      // Add category_id
+      if (selectedCategory) {
+        formData.append('category_id', selectedCategory);
+      } else {
+        formData.append('category_id', '1'); // Default category
+      }
+      
+      if (selectedBrand) {
+        formData.append('brand', selectedBrand);
+      }
+      
+      if (fullDescription) {
+        formData.append('description', fullDescription);
+      }
+      
+      if (price) {
+        formData.append('price', price);
+      }
+      
+      if (discountPrice) {
+        formData.append('discount_price', discountPrice);
+      }
+      
+      // Add status (nullable field)
+      formData.append('status', 'draft'); // Default to draft
+      
+      // Add video file (nullable)
+      if (productVideo) {
+        formData.append('video', productVideo);
+      }
+      
+      // Add coupon code if selected (nullable)
+      if (selectedCoupon) {
+        formData.append('coupon_code', selectedCoupon);
+      }
+      
+      // Add discount if applicable (nullable)
+      if (discountPrice) {
+        formData.append('discount', discountPrice);
+      }
+      
+      // Add loyalty points (boolean)
+      formData.append('loyality_points_applicable', loyaltyPoints.toString());
+      
+      // Add image files (array)
+      productImages.forEach((image, index) => {
+        formData.append(`images[${index}]`, image);
+      });
+      
+      // Add variants (array) - only if has_variants is true
+      if (hasVariants && variants.length > 0) {
+        variants.forEach((variant, index) => {
+          if (variant.id) formData.append(`variants[${index}][id]`, variant.id.toString());
+          if (variant.sku) formData.append(`variants[${index}][sku]`, variant.sku);
+          if (variant.color) formData.append(`variants[${index}][color]`, variant.color);
+          if (variant.size) formData.append(`variants[${index}][size]`, variant.size);
+          if (variant.price) formData.append(`variants[${index}][price]`, variant.price);
+          if (variant.discount_price) formData.append(`variants[${index}][discount_price]`, variant.discount_price);
+          if (variant.stock) formData.append(`variants[${index}][stock]`, variant.stock);
+          
+          // Add variant images if any
+          if (variant.images && variant.images.length > 0) {
+            variant.images.forEach((image, imgIndex) => {
+              formData.append(`variants[${index}][images][${imgIndex}]`, image);
+            });
+          }
+        });
+      }
 
-      // Simulate API call (replace with actual API endpoint)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Product data to submit:", productData);
-      alert("Product created successfully!");
-
-      // Reset form
-      resetForm();
-      onClose();
+      // Call the mutation
+      await createProductMutation.mutateAsync(formData);
+      
     } catch (error) {
       console.error("Error creating product:", error);
       alert("Error creating product. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -247,6 +340,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
     setSelectedVarient("");
     setSelectedCoupon("");
     setLoyaltyPoints(false);
+    setHasVariants(false);
+    setVariants([]);
     setInformationTag1("");
     setInformationTag2("");
     setInformationTag3("");
@@ -267,6 +362,32 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
       deliveryLocation: "",
       productImages: "",
     });
+  };
+
+  // Variant management functions
+  const addVariant = () => {
+    setVariants([...variants, {
+      sku: '',
+      color: '',
+      size: '',
+      price: '',
+      discount_price: '',
+      stock: '',
+      images: []
+    }]);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
+  const updateVariant = (index: number, field: string, value: string | File[]) => {
+    const updatedVariants = [...variants];
+    updatedVariants[index] = {
+      ...updatedVariants[index],
+      [field]: value
+    };
+    setVariants(updatedVariants);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -626,7 +747,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                   name="productName"
                   id="productName"
                   value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
+                  onChange={(e) => setProductName((e.target as any).value)}
                   placeholder="Enter product name"
                   className={`border rounded-2xl p-5 ${
                     errors.productName ? "border-red-500" : "border-[#989898]"
@@ -669,15 +790,21 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
 
                   {dropdownStates.category && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {categories.map((category, index) => (
-                        <div
-                          key={index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleCategorySelect(category)}
-                        >
-                          {category}
-                        </div>
-                      ))}
+                      {categoriesLoading ? (
+                        <div className="p-4 text-center text-gray-500">Loading categories...</div>
+                      ) : categories.length > 0 ? (
+                        categories.map((category: any) => (
+                          <div
+                            key={category.id}
+                            className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
+                            onClick={() => handleCategorySelect(category.id.toString())}
+                          >
+                            {category.title}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">No categories available</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -714,15 +841,21 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
 
                   {dropdownStates.brand && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {brands.map((brand, index) => (
-                        <div
-                          key={index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleBrandSelect(brand)}
-                        >
-                          {brand}
-                        </div>
-                      ))}
+                      {brandsLoading ? (
+                        <div className="p-4 text-center text-gray-500">Loading brands...</div>
+                      ) : brands.length > 0 ? (
+                        brands.map((brand: any) => (
+                          <div
+                            key={brand.id}
+                            className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
+                            onClick={() => handleBrandSelect(brand.name)}
+                          >
+                            {brand.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">No brands available</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -740,7 +873,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                   name="shortDescription"
                   id="shortDescription"
                   value={shortDescription}
-                  onChange={(e) => setShortDescription(e.target.value)}
+                  onChange={(e) => setShortDescription((e.target as any).value)}
                   placeholder="Type description"
                   className={`border rounded-2xl p-5 ${
                     errors.shortDescription
@@ -762,7 +895,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                   name="fullDescription"
                   id="fullDescription"
                   value={fullDescription}
-                  onChange={(e) => setFullDescription(e.target.value)}
+                  onChange={(e) => setFullDescription((e.target as any).value)}
                   placeholder="Add full description"
                   rows={4}
                   className={`border rounded-2xl p-5 ${
@@ -786,7 +919,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                   name="price"
                   id="price"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => setPrice((e.target as any).value)}
                   placeholder="Type Price"
                   className={`border rounded-2xl p-5 ${
                     errors.price ? "border-red-500" : "border-[#989898]"
@@ -805,7 +938,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                   name="discountPrice"
                   id="discountPrice"
                   value={discountPrice}
-                  onChange={(e) => setDiscountPrice(e.target.value)}
+                  onChange={(e) => setDiscountPrice((e.target as any).value)}
                   placeholder="Type Discount Price"
                   className="border border-[#989898] rounded-2xl p-5"
                 />
@@ -925,7 +1058,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                   name="informationTag1"
                   id="informationTag1"
                   value={informationTag1}
-                  onChange={(e) => setInformationTag1(e.target.value)}
+                  onChange={(e) => setInformationTag1((e.target as any).value)}
                   placeholder="Information Tag 1"
                   className="border border-[#989898] rounded-2xl p-5 mb-2"
                 />
@@ -961,7 +1094,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                         ? "border-red-500"
                         : "border-[#989898]"
                     }`}
-                    onClick={() => toggleDropdown("availableLocation")}
+                    onClick={() => setShowAddAddressModal(true)}
                   >
                     <div
                       className={
@@ -972,30 +1105,11 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                     >
                       {selectedAvailableLocation || "Available locations"}
                     </div>
-                    <div
-                      className={`transform transition-transform duration-200 ${
-                        dropdownStates.availableLocation ? "rotate-90" : ""
-                      }`}
-                    >
+                    <div className="transform transition-transform duration-200">
                       <img src={images?.rightarrow} alt="arrow" />
                     </div>
                   </div>
 
-                  {dropdownStates.availableLocation && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {availableLocations.map((location, index) => (
-                        <div
-                          key={index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                          onClick={() =>
-                            handleAvailableLocationSelect(location)
-                          }
-                        >
-                          {location}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 {errors.availableLocation && (
                   <p className="text-red-500 text-sm mt-1">
@@ -1014,7 +1128,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                         ? "border-red-500"
                         : "border-[#989898]"
                     }`}
-                    onClick={() => toggleDropdown("deliveryLocation")}
+                    onClick={() => setShowAddDeliveryModal(true)}
                   >
                     <div
                       className={
@@ -1025,28 +1139,11 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
                     >
                       {selectedDeliveryLocation || "Delivery locations"}
                     </div>
-                    <div
-                      className={`transform transition-transform duration-200 ${
-                        dropdownStates.deliveryLocation ? "rotate-90" : ""
-                      }`}
-                    >
+                    <div className="transform transition-transform duration-200">
                       <img src={images?.rightarrow} alt="arrow" />
                     </div>
                   </div>
 
-                  {dropdownStates.deliveryLocation && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {deliveryLocations.map((location, index) => (
-                        <div
-                          key={index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleDeliveryLocationSelect(location)}
-                        >
-                          {location}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 {errors.deliveryLocation && (
                   <p className="text-red-500 text-sm mt-1">
@@ -1162,6 +1259,26 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Add Address Modal */}
+      <AddAddressModal
+        isOpen={showAddAddressModal}
+        onClose={() => setShowAddAddressModal(false)}
+        onAddressSaved={() => {
+          setShowAddAddressModal(false);
+          // You can add logic here to update the selected available location
+        }}
+      />
+
+      {/* Add Delivery Modal */}
+      <AddNewDeliveryPricing
+        isOpen={showAddDeliveryModal}
+        onClose={() => setShowAddDeliveryModal(false)}
+        onSave={() => {
+          setShowAddDeliveryModal(false);
+          // You can add logic here to update the selected delivery location
+        }}
+      />
     </div>
   );
 };

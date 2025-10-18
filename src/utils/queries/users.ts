@@ -305,13 +305,16 @@ export const getSellerDetails = async (sellerId: number | string) => {
 /**
  * Get seller orders with pagination
  */
-export const getSellerOrders = async (sellerId: number | string, page: number = 1) => {
+export const getSellerOrders = async (sellerId: number | string, page: number = 1, status?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const url = `${API_ENDPOINTS.STORE_DATA.TabsData.Orders(sellerId)}?page=${page}`;
+    let url = `${API_ENDPOINTS.STORE_DATA.TabsData.Orders(sellerId)}?page=${page}`;
+    if (status && status !== 'All') {
+      url += `&status=${status}`;
+    }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
@@ -551,7 +554,7 @@ export const createSellerBanner = async (userId: number | string, formData: Form
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.SELLER_BANNERS.Create(userId), 'POST', formData, token, true);
+    const response = await apiCall(API_ENDPOINTS.SELLER_BANNERS.Create(userId), 'POST', formData, token);
     return response;
   } catch (error) {
     console.error('Create seller banner API call error:', error);
@@ -568,7 +571,7 @@ export const updateSellerBanner = async (userId: number | string, bannerId: numb
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.SELLER_BANNERS.Update(userId, bannerId), 'PUT', formData, token, true);
+    const response = await apiCall(API_ENDPOINTS.SELLER_BANNERS.Update(userId, bannerId), 'PUT', formData, token);
     return response;
   } catch (error) {
     console.error('Update seller banner API call error:', error);
@@ -715,6 +718,7 @@ export const getAdminOrderDetails = async (storeOrderId: number | string) => {
     throw error;
   }
 };
+
 
 /**
  * Update order status
@@ -957,6 +961,44 @@ export const getAdminProductDetails = async (productId: number | string) => {
 };
 
 /**
+ * Get admin services with pagination and filtering
+ */
+export const getAdminServices = async (page: number = 1, status?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = `${API_ENDPOINTS.ADMIN_SERVICES.List}?page=${page}`;
+    if (status && status !== 'All') {
+      url += `&status=${status}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Admin services API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get admin service details
+ */
+export const getAdminServiceDetails = async (serviceId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SERVICES.Details(serviceId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Admin service details API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get admin stores with pagination and filtering
  */
 export const getAdminStores = async (page: number = 1, status?: string, level?: number | string) => {
@@ -1142,6 +1184,75 @@ export const getUserDetails = async (userId: number | string) => {
     return response;
   } catch (error) {
     console.error('User details API call error:', error);
+    throw error;
+  }
+};
+
+
+/**
+ * Create a new service
+ */
+export const createService = async (serviceData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SERVICES.Create, 'POST', serviceData, token);
+    return response;
+  } catch (error) {
+    console.error('Create service API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new product
+ */
+export const createProduct = async (productData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_PRODUCTS.Create, 'POST', productData, token);
+    return response;
+  } catch (error) {
+    console.error('Create product API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get categories list
+ */
+export const getCategories = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.CATEGORIES.List, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get categories API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get brands list
+ */
+export const getBrands = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BRANDS.List, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get brands API call error:', error);
     throw error;
   }
 };

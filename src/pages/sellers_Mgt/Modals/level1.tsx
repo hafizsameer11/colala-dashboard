@@ -1,17 +1,32 @@
 import images from "../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fetchCategories } from "../../../utils/queries";
+import type { Category } from "../../../utils/queries";
 
 interface Level1Props {
   onSaveAndClose?: () => void;
-  onProceed?: () => void;
+  onProceed?: (data: {
+    storeName: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+    category: number;
+    showPhoneOnProfile: boolean;
+    profileImageFile?: File | null;
+    bannerImageFile?: File | null;
+    socialLinks?: Array<{ type: string; url: string }>;
+  }) => void;
+  isLoading?: boolean;
 }
 
-const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
+const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = false }) => {
   const [showPhoneOnProfile, setShowPhoneOnProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -23,30 +38,98 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
     facebookProfile: "",
   });
 
-  const categories = [
-    "Electronics",
-    "Phones & Accessories",
-    "Fashion & Clothing",
-    "Home & Garden",
-    "Sports & Fitness",
-    "Books & Media",
-    "Beauty & Health",
-    "Automotive",
-    "Toys & Games",
-    "Food & Beverages",
-  ];
+  // Image upload state
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [bannerImage, setBannerImage] = useState<string | null>(null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null); // For form submission
+  const [bannerImageFile, setBannerImageFile] = useState<File | null>(null); // For form submission
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await fetchCategories();
+        if (response.status === 'success') {
+          console.log('Categories loaded:', response.data.categories);
+          setCategories(response.data.categories);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const togglePhoneVisibility = () => {
-    setShowPhoneOnProfile(!showPhoneOnProfile);
+    const newValue = !showPhoneOnProfile;
+    console.log('Toggling showPhoneOnProfile from', showPhoneOnProfile, 'to', newValue);
+    setShowPhoneOnProfile(newValue);
   };
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
+  const handleCategorySelect = (categoryId: number) => {
+    setSelectedCategory(categoryId);
     setIsDropdownOpen(false);
+  };
+
+  // Image upload handlers
+  const handleProfileImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, JPG, GIF)');
+        return;
+      }
+      
+      // Validate file size (2MB max)
+      const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+      if (file.size > maxSize) {
+        alert('Image size should not exceed 2MB');
+        return;
+      }
+      
+      setProfileImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, JPG, GIF)');
+        return;
+      }
+      
+      // Validate file size (2MB max)
+      const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+      if (file.size > maxSize) {
+        alert('Image size should not exceed 2MB');
+        return;
+      }
+      
+      setBannerImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBannerImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +149,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
       !formData.email ||
       !formData.phoneNumber ||
       !password ||
-      !selectedCategory
+      selectedCategory === null
     ) {
       alert("Please fill in all required fields");
       return;
@@ -76,7 +159,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
     const storeData = {
       ...formData,
       password,
-      category: selectedCategory,
+      category: selectedCategory!,
       showPhoneOnProfile,
       level1Completed: true,
       submittedAt: new Date().toISOString(),
@@ -99,7 +182,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
       !formData.email ||
       !formData.phoneNumber ||
       !password ||
-      !selectedCategory
+      selectedCategory === null
     ) {
       alert("Please fill in all required fields");
       return;
@@ -109,39 +192,78 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
     const storeData = {
       ...formData,
       password,
-      category: selectedCategory,
+      category: selectedCategory!,
       showPhoneOnProfile,
+      profileImage: profileImage,
+      bannerImage: bannerImage,
+      profileImageFile: profileImageFile,
+      bannerImageFile: bannerImageFile,
       level1Completed: true,
       submittedAt: new Date().toISOString(),
     };
+    
+    console.log('Level1 handleProceed - showPhoneOnProfile:', showPhoneOnProfile, 'type:', typeof showPhoneOnProfile);
 
     localStorage.setItem("storeFormData", JSON.stringify(storeData));
     console.log("Proceeding to Level 2 with data:", storeData);
 
     if (onProceed) {
-      onProceed();
+      onProceed(storeData);
     }
   };
   return (
     <div className="mt-5">
       {/* Profile tab content goes here */}
       <div className="flex justify-center items-center mt-10 mb-5">
-        <div className="bg-[#EDEDED] rounded-full w-30 h-30 flex justify-center items-center cursor-pointer">
-          <button className="flex justify-center items-center cursor-pointer">
-            <img src={images.img} alt="" />
-          </button>
+        <div className="bg-[#EDEDED] rounded-full w-30 h-30 flex justify-center items-center cursor-pointer relative overflow-hidden">
+          {profileImage ? (
+            <img 
+              src={profileImage} 
+              alt="Profile Preview" 
+              className="w-full h-full object-cover rounded-full"
+            />
+          ) : (
+            <button className="flex justify-center items-center cursor-pointer">
+              <img src={images.img} alt="" />
+            </button>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleProfileImageChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
         </div>
       </div>
       <div className="">
-        <div className="bg-[#EDEDED] w-full rounded-2xl p-6">
-          <div className="flex flex-col justify-center items-center">
-            <div className="flex justify-center items-center cursor-pointer mb-2">
-              <img src={images.cam} alt="" />
+        <div className="bg-[#EDEDED] w-full rounded-2xl p-6 relative overflow-hidden">
+          {bannerImage ? (
+            <div className="relative">
+              <img 
+                src={bannerImage} 
+                alt="Banner Preview" 
+                className="w-full h-32 object-cover rounded-xl"
+              />
+              <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-2">
+                <img src={images.cam} alt="Change" className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <div className="text-[#00000080] flex justify-center items-center">
-            Upload Banner
-          </div>
+          ) : (
+            <div className="flex flex-col justify-center items-center">
+              <div className="flex justify-center items-center cursor-pointer mb-2">
+                <img src={images.cam} alt="" />
+              </div>
+              <div className="text-[#00000080] flex justify-center items-center">
+                Upload Banner
+              </div>
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleBannerImageChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
         </div>
       </div>
       <div className="mt-5">
@@ -278,7 +400,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
                     selectedCategory ? "text-black" : "text-[#00000080]"
                   }
                 >
-                  {selectedCategory || "Select Category"}
+                  {selectedCategory ? categories.find(cat => cat.id === selectedCategory)?.title || "Select Category" : "Select Category"}
                 </div>
                 <div
                   className={`transform transition-transform duration-200 ${
@@ -291,15 +413,25 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
 
               {isDropdownOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-2xl shadow-lg max-h-60 overflow-y-auto">
-                  {categories.map((category, index) => (
-                    <div
-                      key={index}
-                      className="p-4 hover:bg-gray-50 cursor-pointer text-lg border-b border-gray-100 last:border-b-0"
-                      onClick={() => handleCategorySelect(category)}
-                    >
-                      {category}
+                  {categoriesLoading ? (
+                    <div className="p-4 text-center text-gray-500">
+                      Loading categories...
                     </div>
-                  ))}
+                  ) : categories.length > 0 ? (
+                    categories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="p-4 hover:bg-gray-50 cursor-pointer text-lg border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleCategorySelect(category.id)}
+                      >
+                        {category.title}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500">
+                      No categories available
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -360,9 +492,12 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed }) => {
             </button>
             <button
               type="submit"
-              className="bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors"
+              disabled={isLoading}
+              className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Proceed
+              {isLoading ? 'Processing...' : 'Proceed'}
             </button>
           </div>
         </form>

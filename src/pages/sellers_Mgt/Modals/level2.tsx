@@ -4,10 +4,19 @@ import React from "react";
 
 interface Level2Props {
   onSaveAndClose: () => void;
-  onProceed: () => void;
+  onProceed: (data: {
+    businessName: string;
+    businessType: string;
+    ninNumber: string;
+    cacNumber?: string;
+    ninDocument?: File;
+    cacDocument?: File;
+    utilityBill?: File;
+  }) => void;
+  isLoading?: boolean;
 }
 
-const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed }) => {
+const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = false }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedbusinessTypes, setSelectedbusinessTypes] = useState("");
   const [formData, setFormData] = useState({
@@ -37,16 +46,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed }) => {
   }, []);
 
   const businessTypes = [
-    "Electronics",
-    "Phones & Accessories",
-    "Fashion & Clothing",
-    "Home & Garden",
-    "Sports & Fitness",
-    "Books & Media",
-    "Beauty & Health",
-    "Automotive",
-    "Toys & Games",
-    "Food & Beverages",
+    "BN", // Business Name
+    "LTD", // Limited Company
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,8 +125,17 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed }) => {
   const handleProceed = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      const level2Data = {
+        businessName: formData.businessName,
+        businessType: selectedbusinessTypes,
+        ninNumber: formData.ninNumber,
+        cacNumber: formData.cacNumber || undefined,
+        ninDocument: formData.ninSlip || undefined,
+        cacDocument: formData.cacCertificate || undefined,
+        utilityBill: formData.ninSlip || undefined, // Using ninSlip as utility bill for now
+      };
       saveFormData();
-      onProceed();
+      onProceed(level2Data);
     }
   };
 
@@ -352,9 +362,12 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed }) => {
               </button>
               <button
                 type="submit"
-                className="bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors"
+                disabled={isLoading}
+                className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${
+                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Proceed
+                {isLoading ? 'Processing...' : 'Proceed'}
               </button>
             </div>
           </form>

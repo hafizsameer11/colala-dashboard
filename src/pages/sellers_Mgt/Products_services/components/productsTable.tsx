@@ -4,6 +4,7 @@ import ProductDetailsModal from "../../Modals/productDetailsModal";
 interface ApiProduct {
   id: number;
   name: string;
+  description?: string;
   price: string;
   discount_price: string;
   store_name: string;
@@ -43,12 +44,16 @@ interface ProductsTableProps {
   /** debounced search string from parent */
   searchTerm?: string;
   products?: ApiProduct[];
-  pagination?: any;
+  pagination?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
   currentPage?: number;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
-  error?: any;
-  onBulkAction?: (action: string) => void;
+  error?: Error | null;
 }
 
 const ProductsTable: React.FC<ProductsTableProps> = ({
@@ -62,7 +67,6 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   onPageChange,
   isLoading = false,
   error,
-  onBulkAction,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -145,8 +149,25 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   };
 
   const handleShowDetails = (product: Product) => {
-    setSelectedProduct(product);
-    setShowModal(true);
+    // Find the original API product data
+    const originalProduct = products.find(p => String(p.id) === product.id);
+    if (originalProduct) {
+      setSelectedProduct({
+        id: String(originalProduct.id),
+        storeName: originalProduct.store_name,
+        productName: originalProduct.name,
+        price: originalProduct.price,
+        discountPrice: originalProduct.discount_price,
+        date: originalProduct.formatted_date,
+        sponsored: originalProduct.is_sponsored,
+        productImage: originalProduct.primary_image || '',
+        status: originalProduct.status,
+        quantity: originalProduct.quantity,
+        reviewsCount: originalProduct.reviews_count,
+        averageRating: originalProduct.average_rating,
+      });
+      setShowModal(true);
+    }
   };
 
   return (
@@ -280,7 +301,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
       <ProductDetailsModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        product={selectedProduct}
+        product={selectedProduct || undefined}
       />
     </div>
   );

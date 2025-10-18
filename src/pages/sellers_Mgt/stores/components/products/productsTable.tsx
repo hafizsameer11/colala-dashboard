@@ -226,7 +226,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
           setSelectedProductId(null);
         }}
         userId={userId}
-        productId={selectedProductId || undefined}
+        product={{ id: selectedProductId }}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSellerAnnouncements, createSellerAnnouncement, updateSellerAnnouncement, getSellerBanners, createSellerBanner, updateSellerBanner, deleteSellerBanner } from "../../../../../utils/queries/users";
@@ -15,76 +15,194 @@ const Announcements = () => {
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
-  const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<{ id: string; message: string } | null>(null);
+  const [editingBanner, setEditingBanner] = useState<{ id: string; title: string; description: string; image: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("All");
 
   const queryClient = useQueryClient();
 
-  // Fetch announcements data
-  const { data: announcementsData, isLoading: announcementsLoading, error: announcementsError } = useQuery({
-    queryKey: ['sellerAnnouncements', storeId, currentPage],
+  // Ensure data is fetched when component mounts
+  useEffect(() => {
+    if (storeId) {
+      console.log('Component mounted, fetching data for storeId:', storeId);
+      // The queries will automatically run due to enabled: !!storeId
+    }
+  }, [storeId]);
+
+  // Fetch announcements data - always load when page loads
+  const { data: announcementsData, isLoading: announcementsLoading, error: announcementsError, refetch: refetchAnnouncements } = useQuery({
+    queryKey: ['sellerAnnouncements', storeId],
     queryFn: () => {
-      console.log('Fetching announcements for storeId:', storeId, 'page:', currentPage);
-      return getSellerAnnouncements(storeId!, currentPage);
+      console.log('Fetching announcements for storeId:', storeId);
+      return getSellerAnnouncements(storeId!, 1); // Load first page initially
     },
-    enabled: !!storeId && (activeTab === "All" || activeTab === "Text"),
-    keepPreviousData: true,
-    retry: 1,
-    onError: (error) => {
-      console.error('Announcements fetch error:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Announcements fetch success:', data);
-    },
+    enabled: !!storeId,
+    retry: 3,
+    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for more fresh data
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Always refetch on mount
   });
 
-  // Fetch banners data
-  const { data: bannersData, isLoading: bannersLoading, error: bannersError } = useQuery({
-    queryKey: ['sellerBanners', storeId, currentPage],
+  // Fetch banners data - always load when page loads
+  const { data: bannersData, isLoading: bannersLoading, error: bannersError, refetch: refetchBanners } = useQuery({
+    queryKey: ['sellerBanners', storeId],
     queryFn: () => {
-      console.log('Fetching banners for storeId:', storeId, 'page:', currentPage);
-      return getSellerBanners(storeId!, currentPage);
+      console.log('Fetching banners for storeId:', storeId);
+      return getSellerBanners(storeId!, 1); // Load first page initially
     },
-    enabled: !!storeId && activeTab === "Banner",
-    keepPreviousData: true,
-    retry: 1,
-    onError: (error) => {
-      console.error('Banners fetch error:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Banners fetch success:', data);
-    },
+    enabled: !!storeId,
+    retry: 3,
+    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for more fresh data
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Always refetch on mount
   });
 
-  // Try different possible data structures
-  const announcements = announcementsData?.data?.announcements || announcementsData?.announcements || [];
-  const banners = bannersData?.data?.banners || bannersData?.banners || [];
-  const announcementsPagination = announcementsData?.data?.pagination || announcementsData?.pagination;
-  const bannersPagination = bannersData?.data?.pagination || bannersData?.pagination;
+  // Extract data from API responses with better error handling
+  const allAnnouncements = React.useMemo(() => {
+    if (!announcementsData) return [];
+    
+    // Handle different possible response structures
+    const data = announcementsData as any;
+    const announcements = data?.data?.announcements || 
+                         data?.announcements || 
+                         data?.data || 
+                         [];
+    
+    return Array.isArray(announcements) ? announcements : [];
+  }, [announcementsData]);
 
-  // Determine current data based on active tab
-  const currentData = activeTab === "Banner" ? banners : announcements;
-  const currentPagination = activeTab === "Banner" ? bannersPagination : announcementsPagination;
-  const isLoading = activeTab === "Banner" ? bannersLoading : announcementsLoading;
-  const error = activeTab === "Banner" ? bannersError : announcementsError;
+  const allBanners = React.useMemo(() => {
+    if (!bannersData) return [];
+    
+    // Handle different possible response structures
+    const data = bannersData as any;
+    const banners = data?.data?.banners || 
+                   data?.banners || 
+                   data?.data || 
+                   [];
+    
+    return Array.isArray(banners) ? banners : [];
+  }, [bannersData]);
 
-  // Debug logging
-  console.log('Active tab:', activeTab);
-  console.log('Announcements data:', announcementsData);
-  console.log('Banners data:', bannersData);
-  console.log('Current data:', currentData);
-  console.log('Is loading:', isLoading);
-  console.log('Error:', error);
+  // Combine all data for filtering with proper type assignment
+  const allData = React.useMemo(() => {
+    const combinedData = [
+      ...allAnnouncements.map((item: any) => ({ 
+        ...item, 
+        type: 'text',
+        id: item.id || item.announcement_id || Math.random().toString(),
+        created_at: item.created_at || item.createdAt || item.date || new Date().toISOString(),
+        title: item.title || item.message || 'Announcement',
+        content: item.message || item.content || item.description || ''
+      })),
+      ...allBanners.map((item: any) => ({ 
+        ...item, 
+        type: 'banner',
+        id: item.id || item.banner_id || Math.random().toString(),
+        created_at: item.created_at || item.createdAt || item.date || new Date().toISOString(),
+        title: item.title || item.name || 'Banner',
+        content: item.description || item.content || item.message || ''
+      }))
+    ];
+    
+    return combinedData;
+  }, [allAnnouncements, allBanners]);
 
-  const handlePageChange = (page: number) => {
-    if (page !== currentPage) setCurrentPage(page);
-  };
+  // Filter data based on active tab with improved logic
+  const getFilteredData = React.useMemo(() => {
+    let filtered = [...allData]; // Create a copy to avoid mutating original array
 
-  // Create announcement mutation
+    console.log('Starting filter with:', {
+      totalItems: filtered.length,
+      activeTab,
+      searchTerm,
+      dateFilter
+    });
+
+    // Filter by type (tab)
+    if (activeTab === "Text") {
+      filtered = filtered.filter(item => item.type === 'text');
+    } else if (activeTab === "Banner") {
+      filtered = filtered.filter(item => item.type === 'banner');
+    }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(item => {
+        const searchableText = [
+          item.title || '',
+          item.content || '',
+          item.message || '',
+          item.description || '',
+          item.name || ''
+        ].join(' ').toLowerCase();
+        
+        return searchableText.includes(searchLower);
+      });
+    }
+
+    // Filter by date
+    if (dateFilter !== "All") {
+      const now = new Date();
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      switch (dateFilter) {
+        case "Today":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          break;
+        case "Yesterday":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case "This Week":
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - now.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "This Month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        default:
+          break;
+      }
+      
+      if (startDate) {
+        filtered = filtered.filter(item => {
+          const itemDate = new Date(item.created_at || item.updated_at || item.createdAt || item.updatedAt);
+          
+          if (endDate) {
+            return itemDate >= startDate! && itemDate < endDate;
+          } else {
+            return itemDate >= startDate!;
+          }
+        });
+      }
+    }
+
+    // Sort by creation date (newest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || a.updated_at || a.createdAt || a.updatedAt);
+      const dateB = new Date(b.created_at || b.updated_at || b.createdAt || b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return filtered;
+  }, [allData, activeTab, searchTerm, dateFilter]);
+
+  const filteredData = getFilteredData;
+  const isLoading = announcementsLoading || bannersLoading;
+  const error = announcementsError || bannersError;
+
+  // All mutations must be defined before any early returns
   const createMutation = useMutation({
     mutationFn: (message: string) => createSellerAnnouncement(storeId!, message),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerAnnouncements', storeId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerBanners', storeId] });
       setShowAnnouncementModal(false);
     },
     onError: (error) => {
@@ -93,12 +211,12 @@ const Announcements = () => {
     },
   });
 
-  // Update announcement mutation
   const updateMutation = useMutation({
     mutationFn: ({ announcementId, message }: { announcementId: string; message: string }) => 
       updateSellerAnnouncement(storeId!, announcementId, message),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerAnnouncements', storeId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerBanners', storeId] });
       setEditingAnnouncement(null);
     },
     onError: (error) => {
@@ -107,24 +225,11 @@ const Announcements = () => {
     },
   });
 
-  const handleCreateAnnouncement = (message: string) => {
-    createMutation.mutate(message);
-  };
-
-  const handleUpdateAnnouncement = (announcementId: string, message: string) => {
-    updateMutation.mutate({ announcementId, message });
-  };
-
-  const handleEditAnnouncement = (announcement: any) => {
-    setEditingAnnouncement(announcement);
-    setShowAnnouncementModal(true);
-  };
-
-  // Banner mutations
   const createBannerMutation = useMutation({
     mutationFn: (formData: FormData) => createSellerBanner(storeId!, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerBanners', storeId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerAnnouncements', storeId] });
       setShowBannerModal(false);
     },
     onError: (error) => {
@@ -138,6 +243,7 @@ const Announcements = () => {
       updateSellerBanner(storeId!, bannerId, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerBanners', storeId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerAnnouncements', storeId] });
       setEditingBanner(null);
     },
     onError: (error) => {
@@ -150,12 +256,36 @@ const Announcements = () => {
     mutationFn: (bannerId: string) => deleteSellerBanner(storeId!, bannerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerBanners', storeId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerAnnouncements', storeId] });
     },
     onError: (error) => {
       console.error('Failed to delete banner:', error);
       alert('Failed to delete banner. Please try again.');
     },
   });
+
+  // Handle API errors
+  const handleRetry = () => {
+    refetchAnnouncements();
+    refetchBanners();
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
+
+  const handleCreateAnnouncement = (message: string) => {
+    createMutation.mutate(message);
+  };
+
+  const handleUpdateAnnouncement = (announcementId: string, message: string) => {
+    updateMutation.mutate({ announcementId, message });
+  };
+
+  const handleEditAnnouncement = (announcement: any) => {
+    setEditingAnnouncement(announcement);
+    setShowAnnouncementModal(true);
+  };
 
   const handleCreateBanner = (formData: FormData) => {
     createBannerMutation.mutate(formData);
@@ -181,6 +311,40 @@ const Announcements = () => {
     console.log("Bulk action selected in Orders:", action);
     // Add your custom logic here
   };
+
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading announcements and banners...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load data</h3>
+          <p className="text-gray-600 mb-4">
+            {error?.message || 'An error occurred while loading announcements and banners.'}
+          </p>
+          <button
+            onClick={handleRetry}
+            className="bg-[#E53E3E] text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -210,7 +374,17 @@ const Announcements = () => {
               <TabButtons />
             </div>
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
-              <div>Today</div>
+              <select 
+                value={dateFilter} 
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="bg-transparent border-none outline-none cursor-pointer"
+              >
+                <option value="Today">Today</option>
+                <option value="Yesterday">Yesterday</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="All">All Time</option>
+              </select>
               <div>
                 <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
@@ -239,7 +413,9 @@ const Announcements = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search announcements and banners..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -261,21 +437,12 @@ const Announcements = () => {
           </div>
         </div>
         <div className="mt-5">
-          {/* Debug info */}
-          {/* <div className="mb-4 p-4 bg-gray-100 rounded">
-            <p><strong>Debug Info:</strong></p>
-            <p>Store ID: {storeId}</p>
-            <p>Is Loading: {isLoading ? 'Yes' : 'No'}</p>
-            <p>Has Error: {error ? 'Yes' : 'No'}</p>
-            <p>Announcements Count: {announcements.length}</p>
-            <p>Raw Data: {JSON.stringify(announcementsData, null, 2)}</p>
-          </div> */}
           
           <AnnouncementsTable 
-            announcements={activeTab === "Banner" ? banners : announcements}
+            announcements={Array.isArray(filteredData) ? filteredData : []}
             isLoading={isLoading}
             error={error as any}
-            pagination={currentPagination}
+            pagination={undefined} // We're doing client-side filtering now
             currentPage={currentPage}
             onPageChange={handlePageChange}
             activeTab={activeTab}

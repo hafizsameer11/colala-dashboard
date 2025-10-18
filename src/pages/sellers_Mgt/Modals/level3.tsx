@@ -1,18 +1,19 @@
 import { useState } from "react";
 import React from "react";
 import images from "../../../constants/images";
+import AddAddressModal from "./addAddressModal";
+import DeliveryPricingModal from "./deliveryPricingModal";
 
 interface Level3Props {
   onSaveAndClose?: () => void;
-  onProceed?: () => void;
+  onProceed?: (data: any) => void;
+  isLoading?: boolean;
 }
 
-const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
+const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = false }) => {
   // Separate dropdown states for each dropdown
   const [dropdownStates, setDropdownStates] = useState({
     businessType: false,
-    storeAddress: false,
-    deliveryPricing: false,
     approvalStatus: false,
   });
   const [selectedbusinessTypes, setSelectedbusinessTypes] = useState("");
@@ -21,6 +22,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
   const [selectedapprovalStatus, setSelectedapprovalStatus] = useState("");
   const [selectedBrandColor, setSelectedBrandColor] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false);
+  const [isDeliveryPricingModalOpen, setIsDeliveryPricingModalOpen] = useState(false);
   const [errors, setErrors] = useState<{
     businessType?: string;
     storeAddress?: string;
@@ -30,8 +33,6 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
   }>({});
 
   const businessTypes = ["Yes", "No"];
-  const storeAddress = ["Address 1", "Address 2", "Address 3"];
-  const deliveryPricing = ["Free upto 10 km", "Paid for more then 10 km"];
   const approvalStatus = ["Approved", "Pending", "Rejected"];
 
   // Brand colors array
@@ -82,24 +83,48 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
     }
   };
 
-  const handlestoreAddressSelect = (storeAddress: string) => {
-    setSelectedstoreAddress(storeAddress);
-    setDropdownStates((prev) => ({ ...prev, storeAddress: false }));
-    if (errors.storeAddress) {
-      setErrors((prev) => ({ ...prev, storeAddress: "" }));
-    }
+  const handlestoreAddressClick = () => {
+    handleOpenAddAddressModal();
   };
 
-  const handledeliveryPricingSelect = (deliveryPricing: string) => {
-    setSelecteddeliveryPricing(deliveryPricing);
-    setDropdownStates((prev) => ({ ...prev, deliveryPricing: false }));
-    if (errors.deliveryPricing) {
-      setErrors((prev) => ({ ...prev, deliveryPricing: "" }));
-    }
+  const handledeliveryPricingClick = () => {
+    handleOpenDeliveryPricingModal();
   };
 
   const handleBrandColorSelect = (color: string) => {
     setSelectedBrandColor(color);
+  };
+
+  // Modal handlers
+  const handleOpenAddAddressModal = () => {
+    setIsAddAddressModalOpen(true);
+  };
+
+  const handleCloseAddAddressModal = () => {
+    setIsAddAddressModalOpen(false);
+  };
+
+  const handleOpenDeliveryPricingModal = () => {
+    setIsDeliveryPricingModalOpen(true);
+  };
+
+  const handleCloseDeliveryPricingModal = () => {
+    setIsDeliveryPricingModalOpen(false);
+  };
+
+  const handleAddressSaved = () => {
+    // Update the selected address to show that an address was added
+    setSelectedstoreAddress("Address Added");
+    handleCloseAddAddressModal();
+  };
+
+  const handleDeliveryPricingSaved = (pricingData: { state: string; lga: string; deliveryFee: string; isFreeDelivery: boolean }) => {
+    // Update the selected delivery pricing to show that pricing was added
+    const pricingText = pricingData.isFreeDelivery 
+      ? `Free delivery for ${pricingData.state}, ${pricingData.lga}`
+      : `${pricingData.deliveryFee} for ${pricingData.state}, ${pricingData.lga}`;
+    setSelecteddeliveryPricing(pricingText);
+    handleCloseDeliveryPricingModal();
   };
 
   // Handle video upload
@@ -231,9 +256,19 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
   const handleProceed = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      const level3Data = {
+        has_physical_store: selectedbusinessTypes === "Yes",
+        store_video: selectedVideo,
+        utility_bill: selectedVideo, // Using video as utility bill for now
+        theme_color: selectedBrandColor,
+        addresses: [], // Will be populated from saved addresses
+        delivery_pricing: [], // Will be populated from saved pricing
+        level3Completed: true,
+        submittedAt: new Date().toISOString(),
+      };
       saveFormData();
       if (onProceed) {
-        onProceed();
+        onProceed(level3Data);
       } else {
         console.log("onProceed prop not provided");
       }
@@ -332,37 +367,19 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
               className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
                 errors.storeAddress ? "border-red-500" : "border-[#989898]"
               }`}
-              onClick={() => toggleDropdown("storeAddress")}
+              onClick={handlestoreAddressClick}
             >
               <div
                 className={
                   selectedstoreAddress ? "text-black" : "text-[#00000080]"
                 }
               >
-                {selectedstoreAddress || "Select option"}
+                {selectedstoreAddress || "Add New Address"}
               </div>
-              <div
-                className={`transform transition-transform duration-200 ${
-                  dropdownStates.storeAddress ? "rotate-90" : ""
-                }`}
-              >
+              <div className="transform transition-transform duration-200">
                 <img src={images?.rightarrow} alt="arrow" />
               </div>
             </div>
-
-            {dropdownStates.storeAddress && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-2xl shadow-lg max-h-60 overflow-y-auto">
-                {storeAddress.map((storeAddress, index) => (
-                  <div
-                    key={index}
-                    className="p-4 hover:bg-gray-50 cursor-pointer text-lg border-b border-gray-100 last:border-b-0"
-                    onClick={() => handlestoreAddressSelect(storeAddress)}
-                  >
-                    {storeAddress}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
           {errors.storeAddress && (
             <p className="text-red-500 text-sm mt-1">{errors.storeAddress}</p>
@@ -377,37 +394,19 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
               className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
                 errors.deliveryPricing ? "border-red-500" : "border-[#989898]"
               }`}
-              onClick={() => toggleDropdown("deliveryPricing")}
+              onClick={handledeliveryPricingClick}
             >
               <div
                 className={
                   selecteddeliveryPricing ? "text-black" : "text-[#00000080]"
                 }
               >
-                {selecteddeliveryPricing || "Select option"}
+                {selecteddeliveryPricing || "Add New Delivery Pricing"}
               </div>
-              <div
-                className={`transform transition-transform duration-200 ${
-                  dropdownStates.deliveryPricing ? "rotate-90" : ""
-                }`}
-              >
+              <div className="transform transition-transform duration-200">
                 <img src={images?.rightarrow} alt="arrow" />
               </div>
             </div>
-
-            {dropdownStates.deliveryPricing && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-2xl shadow-lg max-h-60 overflow-y-auto">
-                {deliveryPricing.map((deliveryPricing, index) => (
-                  <div
-                    key={index}
-                    className="p-4 hover:bg-gray-50 cursor-pointer text-lg border-b border-gray-100 last:border-b-0"
-                    onClick={() => handledeliveryPricingSelect(deliveryPricing)}
-                  >
-                    {deliveryPricing}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
           {errors.deliveryPricing && (
             <p className="text-red-500 text-sm mt-1">
@@ -523,12 +522,29 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed }) => {
           <button
             type="submit"
             onClick={handleProceed}
-            className="bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors"
+            disabled={isLoading}
+            className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Proceed
+            {isLoading ? 'Processing...' : 'Proceed'}
           </button>
         </div>
       </form>
+
+      {/* Add Address Modal */}
+      <AddAddressModal
+        isOpen={isAddAddressModalOpen}
+        onClose={handleCloseAddAddressModal}
+        onAddressSaved={handleAddressSaved}
+      />
+
+      {/* Delivery Pricing Modal */}
+      <DeliveryPricingModal
+        isOpen={isDeliveryPricingModalOpen}
+        onClose={handleCloseDeliveryPricingModal}
+        onSave={handleDeliveryPricingSaved}
+      />
     </div>
   );
 };

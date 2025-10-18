@@ -2,23 +2,45 @@ import React, { useMemo, useState, useEffect } from "react";
 import TransactionsModel from "../Modals/transactionsModel";
 
 interface Transaction {
-  id: string;
-  reference: string;
-  amount: string;
-  type: "Withdrawals" | "Payments" | "Deposit";
-  date: string;
-  status: "Successful" | "Pending" | "Failed";
+  id: string | number;
+  tx_id?: string;
+  reference?: string;
+  amount: string | number;
+  amount_formatted?: string;
+  type: string;
+  date?: string;
+  created_at?: string;
+  formatted_date?: string;
+  status: string;
+  status_color?: string;
+  user_name?: string;
+  user_email?: string;
+}
+
+interface Pagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 interface TransactionTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   /** Status filter from tabs */
-  statusFilter?: "All" | "Pending" | "Successful" | "Failed";
+  statusFilter?: "All" | "pending" | "success" | "completed" | "failed";
   /** Type filter from DepositDropdown */
   typeFilter?: "All" | "Deposit" | "Withdrawals" | "Payments";
   /** Debounced search string */
   searchTerm?: string;
+  /** Real transaction data from API */
+  transactions?: Transaction[];
+  /** Pagination data */
+  pagination?: Pagination;
+  /** Page change handler */
+  onPageChange?: (page: number) => void;
+  /** Loading state */
+  isLoading?: boolean;
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
@@ -27,6 +49,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   statusFilter = "All",
   typeFilter = "All",
   searchTerm = "",
+  transactions = [],
+  pagination,
+  onPageChange,
+  isLoading = false,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -34,64 +60,23 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [selectedTransactionTable, setSelectedTransactionTable] =
     useState<Transaction | null>(null);
 
-  const transactions: Transaction[] = [
-    {
-      id: "1",
-      reference: "zxcvbnmkljhgfdsA",
-      amount: "₦1,000",
-      type: "Withdrawals",
-      date: "18-07-2025/11:30AM",
-      status: "Successful",
-    },
-    {
-      id: "2",
-      reference: "poiuytrewqasdfgh",
-      amount: "₦12,750",
-      type: "Payments",
-      date: "18-07-2025/09:05AM",
-      status: "Pending",
-    },
-    {
-      id: "3",
-      reference: "mnbvcxzlkjhgfdrp",
-      amount: "₦50,000",
-      type: "Withdrawals",
-      date: "17-07-2025/01:45PM",
-      status: "Successful",
-    },
-    {
-      id: "4",
-      reference: "asdfghzxcvbnqwe",
-      amount: "₦5,500",
-      type: "Deposit",
-      date: "19-07-2025/02:15PM",
-      status: "Failed",
-    },
-    {
-      id: "5",
-      reference: "qwaszxedcrfvtgby",
-      amount: "₦20,000",
-      type: "Payments",
-      date: "20-07-2025/07:58PM",
-      status: "Successful",
-    },
-    {
-      id: "6",
-      reference: "qwertyuiopasdfgh",
-      amount: "₦2,500",
-      type: "Deposit",
-      date: "16-07-2025/08:22PM",
-      status: "Failed",
-    },
-    {
-      id: "7",
-      reference: "jhgfdsapoiuytrew",
-      amount: "₦10,000",
-      type: "Deposit",
-      date: "17-07-2025/10:00AM",
-      status: "Successful",
-    },
-  ];
+  // Transform API data to match expected format
+  const transformedTransactions = useMemo(() => {
+    return transactions.map((tx) => ({
+      id: tx.id,
+      reference: tx.tx_id || tx.reference || 'N/A',
+      amount: tx.amount_formatted || (typeof tx.amount === 'number' ? `₦${tx.amount.toLocaleString()}` : tx.amount),
+      type: tx.type || 'Unknown',
+      date: tx.formatted_date || tx.created_at || tx.date || 'N/A',
+      status: tx.status || 'Unknown',
+      status_color: tx.status_color || 'gray',
+      user_name: tx.user_name || 'N/A',
+      user_email: tx.user_email || 'N/A',
+    }));
+  }, [transactions]);
+
+  // Use transformed data instead of hardcoded data
+  const transactionsData: Transaction[] = transformedTransactions;
 
   const visibleTxs = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -110,8 +95,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         .includes(q);
     };
 
-    return transactions.filter((t) => statusOk(t) && typeOk(t) && searchOk(t));
-  }, [transactions, statusFilter, typeFilter, searchTerm]);
+    return transactionsData.filter((t) => statusOk(t) && typeOk(t) && searchOk(t));
+  }, [transactionsData, statusFilter, typeFilter, searchTerm]);
 
   // keep the header checkbox in sync with visible rows
   useEffect(() => {
@@ -165,6 +150,23 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         return "bg-gray-100 text-gray-600 border border-gray-300";
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="border border-[#989898] rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+            <span className="ml-3 text-gray-600">Loading transactions...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-[#989898] rounded-2xl mt-5">

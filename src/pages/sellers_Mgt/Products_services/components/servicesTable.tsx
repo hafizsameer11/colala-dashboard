@@ -1,63 +1,85 @@
 import React, { useMemo, useState, useEffect } from "react";
 import ServicesDetails from "../../Modals/servicesDetails";
 
-interface Service {
-  id: string;
-  storeName: string;
-  serviceName: string;
-  price: string;
-  date: string;
-  productImage: string;
+interface ApiService {
+  id: number;
+  name: string;
+  short_description: string;
+  price_from: string;
+  price_to: string;
+  discount_price: string | null;
+  store_name: string;
+  seller_name: string;
+  category_name: string | null;
+  status: string;
+  is_sold: number;
+  is_unavailable: number;
+  sub_services_count: number;
+  media_count: number;
+  created_at: string;
+  formatted_date: string;
+  primary_media: string;
 }
+
 
 interface ServicesTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
-  /** From parent; Services don't use Sponsored/General, but we keep the prop for parity */
-  activeTab?: "All" | "General" | "Sponsored";
   /** debounced search string from parent */
   searchTerm?: string;
+  services?: ApiService[];
+  pagination?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
 const ServicesTable: React.FC<ServicesTableProps> = ({
   title = "All Services",
   onRowSelect,
-  activeTab = "All",
   searchTerm = "",
+  services = [],
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  isLoading = false,
+  error,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<ApiService | null>(null);
 
-  const services: Service[] = [
-    {
-      id: "1",
-      storeName: "Sasha Stores",
-      serviceName: "Sasha Fashion Designing",
-      price: "N5,000 - N20,000",
-      date: "18-07-2025/11:30AM",
-      productImage: "/assets/layout/service.png",
-    },
-    {
-      id: "2",
-      storeName: "Apple Stores",
-      serviceName: "Sasha Fashion Designing",
-      price: "N5,000 - N20,000",
-      date: "18-07-2025/11:30AM",
-      productImage: "/assets/layout/service.png",
-    },
-  ];
+  // Transform API data to match expected format
+  const transformedServices = useMemo(() => {
+    return services.map((service) => ({
+      id: String(service.id),
+      storeName: service.store_name || service.seller_name || 'N/A',
+      serviceName: service.name || 'N/A',
+      price: service.discount_price 
+        ? `₦${service.discount_price} - ₦${service.price_to}`
+        : `₦${service.price_from} - ₦${service.price_to}`,
+      date: service.formatted_date || service.created_at || 'N/A',
+      productImage: service.primary_media || '/assets/layout/service.png',
+    }));
+  }, [services]);
 
   const visibleServices = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return services;
-    return services.filter((s) =>
+    if (!q) return transformedServices;
+    return transformedServices.filter((s) =>
       [s.storeName, s.serviceName, s.price, s.date]
         .join(" ")
         .toLowerCase()
         .includes(q)
     );
-  }, [services, searchTerm, activeTab]);
+  }, [transformedServices, searchTerm]);
 
   useEffect(() => {
     const visIds = new Set(visibleServices.map((s) => s.id));
@@ -92,6 +114,41 @@ const ServicesTable: React.FC<ServicesTableProps> = ({
       return next;
     });
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="border border-[#00000040] rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-[#00000040]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+            <span className="ml-3 text-gray-600">Loading services...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="border border-[#00000040] rounded-2xl mt-5">
+        <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-[#00000040]">
+          {title}
+        </div>
+        <div className="bg-white rounded-b-2xl p-8">
+          <div className="flex justify-center items-center">
+            <div className="text-center text-red-500">
+              <p className="text-sm">Error loading services</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-[#00000040] rounded-2xl mt-5">
@@ -156,7 +213,11 @@ const ServicesTable: React.FC<ServicesTableProps> = ({
                   </td>
                   <td className="p-4 text-center">
                     <button
-                      onClick={() => setShowModal(true)}
+                      onClick={() => {
+                        const originalService = services.find(s => String(s.id) === service.id);
+                        setSelectedService(originalService || null);
+                        setShowModal(true);
+                      }}
                       className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
                     >
                       View Details
@@ -169,7 +230,44 @@ const ServicesTable: React.FC<ServicesTableProps> = ({
         </table>
       </div>
 
-      <ServicesDetails isOpen={showModal} onClose={() => setShowModal(false)} />
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white p-4 border-t border-[#00000040]">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              Showing {((currentPage - 1) * (pagination.per_page || 20)) + 1} to {Math.min(currentPage * (pagination.per_page || 20), pagination.total)} of {pagination.total} services
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 bg-[#E53E3E] text-white rounded">
+                {currentPage}
+              </span>
+              <button
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= pagination.last_page}
+                className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ServicesDetails 
+        isOpen={showModal} 
+        onClose={() => {
+          setShowModal(false);
+          setSelectedService(null);
+        }} 
+        serviceData={selectedService}
+      />
     </div>
   );
 };

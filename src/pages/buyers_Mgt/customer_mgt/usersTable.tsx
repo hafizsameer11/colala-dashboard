@@ -71,10 +71,19 @@ interface UsersTableProps {
   onSelectedUsersChange?: (selectedUsers: User[]) => void;
   searchQuery?: string;
   users?: User[];
-  pagination?: any;
+  pagination?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from?: number;
+    to?: number;
+    prev_page_url?: string | null;
+    next_page_url?: string | null;
+  };
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
-  error?: any;
+  error?: string | null;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
@@ -181,6 +190,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
     navigate(`/customer-details/${user.id}`, { state: user });
   };
 
+  const handleTransactions = (user: User) => {
+    navigate(`/customer-details/${user.id}`, { 
+      state: { ...user, activeTab: 'Transactions' } 
+    });
+  };
+
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
@@ -260,7 +275,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   >
                     Customer Details
                   </button>
-                  <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                  <button 
+                    onClick={() => handleTransactions(user)}
+                    className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer"
+                  >
                     Transactions
                   </button>
                 </td>

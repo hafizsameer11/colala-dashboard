@@ -132,8 +132,16 @@ const API_ENDPOINTS = {
 
   // SELLER PRODUCTS
   SELLER_PRODUCTS: {
+    Create: API_DOMAIN + "/seller/products/create", // POST
     List: (userId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}`, // GET
     Details: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}/details`, // GET
+  },
+
+  // SELLER SERVICES
+  SELLER_SERVICES: {
+    Create: API_DOMAIN + "/seller/service/create", // POST
+    List: (userId: number | string) => `${API_DOMAIN}/admin/seller-services/${userId}`, // GET
+    Details: (userId: number | string, serviceId: number | string) => `${API_DOMAIN}/admin/seller-services/${userId}/${serviceId}/details`, // GET
   },
 
   // SELLER ANNOUNCEMENTS
@@ -196,7 +204,15 @@ const API_ENDPOINTS = {
   // ADMIN PRODUCTS
   ADMIN_PRODUCTS: {
     List: API_DOMAIN + "/admin/products", // GET
+    Create: API_DOMAIN + "/admin/products", // POST
     Details: (productId: number | string) => `${API_DOMAIN}/admin/products/${productId}/details`, // GET
+  },
+
+  // ADMIN SERVICES
+  ADMIN_SERVICES: {
+    List: API_DOMAIN + "/admin/services", // GET
+    Create: API_DOMAIN + "/admin/services", // POST
+    Details: (serviceId: number | string) => `${API_DOMAIN}/admin/services/${serviceId}/details`, // GET
   },
 
   // ADMIN STORES
@@ -205,6 +221,16 @@ const API_ENDPOINTS = {
     Details: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/details`, // GET
     UpdateStatus: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/kyc-status`, // PUT
     UpdateLevel: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/level`, // PUT
+  },
+
+  // CATEGORIES
+  CATEGORIES: {
+    List: API_DOMAIN + "/categories", // GET
+  },
+
+  // BRANDS
+  BRANDS: {
+    List: API_DOMAIN + "/brands", // GET
   },
 
   // ADMIN SOCIAL FEED
@@ -260,19 +286,19 @@ const API_ENDPOINTS = {
 
   // CATEGORIES
   CATEGORIES: {
-    List: API_DOMAIN + "/api/categories", // GET
-    Create: API_DOMAIN + "/api/create-category", // POST
-    CreateSubcategory: API_DOMAIN + "/api/create-category", // POST
-    CreateSubcategoryCategory: API_DOMAIN + "/api/create-category", // POST
-    Update: (id: number | string) => `${API_DOMAIN}/api/update-category/${id}`, // POST
+    List: API_DOMAIN + "/categories", // GET
+    Create: API_DOMAIN + "/create-category", // POST
+    CreateSubcategory: API_DOMAIN + "/create-category", // POST
+    CreateSubcategoryCategory: API_DOMAIN + "/create-category", // POST
+    Update: (id: number | string) => `${API_DOMAIN}/update-category/${id}`, // POST
   },
 
   // BRANDS
   BRANDS: {
-    List: API_DOMAIN + "/api/brands", // GET
-    Create: API_DOMAIN + "/api/brands", // POST
-    Update: (id: number | string) => `${API_DOMAIN}/api/brands/${id}`, // PUT
-    Delete: (id: number | string) => `${API_DOMAIN}/api/brands/${id}`, // DELETE
+    List: API_DOMAIN + "/brands", // GET
+    Create: API_DOMAIN + "/brands", // POST
+    Update: (id: number | string) => `${API_DOMAIN}/brands/${id}`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/brands/${id}`, // DELETE
   },
 
   // BALANCE MANAGEMENT

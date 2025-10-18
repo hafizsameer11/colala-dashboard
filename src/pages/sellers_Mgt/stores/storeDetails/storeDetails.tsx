@@ -28,6 +28,8 @@ const StoreDetails: React.FC = () => {
   const userData = useMemo(() => {
     if (sellerDetails?.data) {
       const d = sellerDetails.data;
+      console.log('Raw API data:', d);
+      console.log('Store profile image:', d.store_info?.profile_image);
       return {
         id: d.user_info?.id || storeId,
         userName: d.user_info?.full_name || 'Unknown',
@@ -38,7 +40,20 @@ const StoreDetails: React.FC = () => {
         rewardBalance: d.financial_info?.reward_balance?.formatted || 'N/A',
         referralBalance: d.financial_info?.referral_balance?.formatted || 'N/A',
         loyaltyPoints: typeof d.financial_info?.loyalty_points === 'number' ? d.financial_info.loyalty_points : 'N/A',
-        profileImage: d.user_info?.profile_picture || null,
+        profileImage: d.store_info?.profile_image || null,
+        bannerImage: d.store_info?.banner_image || null,
+        storeName: d.store_info?.store_name || 'Unknown Store',
+        storeEmail: d.store_info?.store_email || 'No email',
+        storePhone: d.store_info?.store_phone || 'No phone',
+        storeLocation: d.store_info?.store_location || 'No location',
+        storeStatus: d.store_info?.status || 'Unknown',
+        onboardingStatus: d.store_info?.onboarding_status || 'Unknown',
+        themeColor: d.store_info?.theme_color || null,
+        businessDetails: d.store_info?.business_details || null,
+        addresses: d.store_info?.addresses || [],
+        deliveryPricing: d.store_info?.delivery_pricing || [],
+        socialLinks: d.store_info?.social_links || [],
+        categories: d.store_info?.categories || [],
         isActive: !!d.user_info?.is_active,
         isVerified: !!d.user_info?.is_verified,
         createdAt: d.user_info?.created_at || 'N/A',

@@ -6,8 +6,9 @@ import AddNewProduct from "../Modals/addNewProduct";
 import ServiceModal from "../Modals/serviceModal";
 import ServicesTable from "./components/servicesTable";
 import PageHeader from "../../../components/PageHeader";
+import StoreSelectionModal from "../Modals/storeSelectionModal";
 import { useQuery } from "@tanstack/react-query";
-import { getAdminProducts } from "../../../utils/queries/users";
+import { getAdminProducts, getAdminServices } from "../../../utils/queries/users";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -30,6 +31,9 @@ const Products_Services = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showStoreSelectionModal, setShowStoreSelectionModal] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<{id: number; store_name: string; profile_image: string | null; banner_image: string | null; owner_name: string | null; owner_email: string | null} | null>(null);
+  const [pendingAction, setPendingAction] = useState<'product' | 'service' | null>(null);
   const [selectedProductType, setSelectedProductType] = useState<
     "Products" | "Services"
   >("Products");
@@ -39,17 +43,72 @@ const Products_Services = () => {
   const debouncedSearch = useDebouncedValue(search, 450);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // API data fetching
-  const { data: productsData, isLoading, error } = useQuery({
+  // API data fetching for products
+  const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
     queryKey: ['adminProducts', activeTab, currentPage],
     queryFn: () => getAdminProducts(currentPage, activeTab === "All" ? undefined : activeTab.toLowerCase()),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
+    enabled: selectedProductType === "Products",
+  });
+
+  // API data fetching for services
+  const { data: servicesData, isLoading: servicesLoading, error: servicesError } = useQuery({
+    queryKey: ['adminServices', activeTab, currentPage],
+    queryFn: () => getAdminServices(currentPage, activeTab === "All" ? undefined : activeTab.toLowerCase()),
+    placeholderData: (previousData) => previousData,
+    enabled: selectedProductType === "Services",
   });
 
   // Extract data with null checks
   const products = productsData?.data?.products || [];
-  const statistics = productsData?.data?.statistics || {};
-  const pagination = productsData?.data?.pagination;
+  const productsStatistics = productsData?.data?.statistics || {};
+  const productsPagination = productsData?.data?.pagination;
+
+  const services = servicesData?.data?.services || [];
+  const servicesStatistics = servicesData?.data?.statistics || {};
+  const servicesPagination = servicesData?.data?.pagination;
+
+  // Use current data based on selected type
+  const currentData = selectedProductType === "Products" ? products : services;
+  const currentStatistics = selectedProductType === "Products" ? productsStatistics : servicesStatistics;
+  const currentPagination = selectedProductType === "Products" ? productsPagination : servicesPagination;
+  const isLoading = selectedProductType === "Products" ? productsLoading : servicesLoading;
+  const error = selectedProductType === "Products" ? productsError : servicesError;
+
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page !== currentPage) setCurrentPage(page);
+  };
+
+  const handleBulkActionSelect = (action: string) => {
+    console.log("Bulk action selected:", action);
+  };
+
+  // Store selection handlers
+  const handleAddProductClick = () => {
+    setPendingAction('product');
+    setShowStoreSelectionModal(true);
+  };
+
+  const handleAddServiceClick = () => {
+    setPendingAction('service');
+    setShowStoreSelectionModal(true);
+  };
+
+  const handleStoreSelect = (store: {id: number; store_name: string; profile_image: string | null; banner_image: string | null; owner_name: string | null; owner_email: string | null}) => {
+    setSelectedStore(store);
+    if (pendingAction === 'product') {
+      setShowModal(true);
+    } else if (pendingAction === 'service') {
+      setShowServiceModal(true);
+    }
+    setPendingAction(null);
+  };
+
+  const handleCloseStoreSelection = () => {
+    setShowStoreSelectionModal(false);
+    setPendingAction(null);
+  };
 
   interface ProductsDropdownProps {
     onProductSelect?: (product: "Products" | "Services") => void;
@@ -100,21 +159,6 @@ const Products_Services = () => {
     setSelectedProductType(product);
   };
 
-  const handleBulkActionSelect = (action: string) => {
-    console.log("Bulk action selected:", action);
-    // Implement bulk actions here
-    if (action === "Export CSV") {
-      // Export products to CSV
-      console.log("Exporting products to CSV...");
-    } else if (action === "Export PDF") {
-      // Export products to PDF
-      console.log("Exporting products to PDF...");
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    if (page !== currentPage) setCurrentPage(page);
-  };
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -150,10 +194,15 @@ const Products_Services = () => {
                 <img className="w-9 h-9" src={images.transaction1} alt="" />
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                <span className="font-semibold text-[15px]">All Products</span>
-                <span className="font-semibold text-2xl">{statistics.total_products || 0}</span>
+                <span className="font-semibold text-[15px]">All {selectedProductType}</span>
+                <span className="font-semibold text-2xl">
+                  {selectedProductType === "Products" 
+                    ? (currentStatistics.total_products || 0)
+                    : (currentStatistics.total_services || 0)
+                  }
+                </span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">Total</span> products
+                  <span className="text-[#1DB61D]">Total</span> {selectedProductType.toLowerCase()}
                 </span>
               </div>
             </div>
@@ -169,11 +218,18 @@ const Products_Services = () => {
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
                 <span className="font-semibold text-[15px]">
-                  General Products
+                  {selectedProductType === "Products" ? "General Products" : "Active Services"}
                 </span>
-                <span className="font-semibold text-2xl">{statistics.general_products || 0}</span>
+                <span className="font-semibold text-2xl">
+                  {selectedProductType === "Products" 
+                    ? (currentStatistics.general_products || 0)
+                    : (currentStatistics.active_services || 0)
+                  }
+                </span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">General</span> products
+                  <span className="text-[#1DB61D]">
+                    {selectedProductType === "Products" ? "General" : "Active"}
+                  </span> {selectedProductType.toLowerCase()}
                 </span>
               </div>
             </div>
@@ -189,11 +245,18 @@ const Products_Services = () => {
               </div>
               <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
                 <span className="font-semibold text-[15px]">
-                  Sponsored Products
+                  {selectedProductType === "Products" ? "Sponsored Products" : "Inactive Services"}
                 </span>
-                <span className="font-semibold text-2xl">{statistics.sponsored_products || 0}</span>
+                <span className="font-semibold text-2xl">
+                  {selectedProductType === "Products" 
+                    ? (currentStatistics.sponsored_products || 0)
+                    : (currentStatistics.inactive_services || 0)
+                  }
+                </span>
                 <span className="text-[#00000080] text-[13px] ">
-                  <span className="text-[#1DB61D]">Sponsored</span> products
+                  <span className="text-[#1DB61D]">
+                    {selectedProductType === "Products" ? "Sponsored" : "Inactive"}
+                  </span> {selectedProductType.toLowerCase()}
                 </span>
               </div>
             </div>
@@ -222,8 +285,8 @@ const Products_Services = () => {
                 className="bg-[#E53E3E] px-3.5 py-3.5 cursor-pointer text-white rounded-xl"
                 onClick={() =>
                   selectedProductType === "Services"
-                    ? setShowServiceModal(true)
-                    : setShowModal(true)
+                    ? handleAddServiceClick()
+                    : handleAddProductClick()
                 }
               >
                 {selectedProductType === "Services"
@@ -237,7 +300,11 @@ const Products_Services = () => {
                   type="text"
                   placeholder="Search"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const target = e.target as any;
+                    setSearch(target.value);
+                  }}
                   className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[180px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -265,32 +332,44 @@ const Products_Services = () => {
               <ProductsTable
                 activeTab={activeTab}
                 searchTerm={debouncedSearch}
-                products={products}
-                pagination={pagination}
+                products={currentData}
+                pagination={currentPagination}
                 currentPage={currentPage}
                 onPageChange={handlePageChange}
                 isLoading={isLoading}
                 error={error}
-                onBulkAction={handleBulkActionSelect}
               />
             </div>
           ) : (
             <div className="mt-5">
               {/* Services ignore Sponsored/General (no such flag). We still pass the tab in case you add one later. */}
               <ServicesTable
-                activeTab={activeTab}
                 searchTerm={debouncedSearch}
+                services={currentData}
+                pagination={currentPagination}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                isLoading={isLoading}
+                error={error}
               />
             </div>
           )}
 
+          <StoreSelectionModal
+            isOpen={showStoreSelectionModal}
+            onClose={handleCloseStoreSelection}
+            onStoreSelect={handleStoreSelect}
+            title={pendingAction === 'service' ? 'Select Store for Service' : 'Select Store for Product'}
+          />
           <AddNewProduct
             isOpen={showModal}
             onClose={() => setShowModal(false)}
+            selectedStore={selectedStore}
           />
           <ServiceModal
             isOpen={showServiceModal}
             onClose={() => setShowServiceModal(false)}
+            selectedStore={selectedStore}
           />
         </div>
       </div>

@@ -1,9 +1,12 @@
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { createService, getCategories } from "../../../utils/queries/users";
 
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  selectedStore?: any;
 }
 
 interface SubService {
@@ -12,8 +15,16 @@ interface SubService {
   to: string;
 }
 
-const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
+const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedStore }) => {
+  const queryClient = useQueryClient();
+
+  // Fetch categories data
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [productName, setProductName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -41,8 +52,27 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
     priceRange: "",
   });
 
-  const categories = ["Electronics", "Fashion", "Home Appliances"];
+  // Extract categories from API data
+  const categories = categoriesData?.data || [];
   const priceRange = ["Under $100", "$100 - $500", "Above $500"];
+
+  // Create service mutation
+  const createServiceMutation = useMutation({
+    mutationFn: createService,
+    onSuccess: () => {
+      // Invalidate and refetch services data
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerServices'] });
+      // Reset form and close modal
+      resetForm();
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Failed to create service:', error);
+      setIsSubmitting(false);
+    },
+  });
+
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -57,6 +87,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
       });
     };
   }, [productVideo, productImages]);
+
+  if (!isOpen) return null;
 
   const toggleDropdown = (dropdownName: string) => {
     setDropdownStates((prev) => ({
@@ -105,7 +137,10 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
       setErrors((prev) => ({ ...prev, productImages: "" }));
 
       // Reset the file input
-      event.target.value = "";
+      const target = event.target as any;
+      if (target) {
+        target.value = "";
+      }
     } else {
       alert("Please upload valid image files");
     }
@@ -144,6 +179,12 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
+    // Additional safety check for required fields
+    if (!selectedStore?.id) {
+      alert("Please select a store first");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -152,31 +193,91 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
         (service) => service.name.trim() !== "" || service.from.trim() !== "" || service.to.trim() !== ""
       );
 
-      // Create product data object
-      const productData = {
-        productName,
-        category: selectedCategory,
-        video: productVideo,
-        images: productImages,
-        fullDescription,
-        discountPrice: discountPrice ? parseFloat(discountPrice) : null,
-        priceRange: selectedPriceRange,
-        subServices: nonEmptySubServices,
-      };
+      // Create FormData for the API
+      const formData = new FormData();
+      
+      // Debug logging
+      console.log('Form submission data:', {
+        selectedStore: selectedStore,
+        productName: productName,
+        fullDescription: fullDescription,
+        selectedPriceRange: selectedPriceRange,
+        discountPrice: discountPrice
+      });
+      
+      // Add required fields according to backend validation
+      formData.append('store_id', selectedStore?.id?.toString() || '');
+      formData.append('name', productName);
+      formData.append('full_description', fullDescription);
+      formData.append('category_id', '1'); // Default category
+      
+      // Add optional fields
+      if (selectedCategory) {
+        formData.append('category_id', selectedCategory);
+      }
+      
+      if (productName) {
+        formData.append('short_description', productName);
+      }
+      
+      // Add price fields
+      if (selectedPriceRange && selectedPriceRange.trim() !== '') {
+        if (selectedPriceRange === "Under $100") {
+          formData.append('price_from', '0');
+          formData.append('price_to', '100');
+        } else if (selectedPriceRange === "Above $500") {
+          formData.append('price_from', '500');
+          formData.append('price_to', '999999');
+        } else {
+          // Handle range format like "$100 - $500"
+          const priceRangeParts = selectedPriceRange.split(' - ');
+          if (priceRangeParts.length >= 2) {
+            const from = priceRangeParts[0];
+            const to = priceRangeParts[1];
+            if (from && typeof from === 'string') {
+              formData.append('price_from', from.replace(/[^\d.]/g, ''));
+            }
+            if (to && typeof to === 'string') {
+              formData.append('price_to', to.replace(/[^\d.]/g, ''));
+            }
+          }
+        }
+      }
+      
+      if (discountPrice && discountPrice.trim() !== '') {
+        formData.append('discount_price', discountPrice);
+      }
+      
+      // Add video file
+      if (productVideo) {
+        formData.append('video', productVideo);
+      }
+      
+      // Add media files (images and videos)
+      productImages.forEach((image, index) => {
+        formData.append(`media[${index}]`, image);
+      });
+      
+      // Add sub-services
+      nonEmptySubServices.forEach((service, index) => {
+        if (service.name && service.name.trim() !== '') {
+          formData.append(`sub_services[${index}][name]`, service.name);
+        }
+        if (service.from && service.from.trim() !== '') {
+          formData.append(`sub_services[${index}][price_from]`, service.from);
+        }
+        if (service.to && service.to.trim() !== '') {
+          formData.append(`sub_services[${index}][price_to]`, service.to);
+        }
+      });
 
-      // Simulate API call (replace with actual API endpoint)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Product data to submit:", productData);
-      alert("Product created successfully!");
-
-      // Reset form
-      resetForm();
-      onClose();
+      // Call the mutation
+      await createServiceMutation.mutateAsync(formData);
+      
     } catch (error) {
-      console.error("Error creating product:", error);
-      alert("Error creating product. Please try again.");
-    } finally {
+      console.error("Error creating service:", error);
+      console.error("Error details:", error);
+      alert("Error creating service. Please try again.");
       setIsSubmitting(false);
     }
   };
@@ -318,7 +419,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
                     name="productName"
                     id="productName"
                     value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
+                    onChange={(e) => setProductName((e.target as any).value)}
                     placeholder="Enter product name"
                     className={`border rounded-2xl p-5 ${
                       errors.productName ? "border-red-500" : "border-[#989898]"
@@ -361,15 +462,21 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
 
                     {dropdownStates.category && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {categories.map((category, index) => (
-                          <div
-                            key={index}
-                            className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleCategorySelect(category)}
-                          >
-                            {category}
-                          </div>
-                        ))}
+                        {categoriesLoading ? (
+                          <div className="p-4 text-center text-gray-500">Loading categories...</div>
+                        ) : categories.length > 0 ? (
+                          categories.map((category: any) => (
+                            <div
+                              key={category.id}
+                              className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
+                              onClick={() => handleCategorySelect(category.id.toString())}
+                            >
+                              {category.title}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-gray-500">No categories available</div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -388,7 +495,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
                     name="fullDescription"
                     id="fullDescription"
                     value={fullDescription}
-                    onChange={(e) => setFullDescription(e.target.value)}
+                            onChange={(e) => setFullDescription((e.target as HTMLTextAreaElement).value)}
                     placeholder="Add full description"
                     rows={4}
                     className={`border rounded-2xl p-5 ${
@@ -462,7 +569,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
                     name="discountPrice"
                     id="discountPrice"
                     value={discountPrice}
-                    onChange={(e) => setDiscountPrice(e.target.value)}
+                    onChange={(e) => setDiscountPrice((e.target as any).value)}
                     placeholder="Type Discount Price"
                     className="border border-[#989898] rounded-2xl p-5"
                   />
@@ -490,7 +597,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
                             name={`subServiceName${index + 1}`}
                             id={`subServiceName${index + 1}`}
                             value={service.name}
-                            onChange={(e) => handleSubServiceChange(index, 'name', e.target.value)}
+                            onChange={(e) => handleSubServiceChange(index, 'name', (e.target as any).value)}
                             placeholder={`Sub service name ${index + 1}`}
                             className="p-5 border border-[#989898] rounded-xl w-50"
                           />
@@ -502,7 +609,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
                               name={`from${index + 1}`}
                               id={`from${index + 1}`}
                               value={service.from}
-                              onChange={(e) => handleSubServiceChange(index, 'from', e.target.value)}
+                              onChange={(e) => handleSubServiceChange(index, 'from', (e.target as any).value)}
                               placeholder="From"
                               className="p-5 border border-[#989898] rounded-xl w-26.5"
                             />
@@ -513,7 +620,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose }) => {
                               name={`to${index + 1}`}
                               id={`to${index + 1}`}
                               value={service.to}
-                              onChange={(e) => handleSubServiceChange(index, 'to', e.target.value)}
+                              onChange={(e) => handleSubServiceChange(index, 'to', (e.target as any).value)}
                               placeholder="To"
                               className="p-5 border border-[#989898] rounded-xl w-26.5"
                             />

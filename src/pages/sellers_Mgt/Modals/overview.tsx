@@ -86,61 +86,38 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
             </span>
           )}
         </div>
-        <div className="mt-4 space-y-2">
-          {/* Information tag 1 - Orange */}
-          <div className="flex items-center bg-[#FFA500] text-white rounded-md">
-            <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
-              {/* Right-side tilted shape */}
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-              {/* Cart Icon */}
-              <img 
-                className="w-5 h-5" 
-                src={images.cart1} 
-                alt="Cart" 
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTcgMkg1QzMuOSAyIDMgMi45IDMgNFYxNkMzIDE3LjEgMy45IDE4IDUgMThIMTVDMTYuMSAxOCAxNyAxNy4xIDE3IDE2VjRIMTdDMTcuMSA0IDE3IDMuMSAxNyAySDdWNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==';
-                }}
-              />
-            </div>
-            <span className="text-sm font-medium">Information tag 1</span>
+        {/* Information tags - Only show if we have tag data from backend */}
+        {productInfo?.tags && productInfo.tags.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {productInfo.tags.map((tag: any, index: number) => {
+              const colors = [
+                { bg: '#FFA500', dark: '#FF3300' },
+                { bg: '#0000FF', dark: '#14146F' },
+                { bg: '#800080', dark: '#050531' }
+              ];
+              const color = colors[index % colors.length];
+              
+              return (
+                <div key={index} className="flex items-center text-white rounded-md" style={{ backgroundColor: color.bg }}>
+                  <div className="relative w-15 h-10 overflow-hidden rounded-md flex items-center px-3" style={{ backgroundColor: color.dark }}>
+                    {/* Right-side tilted shape */}
+                    <div className="absolute top-0 right-0 w-1/3 h-full [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]" style={{ backgroundColor: color.bg }}></div>
+                    {/* Cart Icon */}
+                    <img 
+                      className="w-5 h-5" 
+                      src={images.cart1} 
+                      alt="Cart" 
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTcgMkg1QzMuOSAyIDMgMi45IDMgNFYxNkMzIDE3LjEgMy45IDE4IDUgMThIMTVDMTYuMSAxOCAxNyAxNy4xIDE3IDE2VjRIMTdDMTcuMSA0IDE3IDMuMSAxNyAySDdWNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==';
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium">{tag.name || tag}</span>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Information tag 2 - Blue */}
-          <div className="flex items-center bg-[#0000FF] text-white rounded-md">
-            <div className="relative w-15 h-10 bg-[#14146F] overflow-hidden rounded-md flex items-center px-3">
-              {/* Right-side tilted shape */}
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#0000FF] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-              {/* Cart Icon */}
-              <img 
-                className="w-5 h-5" 
-                src={images.cart1} 
-                alt="Cart" 
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTcgMkg1QzMuOSAyIDMgMi45IDMgNFYxNkMzIDE3LjEgMy45IDE4IDUgMThIMTVDMTYuMSAxOCAxNyAxNy4xIDE3IDE2VjRIMTdDMTcuMSA0IDE3IDMuMSAxNyAySDdWNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==';
-                }}
-              />
-            </div>
-            <span className="text-sm font-medium">Information tag 2</span>
-          </div>
-
-          {/* Information tag 3 - Purple */}
-          <div className="flex items-center bg-[#800080] text-white rounded-md">
-            <div className="relative w-15 h-10 bg-[#050531] overflow-hidden rounded-md flex items-center px-3">
-              {/* Right-side tilted shape */}
-              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#800080] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-              {/* Cart Icon */}
-              <img 
-                className="w-5 h-5" 
-                src={images.cart1} 
-                alt="Cart" 
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTcgMkg1QzMuOSAyIDMgMi45IDMgNFYxNkMzIDE3LjEgMy45IDE4IDUgMThIMTVDMTYuMSAxOCAxNyAxNy4xIDE3IDE2VjRIMTdDMTcuMSA0IDE3IDMuMSAxNyAySDdWNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==';
-                }}
-              />
-            </div>
-            <span className="text-sm font-medium">Information tag 3</span>
-          </div>
-        </div>
+        )}
 
         {/* Colors Section */}
         <div className="border-t border-b border-[#00000080] mt-2">
@@ -207,14 +184,9 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
               type="button"
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <img 
-                className="w-6 h-6" 
-                src={images.delete1} 
-                alt="Delete" 
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgNkg1SDIxTTggNlY0QzggMy40NDc3MiA4LjQ0NzcyIDMgOSAzSDE1QzE1LjU1MjMgMyAxNiAzLjQ0NzcyIDE2IDRWNkg4TTEwIDExVjE3TTE0IDExVjE3TTE5IDdWMTlDMTkgMjAuMTA0NiAxOC4xMDQ2IDIxIDE3IDIxSDdDNS44OTU0MyAyMSA1IDIwLjEwNDYgNSAxOVY3SDE5WiIgc3Ryb2tlPSIjRkY0NDQ0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=';
-                }}
-              />
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
             </button>
 
             {/* Analytics Button */}
@@ -222,14 +194,9 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
               type="button"
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <img 
-                className="w-6 h-6" 
-                src={images.analyticsIcon} 
-                alt="Analytics" 
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgM1YyMUgyMVYzSDNaTTUgNUgxOVYxOUg1VjVaIiBzdHJva2U9IiM2MzY2RjEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik03IDEzTDEwIDEwTDEzIDEzTDE3IDkiIHN0cm9rZT0iIzYzNjZGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=';
-                }}
-              />
+              <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
             </button>
 
             {/* Status Button */}
@@ -237,14 +204,9 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
               type="button"
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <img 
-                className="w-6 h-6" 
-                src={images.tick} 
-                alt="Status" 
-                onError={(e) => {
-                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTkgMTJMMTEgMTRMMTUgMTAiIHN0cm9rZT0iIzEwQjk0MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzEwQjk0MSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPg==';
-                }}
-              />
+              <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </button>
 
             {/* Edit Product Button */}

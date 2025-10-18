@@ -24,6 +24,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
   >("overview");
   // Quantity state for the counter
   const [quantity, setQuantity] = useState<number>(1);
+  // Selected product for product details
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   // Status update form
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [newStatus, setNewStatus] = useState("");
@@ -217,8 +219,22 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
 
           {/* Tab Content */}
           <div className="">
-            {activeTab === "track order" && <OrderOverview orderData={d} />}
-            {activeTab === "full order details" && !isProductDetails && (
+            {isLoading && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-gray-500">Loading order details...</div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-red-500">Error loading order details. Please try again.</div>
+              </div>
+            )}
+            
+            {!isLoading && !error && d && (
+              <>
+                {activeTab === "track order" && <OrderOverview orderData={d} />}
+                {activeTab === "full order details" && !isProductDetails && (
               <div className="mt-5">
                 {(d?.items || []).map((item: any, idx: number) => (
                   <div key={idx} className={`flex flex-row ${idx>0?'mt-3':''}`}>
@@ -234,14 +250,19 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                     </div>
                     <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
                       <span className="text-black text-[17px]">{item?.complete?.product?.name || item?.product?.name || 'N/A'}</span>
-                      <span className="text-[#E53E3E] font-bold text-[17px]">₦{item?.total || item?.complete?.product?.price || '0.00'}</span>
+                      <span className="text-[#E53E3E] font-bold text-[17px]">₦{item?.total || item?.complete?.product?.discount_price || item?.complete?.product?.price || '0.00'}</span>
                       <div className="flex flex-row justify-between items-center mt-3">
                         <div>
                           <span className="text-[#E53E3E] font-bold text-[17px]">Qty : {item?.quantity ?? 1}</span>
                         </div>
                         <div>
                           <button
-                            onClick={() => { setActiveTab("full order details"); setIsProductDetails(true); setProductTab("overview"); }}
+                            onClick={() => { 
+                              setSelectedProduct(item); 
+                              setActiveTab("full order details"); 
+                              setIsProductDetails(true); 
+                              setProductTab("overview"); 
+                            }}
                             className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
                           >
                             Product Details
@@ -251,44 +272,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                     </div>
                   </div>
                 ))}
-                <div className="flex flex-row mt-3">
-                  <div>
-                    <picture>
-                      <img
-                        className="w-35 h-35 rounded-l-2xl"
-                        src={images.iphone}
-                        alt=""
-                      />
-                    </picture>
-                  </div>
-                  <div className="bg-[#F9F9F9] flex flex-col p-3 w-full rounded-r-2xl gap-1">
-                    <span className="text-black text-[17px]">
-                      Iphone 16 pro max - Black
-                    </span>
-                    <span className="text-[#E53E3E] font-bold text-[17px]">
-                      N2,500,000
-                    </span>
-                    <div className="flex flex-row justify-between items-center mt-3">
-                      <div>
-                        <span className="text-[#E53E3E] font-bold text-[17px]">
-                          Qty :1
-                        </span>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => {
-                            setActiveTab("full order details");
-                            setIsProductDetails(true);
-                            setProductTab("overview");
-                          }}
-                          className="bg-[#E53E3E] rounded-lg text-white px-4 py-2 cursor-pointer"
-                        >
-                          Product Details
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 <div className="w-full mt-3">
                   <div className="bg-[#E53E3E] text-white text-xl font-semibold p-2 rounded-t-2xl">
@@ -299,6 +282,22 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-15 p-2">
                       <span className="text-[#00000080]">Store Name</span>
                       <span>{d?.store?.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
+                      <span className="text-[#00000080]">Customer Name</span>
+                      <span>{d?.customer?.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
+                      <span className="text-[#00000080]">Order Status</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        d?.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        d?.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        d?.status === 'placed' ? 'bg-yellow-100 text-yellow-800' :
+                        d?.status === 'pending' ? 'bg-gray-100 text-gray-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {d?.status?.replace('_', ' ').toUpperCase() || 'N/A'}
+                      </span>
                     </div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-16 p-2">
                       <span className="text-[#00000080]">No of items</span>
@@ -316,7 +315,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                     Delivery Details
                   </div>
                   <div className="border border-[#CDCDCD] rounded-b-2xl">
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2"><span className="text-[#00000080]">Customer Email</span><span>{d?.customer?.email || 'N/A'}</span></div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2"><span className="text-[#00000080]">Phone Number</span><span>{d?.customer?.phone || d?.delivery_address?.contact_phone || 'N/A'}</span></div>
+                    <div className="flex flex-row border-b border-[#CDCDCD] gap-9 p-2"><span className="text-[#00000080]">Store Phone</span><span>{d?.store?.phone || 'N/A'}</span></div>
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-27 p-2">
                       <span className="text-[#00000080]">State</span>
                       <span>{d?.delivery_address?.state || 'N/A'}</span>
@@ -328,6 +329,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                     <div className="flex flex-row border-b border-[#CDCDCD] gap-21 p-2">
                       <span className="text-[#00000080]">Address</span>
                       <span>{d?.delivery_address?.full_address || 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-row gap-21 p-2">
+                      <span className="text-[#00000080]">Contact Name</span>
+                      <span>{d?.delivery_address?.contact_name || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -360,14 +365,16 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                 </div>
               </div>
             )}
-            {activeTab === "full order details" && isProductDetails && (
-              <ProductDetails
-                productTab={productTab}
-                setProductTab={setProductTab}
-                quantity={quantity}
-                setQuantity={setQuantity}
-                productData={{ compelete: d?.items?.[0]?.complete || d?.items?.[0] }}
-              />
+                {activeTab === "full order details" && isProductDetails && selectedProduct && (
+                  <ProductDetails
+                    productTab={productTab}
+                    setProductTab={setProductTab}
+                    quantity={quantity}
+                    setQuantity={setQuantity}
+                    productData={{ complete: selectedProduct?.complete || selectedProduct }}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

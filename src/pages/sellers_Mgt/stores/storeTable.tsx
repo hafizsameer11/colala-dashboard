@@ -186,8 +186,8 @@ const StoreTable: React.FC<StoreTableProps> = ({
         ) : error ? (
           <div className="p-8 text-center text-red-500">Failed to load stores.</div>
         ) : (
-        <table className="w-full">
-          <thead className="bg-[#F2F2F2]">
+        <table className="w-full bg-white rounded-lg shadow-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
             <tr className="text-center">
               <th className="p-3 text-left font-semibold">
                 <input
@@ -197,16 +197,16 @@ const StoreTable: React.FC<StoreTableProps> = ({
                   className="w-5 h-5"
                 />
               </th>
-              <th className="p-3 text-left font-normal">Store Name</th>
-              <th className="p-3 text-left font-normal">Owner</th>
-              <th className="p-3 text-left font-normal">Email</th>
-              <th className="p-3 text-left font-normal">Phone No</th>
-              <th className="p-3 text-center font-normal">Level</th>
-              <th className="p-3 text-center font-normal">Stores</th>
-              <th className="p-3 text-center font-normal">Orders</th>
-              <th className="p-3 text-center font-normal">Revenue</th>
-              <th className="p-3 text-center font-normal">Actions</th>
-              <th className="p-3 text-right font-normal">Other</th>
+              <th className="p-3 text-left font-medium text-gray-600">Store Name</th>
+              <th className="p-3 text-left font-medium text-gray-600">Owner</th>
+              <th className="p-3 text-left font-medium text-gray-600">Email</th>
+              <th className="p-3 text-left font-medium text-gray-600">Phone No</th>
+              <th className="p-3 text-center font-medium text-gray-600">Level</th>
+              <th className="p-3 text-center font-medium text-gray-600">Stores</th>
+              <th className="p-3 text-center font-medium text-gray-600">Orders</th>
+              <th className="p-3 text-center font-medium text-gray-600">Revenue</th>
+              <th className="p-3 text-center font-medium text-gray-600">Actions</th>
+              <th className="p-3 text-right font-medium text-gray-600">Other</th>
             </tr>
           </thead>
           <tbody>
@@ -220,7 +220,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
               filteredStores.map((store) => (
                 <tr
                   key={store.id}
-                  className="text-center border-t border-gray-200"
+                  className="text-center border-b border-gray-100 hover:bg-gray-50 transition-colors"
                 >
                   <td className="p-3">
                     <input
@@ -230,31 +230,37 @@ const StoreTable: React.FC<StoreTableProps> = ({
                       className="w-5 h-5"
                     />
                   </td>
-                  <td className="p-3 text-left flex items-center justify-start gap-2">
+                  <td className="p-3 text-left flex items-center gap-3">
                     <img
                       src="/assets/layout/admin.png"
                       alt="User"
-                      className="w-8 h-8 rounded-full"
+                      className="w-10 h-10 rounded-full object-cover"
                     />
-                    <span>{store.storeName}</span>
+                    <span className="font-medium text-gray-900">{store.storeName}</span>
                   </td>
-                  <td className="p-3 text-left">{(store as any).full_name || '-'}</td>
-                  <td className="p-3 text-left">{store.email}</td>
-                  <td className="p-3 text-left">{store.phoneNumber}</td>
-                  <td className="p-3 font-bold">{store.level}</td>
-                  <td className="p-3 font-semibold">{(store as any).storeCount}</td>
-                  <td className="p-3 font-semibold">{(store as any).totalOrders}</td>
-                  <td className="p-3 font-semibold">₦{((store as any).totalRevenue || 0).toLocaleString?.() || (store as any).totalRevenue}</td>
-                  <td className="p-3 space-x-1">
-                    <button
-                      onClick={() => handleCustomerDetails(store)}
-                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-                    >
-                      Customer Details
-                    </button>
-                    <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
-                      Transactions
-                    </button>
+                  <td className="p-3 text-left text-gray-700">{(store as any).full_name || '-'}</td>
+                  <td className="p-3 text-left text-gray-700">{store.email}</td>
+                  <td className="p-3 text-left text-gray-700">{store.phoneNumber}</td>
+                  <td className="p-3 text-center">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-800 text-sm font-bold rounded-full">
+                      {store.level}
+                    </span>
+                  </td>
+                  <td className="p-3 text-center font-semibold text-gray-700">{(store as any).storeCount || 0}</td>
+                  <td className="p-3 text-center font-semibold text-gray-700">{(store as any).totalOrders || 0}</td>
+                  <td className="p-3 text-center font-semibold text-gray-700">₦{((store as any).totalRevenue || 0).toLocaleString?.() || (store as any).totalRevenue || 0}</td>
+                  <td className="p-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleCustomerDetails(store)}
+                        className="bg-[#E53E3E] hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                      >
+                        Store Details
+                      </button>
+                      <button className="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors">
+                        Transactions
+                      </button>
+                    </div>
                   </td>
                   <td className="p-3 text-right">
                     <DotsDropdown

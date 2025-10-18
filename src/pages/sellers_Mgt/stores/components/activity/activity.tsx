@@ -19,6 +19,19 @@ interface ActivityProps {
     createdAt?: string;
     username?: string;
     profileImage?: string | null;
+    bannerImage?: string | null;
+    storeName?: string;
+    storeEmail?: string;
+    storePhone?: string;
+    storeLocation?: string;
+    storeStatus?: string;
+    onboardingStatus?: string;
+    themeColor?: string | null;
+    businessDetails?: any;
+    addresses?: any[];
+    deliveryPricing?: any[];
+    socialLinks?: any[];
+    categories?: any[];
     isVerified?: boolean;
     recentActivities?: Array<{ id: number; activity: string; created_at: string }>;
   };
@@ -28,6 +41,10 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   // const [showModal, setShowModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debug logging
+  console.log('Activity component userData:', userData);
+  console.log('Profile image URL:', userData.profileImage);
 
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
@@ -148,7 +165,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
               <div>
                 <img
                   className="w-20 h-20 ml-5 mt-10 rounded-full object-cover"
-                  src={userData.profileImage ? `https://colala.hmstech.xyz/storage/${userData.profileImage}` : images.admin}
+                  src={userData.profileImage || images.admin}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = images.admin; }}
                   alt="Profile"
                 />

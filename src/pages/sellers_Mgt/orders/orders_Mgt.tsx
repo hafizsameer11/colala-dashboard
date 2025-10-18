@@ -3,7 +3,8 @@ import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAdminOrders, updateOrderStatus } from "../../../utils/queries/users";
+import { useLocation } from "react-router-dom";
+import { getAdminOrders, getSellerOrders, updateOrderStatus } from "../../../utils/queries/users";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
@@ -17,13 +18,17 @@ function useDebouncedValue<T>(value: T, delay = 450) {
   return debounced;
 }
 
-const orders_Mgt = () => {
+const OrdersMgt = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 450);
+  const location = useLocation();
 
   const queryClient = useQueryClient();
+
+  // Check if we're on the admin orders page (orders-mgt-sellers)
+  const isAdminOrdersPage = location.pathname.includes('orders-mgt-sellers');
 
   const tabs = [
     "All",
@@ -35,11 +40,16 @@ const orders_Mgt = () => {
     "pending",
   ];
 
-  // Fetch orders data
+  // Fetch orders data - Use different APIs based on URL
+  const sellerId = 1; // For seller-specific orders
   const { data: ordersData, isLoading, error } = useQuery({
-    queryKey: ['adminOrders', activeTab, currentPage],
-    queryFn: () => getAdminOrders(currentPage, activeTab === "All" ? undefined : activeTab),
-    keepPreviousData: true,
+    queryKey: isAdminOrdersPage 
+      ? ['adminOrders', activeTab, currentPage]
+      : ['sellerOrders', sellerId, activeTab, currentPage],
+    queryFn: () => isAdminOrdersPage 
+      ? getAdminOrders(currentPage, activeTab === "All" ? undefined : activeTab)
+      : getSellerOrders(sellerId, currentPage, activeTab === "All" ? undefined : activeTab),
+    placeholderData: (previousData) => previousData,
   });
 
   // Update order status mutation
@@ -47,7 +57,7 @@ const orders_Mgt = () => {
     mutationFn: ({ storeOrderId, statusData }: { storeOrderId: string; statusData: any }) => 
       updateOrderStatus(storeOrderId, statusData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerOrders'] });
     },
     onError: (error) => {
       console.error('Failed to update order status:', error);
@@ -55,10 +65,29 @@ const orders_Mgt = () => {
     },
   });
 
-  // Extract data
-  const orders = ordersData?.data?.orders || [];
-  const statistics = ordersData?.data?.statistics || {};
-  const pagination = ordersData?.data?.pagination;
+  // Extract data - Different structures for admin vs seller orders
+  const orders = isAdminOrdersPage 
+    ? (ordersData as any)?.data?.orders || []  // Admin orders: data.orders (direct array)
+    : (ordersData as any)?.data?.orders?.data || [];  // Seller orders: data.orders.data (nested array)
+  
+  const statistics = isAdminOrdersPage
+    ? (ordersData as any)?.data?.statistics || {}  // Admin orders: data.statistics (direct values)
+    : (ordersData as any)?.data?.statistics || {};  // Seller orders: data.statistics (nested objects with .value)
+  
+  const pagination = isAdminOrdersPage
+    ? (ordersData as any)?.data?.pagination || {}  // Admin orders: data.pagination
+    : (ordersData as any)?.data?.orders || {};  // Seller orders: data.orders (contains pagination)
+  
+  // Debug logging
+  console.log('=== ORDERS DEBUG ===');
+  console.log('API Type:', isAdminOrdersPage ? 'Admin Orders' : 'Seller Orders');
+  console.log('URL Path:', location.pathname);
+  console.log('Raw Orders Data:', ordersData);
+  console.log('Extracted Orders:', orders);
+  console.log('Extracted Statistics:', statistics);
+  console.log('Extracted Pagination:', pagination);
+  console.log('Total Orders Value:', isAdminOrdersPage ? statistics.total_orders : statistics.total_orders?.value);
+  console.log('=== END DEBUG ===');
 
   const handleUserSelection = (selectedIds: string[]) => {
     console.log("Selected user IDs:", selectedIds);
@@ -101,24 +130,33 @@ const orders_Mgt = () => {
     <>
       <PageHeader title="Orders Management - Stores" />
       <div className="p-5">
+        {/* Debug Panel - Remove this after testing */}
+       
+      
         <StatCardGrid columns={3}>
           <StatCard
             icon={images.cycle}
             title="Total Orders"
-            value={isLoading ? "..." : statistics.total_orders || 0}
+            value={isLoading ? "..." : (isAdminOrdersPage 
+              ? statistics.total_orders || 0 
+              : statistics.total_orders?.value || 0)}
             subtitle="Active orders across all stores"
           />
           <StatCard
             icon={images.cycle}
-            title="Out for Delivery"
-            value={isLoading ? "..." : statistics.out_for_delivery || 0}
-            subtitle="Active delivery orders"
+            title="Pending Orders"
+            value={isLoading ? "..." : (isAdminOrdersPage 
+              ? statistics.pending_orders || 0 
+              : statistics.pending_orders?.value || 0)}
+            subtitle="Orders awaiting processing"
           />
           <StatCard
             icon={images.cycle}
-            title="Delivered"
-            value={isLoading ? "..." : statistics.delivered || 0}
-            subtitle="Completed deliveries"
+            title="Completed Orders"
+            value={isLoading ? "..." : (isAdminOrdersPage 
+              ? statistics.completed_orders || 0 
+              : statistics.completed_orders?.value || 0)}
+            subtitle="Successfully completed orders"
           />
         </StatCardGrid>
         <div className="mt-5 flex flex-row gap-2">
@@ -179,4 +217,4 @@ const orders_Mgt = () => {
   );
 };
 
-export default orders_Mgt;
+export default OrdersMgt;

@@ -70,41 +70,50 @@ const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
   //   const [showModal, setShowModal] = useState(false);
 
   // Debug logging
-  console.log('Table - Announcements:', announcements);
-  console.log('Table - Is loading:', isLoading);
-  console.log('Table - Error:', error);
 
   // Normalize API data to UI format
   const normalizedAnnouncements = useMemo(() => {
-    console.log('Normalizing data for tab:', activeTab, 'Data:', announcements);
-    
-    if (activeTab === "Banner") {
-      // Handle banners
-      return announcements.map((banner: any) => ({
-        id: String(banner.id),
-        storeName: banner.link || 'N/A',
-        announcementTitle: banner.link || 'N/A',
-      type: "Banner",
-        date: banner.created_at,
-      status: true,
-      hasImage: true,
-        impressions: banner.impressions,
-        image: banner.image_url,
-        link: banner.link,
-      }));
-    } else {
-      // Handle announcements
-      return announcements.map((announcement: any) => ({
-        id: String(announcement.id),
-        storeName: announcement.message.length > 50 ? announcement.message.substring(0, 50) + '...' : announcement.message,
-        announcementTitle: announcement.message,
-      type: "Text",
-        date: announcement.created_at,
-      status: true,
-      hasImage: false,
-        impressions: announcement.impressions,
-      }));
+    // Ensure announcements is an array
+    if (!Array.isArray(announcements)) {
+      return [];
     }
+    
+    // Process all items and determine their type based on their properties
+    return announcements.map((item: any) => {
+      // Determine if this is a banner or announcement based on item properties
+      const isBanner = item.image_url || item.image || item.imageUrl || item.link;
+      
+      if (isBanner) {
+        // Handle banners
+        return {
+          id: String(item.id || item.banner_id || Math.random().toString()),
+          storeName: item.link || item.url || 'N/A',
+          announcementTitle: item.title || item.name || item.link || 'N/A',
+          type: "Banner",
+          date: item.created_at || item.createdAt || item.date || new Date().toISOString(),
+          status: true,
+          hasImage: true,
+          impressions: item.impressions || 0,
+          image: item.image_url || item.image || item.imageUrl || '',
+          link: item.link || item.url || '',
+        };
+      } else {
+        // Handle announcements
+        const message = item.message || item.content || item.description || item.title || '';
+        const truncatedMessage = message.length > 50 ? message.substring(0, 50) + '...' : message;
+        
+        return {
+          id: String(item.id || item.announcement_id || Math.random().toString()),
+          storeName: truncatedMessage,
+          announcementTitle: message,
+          type: "Text",
+          date: item.created_at || item.createdAt || item.date || new Date().toISOString(),
+          status: true,
+          hasImage: false,
+          impressions: item.impressions || 0,
+        };
+      }
+    });
   }, [announcements, activeTab]);
 
   const handleSelectAll = () => {
@@ -181,12 +190,18 @@ const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
               <tr>
                 <td colSpan={7} className="p-6 text-center text-red-500">Failed to load announcements</td>
               </tr>
-            ) : normalizedAnnouncements.length === 0 ? (
+            ) : !normalizedAnnouncements || normalizedAnnouncements.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">No announcements found</td>
               </tr>
             ) : (
-              normalizedAnnouncements.map((announcement) => (
+              normalizedAnnouncements.map((announcement, index) => {
+                // Additional safety check for each announcement
+                if (!announcement || !announcement.id) {
+                  return null;
+                }
+                
+                return (
               <tr key={announcement.id} className="border-b border-gray-100">
                 <td className="p-4">
                   <input
@@ -249,9 +264,9 @@ const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
                       <button 
                         className="text-gray-400 hover:text-gray-600"
                         onClick={() => {
-                          if (activeTab === "Banner" && onEditBanner) {
+                          if (announcement.type === "Banner" && onEditBanner) {
                             onEditBanner(announcement);
-                          } else if (onEditAnnouncement) {
+                          } else if (announcement.type === "Text" && onEditAnnouncement) {
                             onEditAnnouncement(announcement);
                           }
                         }}
@@ -261,7 +276,7 @@ const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
                       <button 
                         className="text-red-400 hover:text-red-600"
                         onClick={() => {
-                          if (activeTab === "Banner" && onDeleteBanner) {
+                          if (announcement.type === "Banner" && onDeleteBanner) {
                             onDeleteBanner(announcement.id);
                           }
                         }}
@@ -275,7 +290,8 @@ const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
                   </div>
                 </td>
               </tr>
-              ))
+                );
+              }).filter(Boolean) // Remove any null entries
             )}
           </tbody>
         </table>

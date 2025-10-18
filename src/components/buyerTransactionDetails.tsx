@@ -6,7 +6,7 @@ import { getAdminTransactionDetails } from "../utils/queries/users";
 interface Transaction {
   id: string;
   reference: string;
-  amount: string;
+  amount: string | number;
   type: string;
   date: string;
   status: "Successful" | "Pending" | "Failed";
@@ -61,7 +61,9 @@ const BuyerTransactionDetails: React.FC<BuyerTransactionDetailsProps> = ({
 
   // Helper function to render status section
   const renderStatusSection = () => {
-    const amount = txData.amount.replace("₦", "").replace(",", "");
+    // Ensure amount is a string and handle different formats
+    const amountStr = typeof txData.amount === 'string' ? txData.amount : String(txData.amount || '0');
+    const amount = amountStr.replace("₦", "").replace(",", "");
     const displayAmount = `${
       txData.status === "Successful" || txData.status === "Completed" ? "+" : "-"
     }${amount}`;
@@ -193,7 +195,7 @@ const BuyerTransactionDetails: React.FC<BuyerTransactionDetailsProps> = ({
           <div className="flex flex-row bg-[#EDEDED] justify-between p-4 rounded-t-2xl rounded-b-lg">
             <span className="text-[15px]">Amount</span>
             <span className="text-[15px] text-[#E53E3E] font-bold">
-              {txData.amount}
+              {typeof txData.amount === 'string' ? txData.amount : `₦${txData.amount || '0'}`}
             </span>
           </div>
           <div className="flex flex-row bg-[#EDEDED] justify-between p-4 rounded-lg ">

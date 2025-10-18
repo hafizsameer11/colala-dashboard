@@ -39,7 +39,7 @@ ChartJS.register(
 const ORDER_FILTER_TABS = [
   "All",
   "placed",
-  "pending", 
+  "pending",
   "delivered",
   "completed",
   "disputed",
@@ -55,20 +55,20 @@ const Dashboard = () => {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
-  
+
   // Filter and search state
   const [activeTab, setActiveTab] = useState<OrderFilterTab>("All");
   const [isTabChanging, setIsTabChanging] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  
+
   // Selected orders for bulk actions
   const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
 
   // ============================================================================
   // API DATA FETCHING
   // ============================================================================
-  
+
   /**
    * Fetch dashboard data using React Query
    * Includes buyer stats, seller stats, site stats, latest chats, and latest orders
@@ -82,7 +82,7 @@ const Dashboard = () => {
   // ============================================================================
   // SEARCH DEBOUNCING
   // ============================================================================
-  
+
   /**
    * Debounce search input to avoid excessive API calls
    * Updates debouncedSearch 500ms after user stops typing
@@ -91,25 +91,25 @@ const Dashboard = () => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
     }, 500);
-    
+
     return () => clearTimeout(timeoutId);
   }, [searchInput]);
 
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
-  
+
   /**
    * Handle tab filter changes with debouncing to prevent rapid clicks
    */
   const handleTabClick = useCallback((tab: OrderFilterTab) => {
     // Prevent clicks during transitions or if already active
     if (isTabChanging || tab === activeTab) return;
-    
+
     console.log('Filter tab clicked:', tab);
     setIsTabChanging(true);
     setActiveTab(tab);
-    
+
     // Reset transition state after animation completes
     setTimeout(() => {
       setIsTabChanging(false);
@@ -147,21 +147,21 @@ const Dashboard = () => {
   // ============================================================================
   // CHART DATA PREPARATION
   // ============================================================================
-  
+
   /**
    * Prepare chart data from API response
    * Maps site statistics to Chart.js format
    */
   const chartData = {
     labels: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.month) || [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ],
     datasets: [
       {
         label: "Users",
-        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.users) || 
-              new Array(12).fill(0),
+        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.users) ||
+          new Array(12).fill(0),
         backgroundColor: "#E53E3E",
         borderRadius: 50,
         barThickness: 20,
@@ -169,8 +169,8 @@ const Dashboard = () => {
       },
       {
         label: "Orders",
-        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.orders) || 
-              new Array(12).fill(0),
+        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.orders) ||
+          new Array(12).fill(0),
         backgroundColor: "#008000",
         borderRadius: 50,
         barThickness: 20,
@@ -217,7 +217,7 @@ const Dashboard = () => {
   // ============================================================================
   // COMPONENT RENDERERS
   // ============================================================================
-  
+
   /**
    * Render filter tab buttons with smooth transitions
    */
@@ -237,14 +237,13 @@ const Dashboard = () => {
                 }
               }}
               disabled={isTabChanging}
-              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer select-none ${
-                isActive 
-                  ? "px-8 bg-[#E53E3E] text-white" 
-                  : isTabChanging 
-                    ? "px-4 text-gray-400 cursor-not-allowed" 
+              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer select-none ${isActive
+                  ? "px-8 bg-[#E53E3E] text-white"
+                  : isTabChanging
+                    ? "px-4 text-gray-400 cursor-not-allowed"
                     : "px-4 text-black hover:bg-gray-100 active:bg-gray-200"
-              }`}
-              style={{ 
+                }`}
+              style={{
                 pointerEvents: 'auto',
                 userSelect: 'none'
               }}
@@ -260,7 +259,7 @@ const Dashboard = () => {
   // ============================================================================
   // LOADING & ERROR STATES
   // ============================================================================
-  
+
   if (isLoading) {
     return (
       <>
@@ -293,7 +292,7 @@ const Dashboard = () => {
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
-  
+
   return (
     <>
       <PageHeader title="Dashboard" onPeriodChange={handlePeriodChange} />
@@ -303,7 +302,7 @@ const Dashboard = () => {
             STATISTICS CARDS SECTION
         ======================================================================== */}
         <div className="flex flex-row gap-6">
-          
+
           {/* Buyer App Statistics */}
           <div className="border border-[#989898] rounded-2xl flex-1">
             <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
@@ -447,7 +446,7 @@ const Dashboard = () => {
             CHARTS & LATEST DATA SECTION
         ======================================================================== */}
         <div className="flex flex-row gap-5 mt-5">
-          
+
           {/* Site Statistics Chart */}
           <div className="">
             <div className="border border-[#989898] rounded-2xl bg-white w-180">
@@ -496,18 +495,18 @@ const Dashboard = () => {
                     dashboardData.data.latest_chats.map((chat: any) => (
                       <div key={chat.id} className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
                         <div className="flex flex-row items-center gap-2">
-                          <img 
-                            className="w-10 h-10 rounded-full object-cover" 
-                            src={chat.store?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.store.profile_image}` : images.Users} 
-                            alt={chat.store?.name || 'Store'} 
+                          <img
+                            className="w-10 h-10 rounded-full object-cover"
+                            src={chat.store?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.store.profile_image}` : images.Users}
+                            alt={chat.store?.name || 'Store'}
                           />
                           <span>{chat.store?.name || 'Unknown Store'}</span>
                         </div>
                         <div className="flex flex-row items-center gap-2">
-                          <img 
-                            className="w-10 h-10 rounded-full object-cover" 
-                            src={chat.customer?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.customer.profile_image}` : images.Users} 
-                            alt={chat.customer?.name || 'Customer'} 
+                          <img
+                            className="w-10 h-10 rounded-full object-cover"
+                            src={chat.customer?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.customer.profile_image}` : images.Users}
+                            alt={chat.customer?.name || 'Customer'}
                           />
                           <span>{chat.customer?.name || 'Unknown Customer'}</span>
                           <span className="ml-5">
@@ -539,7 +538,7 @@ const Dashboard = () => {
             <TabButtons />
           </div>
           <div className="ml-5">
-            <BulkActionDropdown 
+            <BulkActionDropdown
               onActionSelect={handleBulkActionSelect}
               orders={dashboardData?.data?.latest_orders || []}
               selectedOrders={selectedOrders}

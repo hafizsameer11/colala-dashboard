@@ -1,4 +1,3 @@
-import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminProductDetails } from "../../../utils/queries/users";
@@ -7,10 +6,25 @@ import Description from "./description";
 import Review from "./review";
 import ProductStats from "./productStats";
 
+interface Product {
+  id: string;
+  storeName: string;
+  productName: string;
+  price: string;
+  discountPrice?: string;
+  date: string;
+  sponsored: boolean;
+  productImage: string;
+  status: string;
+  quantity: number;
+  reviewsCount: number;
+  averageRating: number;
+}
+
 interface ProductDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product?: any;
+  product?: Product;
 }
 
 const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
@@ -50,7 +64,12 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const variants = productDetails?.data?.variants || [];
   const reviews = productDetails?.data?.reviews || [];
   const statistics = productDetails?.data?.statistics;
-  const reviewsCount = productDetails?.data?.reviews_count || 0;
+
+  // Debug logging
+  console.log('Product details data:', productDetails?.data);
+  console.log('Images array:', images);
+  console.log('Selected image index:', selectedImageIndex);
+  console.log('Current image:', images[selectedImageIndex]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -79,7 +98,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   <div className="mt-5">
                     <div className="relative w-full h-80 mb-4 rounded-2xl overflow-hidden">
                       <img 
-                        src={images[selectedImageIndex]?.url} 
+                        src={images[selectedImageIndex]?.url || images[selectedImageIndex]?.path} 
                         alt={`Product image ${selectedImageIndex + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -90,7 +109,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     
                     {/* Thumbnail Images */}
                     <div className="flex flex-row gap-3">
-                      {images.map((img: any, index: number) => (
+                      {images.map((img: { id?: string; url?: string; path?: string }, index: number) => (
                         <div 
                           key={img.id || index} 
                           className={`relative cursor-pointer transition-all duration-200 ${
@@ -101,7 +120,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                           onClick={() => setSelectedImageIndex(index)}
                         >
                           <img 
-                            src={img.url} 
+                            src={img.url || img.path} 
                             alt={`Product thumbnail ${index + 1}`}
                             className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                             onError={(e) => {
@@ -209,17 +228,12 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             <div className="flex items-center">
               <button
                 onClick={onClose}
-                className="p-2 rounded-md  cursor-pointer"
+                className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
                 aria-label="Close"
               >
-                <img 
-                  className="w-7 h-7" 
-                  src={images.close} 
-                  alt="Close" 
-                  onError={(e) => {
-                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDdMMjEgMjFMMjEgN0wyMSAyMVoiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTcgN0wyMSAyMSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMjEgN0w3IDIxIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPg==';
-                  }}
-                />
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>
