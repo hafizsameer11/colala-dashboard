@@ -99,7 +99,7 @@ const CustomerDetails: React.FC = () => {
     recent_transactions: [],
   };
 
-  const tabs = ["Activity", "Orders", "Chats", "Transactions", "Social Feed"];
+  const tabs = ["Activity", "Orders", "Chats", "Transactions",];
 
   const handlePeriodChange = (period: string) => {
     console.log("Period changed to:", period);

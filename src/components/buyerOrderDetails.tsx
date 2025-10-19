@@ -1,6 +1,7 @@
 import images from "../constants/images";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import ProductDetails from "./productDetails";
 import OrderOverview from "./orderOverview";
 import ProductCart from "./productCart";
@@ -118,6 +119,7 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
   orderId,
   order,
 }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
     "track order" | "full order details"
   >("track order");
@@ -424,6 +426,13 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                       <button
                         type="button"
                         className="flex-1 bg-[#E53E3E] text-white py-3 px-4 rounded-lg hover:bg-red-600 focus:outline-none transition-colors font-normal cursor-pointer"
+                        onClick={() => {
+                          // Prefer using chat.id if available; otherwise, fall back to orderId
+                          const targetId = orderData?.chat?.id || orderData?.id || orderId;
+                          navigate("/chats", {
+                            state: { selectedOrderId: targetId, fromOrders: true },
+                          });
+                        }}
                       >
                         View Chat
                       </button>

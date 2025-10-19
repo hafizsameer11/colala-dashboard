@@ -229,7 +229,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <button
               type="button"
               className="w-13 h-13 bg-[#E53E3E] text-white rounded-lg flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -256,7 +256,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
             >
               <span className="text-xl font-bold">+</span>
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Contact Buttons */}
@@ -283,11 +283,11 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
               </button>
             </div>
           </div>
-          <div className="mt-3">
+          {/* <div className="mt-3">
             <button className="bg-[#E53E3E] rounded-2xl text-white w-full py-3.5 cursor-pointer">
               Checkout
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Store Details */}

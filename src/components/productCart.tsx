@@ -157,7 +157,7 @@ const ProductCart: React.FC<ProductCartProps> = ({ orderData }) => {
                           <span className="text-[#E53E3E] font-bold text-[17px]">
                             ₦{parseFloat(productPrice).toLocaleString()}
                           </span>
-                          <div className="flex flex-row gap-15 items-center mt-3">
+                          {/* <div className="flex flex-row gap-15 items-center mt-3">
                             <div className="flex items-center">
                               <button
                                 type="button"
@@ -196,7 +196,7 @@ const ProductCart: React.FC<ProductCartProps> = ({ orderData }) => {
                                 />
                               </div>
                             </div>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     );
@@ -244,11 +244,11 @@ const ProductCart: React.FC<ProductCartProps> = ({ orderData }) => {
         </div>
       </div>
 
-      <div className="mt-5">
+      {/* <div className="mt-5">
         <button className="bg-[#E53E3E] rounded-2xl cursor-pointer w-full text-white py-4">
           Checkout
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };
