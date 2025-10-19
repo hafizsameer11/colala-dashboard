@@ -1,17 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../components/PageHeader";
 import { getUserDetails } from "../../../utils/queries/users";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import AddUserModal from "../../../components/addUserModel";
 import EditUserModal from "../../../components/editUserModel";
+import LoyaltyPointsModal from "../../../components/loyaltyPointsModal";
 
 const UserDetailsPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
-  const { state } = useLocation();
-  const [showModal, setShowModal] = useState(false);
+  const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -26,6 +25,9 @@ const UserDetailsPage: React.FC = () => {
 
   // Extract the user data from API response
   const userData = profileData?.data;
+
+  // Debug logging
+  console.log('UserDetailsPage Debug - userData:', userData);
 
   const handlePeriodChange = (period: string) => {
     console.log("Period changed to:", period);
@@ -230,7 +232,7 @@ const UserDetailsPage: React.FC = () => {
                     <span className="font-bold">{userData?.statistics?.total_loyalty_points || 0}</span>
                     <span
                       className="cursor-pointer underline"
-                      onClick={() => setShowModal(true)}
+                      onClick={() => setShowLoyaltyModal(true)}
                     >
                       View Details
                     </span>
@@ -297,7 +299,7 @@ const UserDetailsPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {userData?.activities && userData.activities.length > 0 ? (
-                      userData.activities.map((activity: any) => (
+                      userData.activities.map((activity: { id: number; activity: string; created_at: string }) => (
                         <tr key={activity.id} className="hover:bg-gray-50">
                           <td className="py-3 px-4">
                             <input
@@ -327,8 +329,12 @@ const UserDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Add User Modal */}
-        <AddUserModal isOpen={showModal} onClose={() => setShowModal(false)} />
+        {/* Loyalty Points Modal */}
+        <LoyaltyPointsModal 
+          isOpen={showLoyaltyModal} 
+          onClose={() => setShowLoyaltyModal(false)} 
+          userData={userData}
+        />
         
         {/* Edit User Modal */}
         <EditUserModal 

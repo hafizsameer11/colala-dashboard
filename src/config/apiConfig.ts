@@ -20,7 +20,7 @@ const API_ENDPOINTS = {
   // ALL USERS
   ALL_USERS: {
     List: API_DOMAIN + "/admin/all-users", // GET
-    Stats: API_DOMAIN + "/admin/all-users/stats", // GET
+    Stats: API_DOMAIN + "/admin/all-users/analytics", // GET
     Search: API_DOMAIN + "/admin/all-users/search", // GET
     BulkAction: API_DOMAIN + "/admin/all-users/bulk-action", // POST
     Profile: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/profile`, // GET
