@@ -362,6 +362,17 @@ const API_ENDPOINTS = {
     Resolve: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/resolve`, // POST
     Close: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/close`, // POST
   },
+
+  // FAQ MANAGEMENT
+  FAQ: {
+    Statistics: API_DOMAIN + "/admin/faq/statistics", // GET
+    Categories: API_DOMAIN + "/admin/faq/categories", // GET
+    List: API_DOMAIN + "/admin/faq", // POST (create new FAQ)
+    Update: (id: number | string) => `${API_DOMAIN}/admin/faq/${id}`, // PUT (update FAQ)
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/faq/${id}`, // DELETE
+    Details: (id: number | string) => `${API_DOMAIN}/admin/faq/${id}/details`, // GET
+    ByCategory: (category: string) => `${API_DOMAIN}/admin/faq/${category}`, // GET (get FAQs by category)
+  },
   
 };
 

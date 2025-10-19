@@ -9,14 +9,47 @@ import BrandsManagement from "./components/brandsManagement";
 import QuestionModal from "./components/questionmodal";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
 import { getAllUsers, getUserDetails } from "../../../utils/queries/users";
+import { 
+  getFaqStatistics, 
+  getFaqCategories, 
+  getFaqsByCategory, 
+  updateFaq, 
+  deleteFaq
+} from "../../../utils/queries/faq";
 
-type FaqItem = {
-  id: string;
-  type: string;
-  users: "All" | "Buyers" | "Sellers";
-  questions: number;
-  userType: "All" | "Buyers" | "Sellers"; // used for filtering via tabs
-};
+interface FaqItem {
+  id: number;
+  question: string;
+  answer: string;
+  is_active: number;
+  category: {
+    id: number;
+    title: string;
+    video?: string;
+    is_active?: number;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+interface FaqCategory {
+  id: number;
+  title: string;
+  video?: string;
+  is_active: number;
+}
+
+interface FaqStatistics {
+  total_faqs: number;
+  active_faqs: number;
+  inactive_faqs: number;
+  categories_stats: Array<{
+    category: string;
+    total_faqs: number;
+    active_faqs: number;
+    inactive_faqs: number;
+  }>;
+}
 
 interface Admin {
   id: number;
@@ -129,92 +162,150 @@ const AllUsers = () => {
     }
   }, [userDetailsData]);
 
-  const [faqItems, setFaqItems] = useState<FaqItem[]>([
-    {
-      id: "1",
-      type: "General FAQ",
-      users: "All",
-      questions: 3,
-      userType: "All",
-    },
-    {
-      id: "2",
-      type: "Promotions Section",
-      users: "Sellers",
-      questions: 3,
-      userType: "Sellers",
-    },
-    {
-      id: "3",
-      type: "Leaderboard Section",
-      users: "All",
-      questions: 3,
-      userType: "All",
-    },
-  ]);
+  // FAQ State
+  const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
+  const [faqCategories, setFaqCategories] = useState<FaqCategory[]>([]);
+  const [, setFaqStatistics] = useState<FaqStatistics | null>(null);
+  const [isLoadingFaqs, setIsLoadingFaqs] = useState(false);
+  const [currentFaqPage] = useState(1);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("faqList");
-    if (saved) {
-      try {
-        setFaqItems(JSON.parse(saved));
-      } catch {}
+  // Filter FAQ data based on active tab
+  const getFilteredFaqData = () => {
+    if (faqActiveTab === "All") {
+      return faqItems;
     }
-  }, []);
-  useEffect(() => {
-    localStorage.setItem("faqList", JSON.stringify(faqItems));
-  }, [faqItems]);
+    // Map tab names to category titles
+    const categoryMap: Record<string, string> = {
+      "Buyers": "buyer",
+      "Sellers": "seller"
+    };
+    const targetCategory = categoryMap[faqActiveTab];
+    return faqItems.filter((faq) => faq.category.title === targetCategory);
+  };
 
-  const filteredFaqData =
-    faqActiveTab === "All"
-      ? faqItems
-      : faqItems.filter((faq) => faq.userType === faqActiveTab);
+  const filteredFaqData = getFilteredFaqData();
 
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [editFaqForm, setEditFaqForm] = useState<{
-    type: string;
-    users: "All" | "Buyers" | "Sellers";
-    questions: number | string;
-  }>({ type: "", users: "All", questions: 0 });
+    question: string;
+    answer: string;
+    faq_category_id: string;
+    is_active: number;
+  }>({ question: "", answer: "", faq_category_id: "1", is_active: 1 });
 
   const openEditFaq = (faq: FaqItem) => {
     setEditingFaq(faq);
     setEditFaqForm({
-      type: faq.type,
-      users: faq.users,
-      questions: faq.questions,
+      question: faq.question,
+      answer: faq.answer,
+      faq_category_id: faq.category.id.toString(),
+      is_active: faq.is_active,
     });
   };
 
   const cancelEditFaq = () => setEditingFaq(null);
 
-  const saveEditFaq = () => {
+  const saveEditFaq = async () => {
     if (!editingFaq) return;
-    const nextType = editFaqForm.type.trim() || editingFaq.type;
-    const nextUsers = editFaqForm.users;
-    const nextQuestions = Number(editFaqForm.questions);
-    setFaqItems((prev) =>
-      prev.map((f) =>
-        f.id === editingFaq.id
-          ? {
-              ...f,
-              type: nextType,
-              users: nextUsers,
-              userType: nextUsers, // keep filterable field in sync
-              questions: Number.isFinite(nextQuestions)
-                ? nextQuestions
-                : f.questions,
-            }
-          : f
-      )
-    );
-    setEditingFaq(null);
+    try {
+      const response = await updateFaq(editingFaq.id, editFaqForm);
+      if (response.status === 'success') {
+        // Refresh FAQ data by triggering useEffect
+        // The useEffect will handle the data fetching
+        setEditingFaq(null);
+        // Trigger a refresh by updating the refresh trigger
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error updating FAQ:', error);
+    }
   };
 
-  const deleteFaq = (faq: FaqItem) => {
-    if (!window.confirm(`Delete "${faq.type}"?`)) return;
-    setFaqItems((prev) => prev.filter((f) => f.id !== faq.id));
+  const handleDeleteFaq = async (faq: FaqItem) => {
+    if (!window.confirm(`Delete "${faq.question}"?`)) return;
+    try {
+      const response = await deleteFaq(faq.id);
+      if (response.status === 'success') {
+        // Trigger a refresh by updating the refresh trigger
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error deleting FAQ:', error);
+    }
   };
+
+  // FAQ API Functions are now called directly in useEffect to prevent infinite loops
+
+  // handleCreateFaq function is available for future use
+  // const handleCreateFaq = async (faqData: {
+  //   faq_category_id: string;
+  //   question: string;
+  //   answer: string;
+  //   is_active: number;
+  // }) => {
+  //   try {
+  //     const response = await createFaq(faqData);
+  //     if (response.status === 'success') {
+  //       // Refresh FAQ data
+  //       fetchFaqStatistics();
+  //       if (faqActiveTab !== "All") {
+  //         const categoryMap: Record<string, string> = {
+  //           "Buyers": "buyer",
+  //           "Sellers": "seller"
+  //         };
+  //         fetchFaqsByCategory(categoryMap[faqActiveTab] || "general");
+  //       } else {
+  //         fetchFaqsByCategory("general");
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error creating FAQ:', error);
+  //   }
+  // };
+
+  // Fetch FAQ data when component mounts or FAQ tab is active
+  useEffect(() => {
+    if (activeTab === "FAQs") {
+      // Only fetch data once when FAQs tab is opened
+      const loadFaqData = async () => {
+        try {
+          // Fetch statistics and categories first
+          const statsResponse = await getFaqStatistics();
+          if (statsResponse.status === 'success') {
+            setFaqStatistics(statsResponse.data);
+          }
+
+          const categoriesResponse = await getFaqCategories();
+          if (categoriesResponse.status === 'success') {
+            setFaqCategories(categoriesResponse.data);
+          }
+          
+          // Then fetch FAQs based on active tab
+          setIsLoadingFaqs(true);
+          let categoryToFetch = "general";
+          if (faqActiveTab !== "All") {
+            const categoryMap: Record<string, string> = {
+              "Buyers": "buyer",
+              "Sellers": "seller"
+            };
+            categoryToFetch = categoryMap[faqActiveTab] || "general";
+          }
+          
+          const faqsResponse = await getFaqsByCategory(categoryToFetch, currentFaqPage);
+          if (faqsResponse.status === 'success') {
+            setFaqItems(faqsResponse.data.faqs.data || []);
+          }
+        } catch (error) {
+          console.error('Error loading FAQ data:', error);
+        } finally {
+          setIsLoadingFaqs(false);
+        }
+      };
+      
+      loadFaqData();
+    }
+  }, [activeTab, faqActiveTab, currentFaqPage, refreshTrigger]); // Only depend on tab changes
 
   const dropdownOptions = ["Online", "All", "Active", "Inactive"];
 
@@ -778,13 +869,13 @@ const AllUsers = () => {
                               />
                             </th>
                             <th className="px-6 py-4 text-left font-medium text-gray-700">
-                              Type
+                              Category
                             </th>
                             <th className="px-6 py-4 text-left font-medium text-gray-700">
                               Users
                             </th>
                             <th className="px-6 py-4 text-center font-medium text-gray-700">
-                              No of questions
+                              Status
                             </th>
                             <th className="px-6 py-4 text-center font-medium text-gray-700">
                               Actions
@@ -792,56 +883,67 @@ const AllUsers = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {filteredFaqData.map((faq) => (
-                            <tr key={faq.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4">
-                                <input
-                                  type="checkbox"
-                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                                />
+                          {isLoadingFaqs ? (
+                            <tr>
+                              <td colSpan={5} className="px-6 py-8 text-center">
+                                <div className="flex justify-center items-center">
+                                  <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mr-2"></div>
+                                  Loading FAQs...
+                                </div>
                               </td>
-                              <td className="px-6 py-4">
-                                <span className="font-medium text-gray-900">
-                                  {faq.type}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className="text-gray-600">
-                                  {faq.users}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <span className="text-gray-600">
-                                  {faq.questions}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center justify-end gap-3">
-                                  <button
-                                    onClick={handleOpenQuestionModal}
-                                    className="px-4 py-3 cursor-pointer bg-[#E53E3E] text-white font-medium rounded-lg hover:bg-[#D32F2F] transition-colors"
-                                  >
-                                    Add Question
-                                  </button>
+                            </tr>
+                          ) : (
+                            filteredFaqData.map((faq) => (
+                              <tr key={faq.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="font-medium text-gray-900">
+                                    {faq.category.title}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-gray-600">
+                                    {faq.category.title === 'general' ? 'All' : 
+                                     faq.category.title === 'buyer' ? 'Buyers' : 'Sellers'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className="text-gray-600">
+                                    {faq.is_active ? 'Active' : 'Inactive'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center justify-end gap-3">
+                                    <button
+                                      onClick={handleOpenQuestionModal}
+                                      className="px-4 py-3 cursor-pointer bg-[#E53E3E] text-white font-medium rounded-lg hover:bg-[#D32F2F] transition-colors"
+                                    >
+                                      Add Question
+                                    </button>
 
-                                  {/* EDIT (now functional) */}
-                                  <button
-                                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
-                                    onClick={() => openEditFaq(faq)}
-                                    title="Edit"
-                                  >
-                                    <img
-                                      src="/public/assets/layout/edit1.svg"
-                                      alt="Edit"
-                                    />
-                                  </button>
+                                    {/* EDIT (now functional) */}
+                                    <button
+                                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                                      onClick={() => openEditFaq(faq)}
+                                      title="Edit"
+                                    >
+                                      <img
+                                        src="/public/assets/layout/edit1.svg"
+                                        alt="Edit"
+                                      />
+                                    </button>
 
-                                  {/* DELETE (now functional) */}
-                                  <button
-                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                                    onClick={() => deleteFaq(faq)}
-                                    title="Delete"
-                                  >
+                                    {/* DELETE (now functional) */}
+                                    <button
+                                      className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                                      onClick={() => handleDeleteFaq(faq)}
+                                      title="Delete"
+                                    >
                                     <img
                                       src="/public/assets/layout/delete1.svg"
                                       alt="Delete"
@@ -850,9 +952,10 @@ const AllUsers = () => {
                                 </div>
                               </td>
                             </tr>
-                          ))}
+                          ))
+                          )}
 
-                          {filteredFaqData.length === 0 && (
+                          {filteredFaqData.length === 0 && !isLoadingFaqs && (
                             <tr>
                               <td
                                 colSpan={5}
@@ -903,63 +1006,96 @@ const AllUsers = () => {
                         <div className="space-y-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">
-                              Type
+                              Question
                             </label>
                             <input
-                              value={editFaqForm.type}
+                              value={editFaqForm.question}
                               onChange={(e) =>
                                 setEditFaqForm((f) => ({
                                   ...f,
-                                  type: e.target.value,
+                                  question: e.target.value,
                                 }))
                               }
                               className="w-full border rounded-lg px-3 py-2"
-                              placeholder="FAQ type (e.g., General FAQ)"
+                              placeholder="Enter the question"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              Answer
+                            </label>
+                            <textarea
+                              value={editFaqForm.answer}
+                              onChange={(e) =>
+                                setEditFaqForm((f) => ({
+                                  ...f,
+                                  answer: e.target.value,
+                                }))
+                              }
+                              className="w-full border rounded-lg px-3 py-2"
+                              placeholder="Enter the answer"
+                              rows={4}
                             />
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium mb-1">
-                                Users
+                                Category
                               </label>
                               <select
-                                value={editFaqForm.users}
+                                value={editFaqForm.faq_category_id}
                                 onChange={(e) =>
                                   setEditFaqForm((f) => ({
                                     ...f,
-                                    users: e.target.value as
-                                      | "All"
-                                      | "Buyers"
-                                      | "Sellers",
+                                    faq_category_id: e.target.value,
                                   }))
                                 }
                                 className="w-full border rounded-lg px-3 py-2 bg-white"
                               >
-                                <option value="All">All</option>
-                                <option value="Buyers">Buyers</option>
-                                <option value="Sellers">Sellers</option>
+                                {faqCategories.map((category) => (
+                                  <option key={category.id} value={category.id.toString()}>
+                                    {category.title}
+                                  </option>
+                                ))}
                               </select>
                             </div>
 
                             <div>
                               <label className="block text-sm font-medium mb-1">
-                                No. of Questions
+                                Status
                               </label>
-                              <input
-                                type="number"
-                                min={0}
-                                value={editFaqForm.questions}
+                              <select
+                                value={editFaqForm.is_active}
                                 onChange={(e) =>
                                   setEditFaqForm((f) => ({
                                     ...f,
-                                    questions: e.target.value,
+                                    is_active: parseInt(e.target.value),
                                   }))
                                 }
-                                className="w-full border rounded-lg px-3 py-2"
-                              />
+                                className="w-full border rounded-lg px-3 py-2 bg-white"
+                              >
+                                <option value={1}>Active</option>
+                                <option value={0}>Inactive</option>
+                              </select>
                             </div>
                           </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                          <button
+                            onClick={cancelEditFaq}
+                            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={saveEditFaq}
+                            className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors cursor-pointer"
+                          >
+                            Save Changes
+                          </button>
                         </div>
 
                         <div className="mt-6 flex justify-end gap-2">
