@@ -1,6 +1,9 @@
 // Colala API base URL
 const API_DOMAIN = "https://colala.hmstech.xyz/api";
 
+// Storage base URL for images and files
+const STORAGE_DOMAIN = "https://colala.hmstech.xyz/storage";
+
 const API_ENDPOINTS = {
   AUTH: {
     // Authentication endpoints
@@ -284,15 +287,15 @@ const API_ENDPOINTS = {
   CATEGORIES: {
     List: API_DOMAIN + "/categories", // GET
     Create: API_DOMAIN + "/create-category", // POST
-    CreateSubcategory: API_DOMAIN + "/create-category", // POST
-    CreateSubcategoryCategory: API_DOMAIN + "/create-category", // POST
     Update: (id: number | string) => `${API_DOMAIN}/update-category/${id}`, // POST
+    Delete: (id: number | string) => `${API_DOMAIN}/categories/${id}`, // DELETE
   },
 
   // BRANDS
   BRANDS: {
     List: API_DOMAIN + "/brands", // GET
     Create: API_DOMAIN + "/brands", // POST
+    Details: (id: number | string) => `${API_DOMAIN}/brands/${id}`, // GET
     Update: (id: number | string) => `${API_DOMAIN}/brands/${id}`, // PUT
     Delete: (id: number | string) => `${API_DOMAIN}/brands/${id}`, // DELETE
   },
@@ -353,4 +356,4 @@ const API_ENDPOINTS = {
   
 };
 
-export { API_DOMAIN, API_ENDPOINTS };
+export { API_DOMAIN, API_ENDPOINTS, STORAGE_DOMAIN };

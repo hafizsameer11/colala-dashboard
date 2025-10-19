@@ -1,21 +1,72 @@
 import React, { useState } from "react";
 import images from "../../../../constants/images";
+import { getProfilePictureUrl } from "../../../../utils/imageUtils";
 import BulkActionDropdown from "../../../../components/BulkActionDropdown";
 
 interface Admin {
-  id: string;
-  name: string;
-  avatar: string;
-  role: string;
-  dateJoined: string;
-  status: "active" | "inactive";
-  email?: string;
-  location?: string;
-  lastLogin?: string;
+  id: number;
+  full_name: string;
+  email: string;
+  phone: string;
+  profile_picture: string | null;
+  role: "buyer" | "seller";
+  is_active: number;
+  wallet_balance: string;
+  created_at: string;
+  user_name?: string;
+  country?: string;
+  state?: string;
+  status?: "active" | "inactive";
+  user_code?: string;
+  updated_at?: string;
+}
+
+interface UserDetails {
+  user_info: {
+    id: number;
+    full_name: string;
+    email: string;
+    phone: string;
+    user_name: string;
+    country: string;
+    state: string;
+    role: "buyer" | "seller";
+    status: "active" | "inactive";
+    profile_picture: string | null;
+    user_code: string;
+    created_at: string;
+    updated_at: string;
+  };
+  wallet_info: {
+    id: number;
+    balance: string | null;
+    escrow_balance: string | null;
+    points_balance: string | null;
+    created_at: string;
+  };
+  store_info: any | null;
+  statistics: {
+    total_orders: number;
+    total_transactions: number;
+    total_loyalty_points: number;
+    total_spent: number;
+    average_order_value: number;
+  };
+  recent_orders: any[];
+  activities: Array<{
+    id: number;
+    activity: string;
+    created_at: string;
+  }>;
+  recent_transactions: any[];
 }
 
 interface AdminDetailProps {
   admin: Admin;
+  userDetails?: UserDetails | null;
+  onBack: () => void;
+  loading?: boolean;
+  error?: any;
 }
 
 interface ActivityItem {
@@ -24,7 +75,13 @@ interface ActivityItem {
   date: string;
 }
 
-const AdminDetail: React.FC<AdminDetailProps> = ({ admin }) => {
+const AdminDetail: React.FC<AdminDetailProps> = ({ 
+  admin, 
+  userDetails, 
+  onBack, 
+  loading = false, 
+  error = null 
+}) => {
   const [activeTab, setActiveTab] = useState("Admin Management");
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [selectAllActivities, setSelectAllActivities] = useState(false);
@@ -36,29 +93,12 @@ const AdminDetail: React.FC<AdminDetailProps> = ({ admin }) => {
     // Add your custom logic here
   };
 
-  // Sample activity data
-  const activities: ActivityItem[] = [
-    {
-      id: "1",
-      activity: "User Account created",
-      date: "22/10/25 - 07:22 AM",
-    },
-    {
-      id: "2",
-      activity: "User logged in",
-      date: "22/10/25 - 07:22 AM",
-    },
-    {
-      id: "3",
-      activity: "User deleted a comment",
-      date: "22/10/25 - 07:22 AM",
-    },
-    {
-      id: "4",
-      activity: "Replied a chat",
-      date: "22/10/25 - 07:22 AM",
-    },
-  ];
+  // Use real activity data from API
+  const activities: ActivityItem[] = userDetails?.activities?.map(activity => ({
+    id: activity.id.toString(),
+    activity: activity.activity,
+    date: new Date(activity.created_at).toLocaleString()
+  })) || [];
 
   const handleSelectAllActivities = () => {
     if (selectAllActivities) {
@@ -85,9 +125,19 @@ const AdminDetail: React.FC<AdminDetailProps> = ({ admin }) => {
   const CustomHeader = () => (
     <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
       <div className="flex items-center gap-3">
-        <span className="text-gray-500 text-xl">Admin Management</span>
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+        <span className="text-gray-400">|</span>
+        <span className="text-gray-500 text-xl">User Management</span>
         <span className="text-gray-400">/</span>
-        <span className="text-gray-900 text-xl font-medium">Admin Details</span>
+        <span className="text-gray-900 text-xl font-medium">User Details</span>
       </div>
 
       <div className="flex items-center gap-3">
@@ -114,6 +164,22 @@ const AdminDetail: React.FC<AdminDetailProps> = ({ admin }) => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-gray-600">Loading user details...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-red-600">Error loading user details. Please try again.</div>
+      </div>
+    );
+  }
+
   return (
     <>
       <CustomHeader />
@@ -123,8 +189,8 @@ const AdminDetail: React.FC<AdminDetailProps> = ({ admin }) => {
           <div className="flex items-start justify-between">
             <div className="flex items-center  gap-4">
               <img
-                src={admin.avatar}
-                alt={admin.name}
+                src={getProfilePictureUrl(admin.profile_picture, images.admin)}
+                alt={admin.full_name}
                 className="w-16 h-16 rounded-full -mt-26 object-cover border-2 border-white"
               />
               <div className="space-y-3">
@@ -134,34 +200,36 @@ const AdminDetail: React.FC<AdminDetailProps> = ({ admin }) => {
                     <div className="text-sm text-[#FFFFFF80] opacity-90 mb-4">
                       Name
                     </div>
-                    <div className="font-xs text-[14px]">{admin.name}</div>
+                    <div className="font-xs text-[14px]">{admin.full_name}</div>
                   </div>
                   <div>
                     <div className="text-sm ml-22 text-[#FFFFFF80] opacity-90 mb-4">
                       Location
                     </div>
                     <div className="font-xs ml-22 text-[14px]">
-                      {admin.location || "Lagos, Nigeria"}
+                      {userDetails?.user_info?.country && userDetails?.user_info?.state 
+                        ? `${userDetails.user_info.state}, ${userDetails.user_info.country}`
+                        : "Not specified"}
                     </div>
                   </div>
                 </div>
 
-                {/* Email and Last Login */}
+                {/* Email and Phone */}
                 <div className="flex gap-12">
                   <div>
                     <div className="text-sm text-[#FFFFFF80] opacity-90 mb-4">
                       Email
                     </div>
                     <div className="font-xs text-[14px]">
-                      {admin.email || "qamardeen@admingmail.com"}
+                      {admin.email}
                     </div>
                   </div>
                   <div>
                     <div className="text-sm ml-4 text-[#FFFFFF80] opacity-90 mb-4">
-                      Last Login
+                      Phone
                     </div>
                     <div className="font-xs ml-4 text-[14px]">
-                      {admin.lastLogin || "23/02/25 - 11:22 AM"}
+                      {admin.phone}
                     </div>
                   </div>
                 </div>

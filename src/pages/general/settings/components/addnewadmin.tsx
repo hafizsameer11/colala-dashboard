@@ -1,16 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useMutation } from "@tanstack/react-query";
+import { createUser } from "../../../../utils/mutations/users";
 import images from "../../../../constants/images";
 
 interface AddNewAdminProps {
   isOpen: boolean;
   onClose: () => void;
   onAddAdmin: (adminData: {
-    name: string;
+    full_name: string;
+    user_name: string;
     email: string;
+    phone: string;
     password: string;
+    country: string;
+    state: string;
     role: string;
-    avatar?: File | null; // <- NEW
+    referral_code?: string;
+    profile_picture?: File | null;
   }) => void;
 }
 
@@ -20,10 +27,15 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
   onAddAdmin,
 }) => {
   const [formData, setFormData] = useState({
-    name: "",
+    full_name: "",
+    user_name: "",
     email: "",
+    phone: "",
     password: "",
-    role: "Admin",
+    country: "",
+    state: "",
+    role: "buyer" as "buyer" | "seller",
+    referral_code: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -32,9 +44,53 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
   // --- Image state
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const roleOptions = ["Admin", "Super Admin", "Moderator"];
+  const roleOptions = ["buyer", "seller"];
+
+  const clearAvatar = useCallback(() => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) {
+      (fileInputRef.current as any).value = "";
+    }
+  }, [avatarPreview]);
+
+  const handleClose = useCallback(() => {
+    setFormData({ 
+      full_name: "", 
+      user_name: "", 
+      email: "", 
+      phone: "", 
+      password: "", 
+      country: "", 
+      state: "", 
+      role: "buyer" as "buyer" | "seller", 
+      referral_code: "" 
+    });
+    setShowPassword(false);
+    setIsRoleDropdownOpen(false);
+    clearAvatar();
+    onClose();
+  }, [onClose, clearAvatar]);
+
+  // Mutation for creating user
+  const createUserMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: (data) => {
+      console.log('User created successfully:', data);
+      alert('User created successfully!');
+      // Call the onAddAdmin callback with the created user data
+      onAddAdmin(formData);
+      // Reset form and close modal
+      handleClose();
+    },
+    onError: (error: Error) => {
+      console.error('Error creating user:', error);
+      alert(`Error creating user: ${error.message || 'Something went wrong'}`);
+    }
+  });
 
   // Lock body scroll
   useEffect(() => {
@@ -51,7 +107,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     };
     if (isOpen) document.addEventListener("keydown", handleEscapeKey);
     return () => document.removeEventListener("keydown", handleEscapeKey);
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   // Cleanup preview URL
   useEffect(() => {
@@ -72,12 +128,12 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
 
     if (!allowed.includes(file.type)) {
       alert("Please select a JPG, PNG, or WEBP image.");
-      e.target.value = "";
+      (e.target as any).value = "";
       return;
     }
     if (file.size > maxBytes) {
       alert("Image too large. Max size is 2MB.");
-      e.target.value = "";
+      (e.target as any).value = "";
       return;
     }
 
@@ -88,15 +144,8 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     setAvatarPreview(url);
   };
 
-  const clearAvatar = () => {
-    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(null);
-    setAvatarPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = (e.target as any);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -105,11 +154,15 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
 
     // Basic validation
     if (
-      !formData.name.trim() ||
+      !formData.full_name.trim() ||
+      !formData.user_name.trim() ||
       !formData.email.trim() ||
-      !formData.password.trim()
+      !formData.phone.trim() ||
+      !formData.password.trim() ||
+      !formData.country.trim() ||
+      !formData.state.trim()
     ) {
-      alert("Please fill in all fields");
+      alert("Please fill in all required fields");
       return;
     }
 
@@ -126,20 +179,12 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
       return;
     }
 
-    onAddAdmin({ ...formData, avatar: avatarFile || null });
-
-    // Reset
-    setFormData({ name: "", email: "", password: "", role: "Admin" });
-    clearAvatar();
-    onClose();
-  };
-
-  const handleClose = () => {
-    setFormData({ name: "", email: "", password: "", role: "Admin" });
-    setShowPassword(false);
-    setIsRoleDropdownOpen(false);
-    clearAvatar();
-    onClose();
+    // Use mutation to create user
+    createUserMutation.mutate({
+      ...formData,
+      role: formData.role as "buyer" | "seller",
+      profile_picture: avatarFile || undefined
+    });
   };
 
   if (!isOpen) return null;
@@ -233,10 +278,26 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
               </label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="full_name"
+                value={formData.full_name}
                 onChange={handleInputChange}
                 placeholder="Enter full name"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                required
+              />
+            </div>
+
+            {/* Username */}
+            <div>
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
+                Username
+              </label>
+              <input
+                type="text"
+                name="user_name"
+                value={formData.user_name}
+                onChange={handleInputChange}
+                placeholder="Enter username"
                 className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
                 required
               />
@@ -253,6 +314,22 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email address"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                required
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
+                Phone
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter phone number"
                 className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
                 required
               />
@@ -317,6 +394,53 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
               </div>
             </div>
 
+            {/* Country */}
+            <div>
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
+                Country
+              </label>
+              <input
+                type="text"
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                placeholder="Enter country"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                required
+              />
+            </div>
+
+            {/* State */}
+            <div>
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
+                State
+              </label>
+              <input
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleInputChange}
+                placeholder="Enter state"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+                required
+              />
+            </div>
+
+            {/* Referral Code */}
+            <div>
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
+                Referral Code (Optional)
+              </label>
+              <input
+                type="text"
+                name="referral_code"
+                value={formData.referral_code}
+                onChange={handleInputChange}
+                placeholder="Enter referral code"
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
+              />
+            </div>
+
             {/* Assign Role */}
             <div>
               <label className="block text-xl font-medium text-[#000] mb-2.5">
@@ -355,7 +479,7 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                         key={role}
                         type="button"
                         onClick={() => {
-                          setFormData((prev) => ({ ...prev, role }));
+                          setFormData((prev) => ({ ...prev, role: role as "buyer" | "seller" }));
                           setIsRoleDropdownOpen(false);
                         }}
                         className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
@@ -371,9 +495,14 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
             {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-[#E53E3E] cursor-pointer text-white py-4 rounded-xl font-medium hover:bg-[#D32F2F] transition-colors mt-6"
+              disabled={createUserMutation.isPending}
+              className={`w-full py-4 rounded-xl font-medium transition-colors mt-6 ${
+                createUserMutation.isPending
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-[#E53E3E] cursor-pointer text-white hover:bg-[#D32F2F]'
+              }`}
             >
-              Add Admin
+              {createUserMutation.isPending ? 'Creating User...' : 'Add User'}
             </button>
           </form>
         </div>

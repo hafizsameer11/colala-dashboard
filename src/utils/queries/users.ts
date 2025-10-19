@@ -1400,3 +1400,174 @@ export const deleteStoreReview = async (reviewId: number | string) => {
     throw error;
   }
 };
+
+// ==================== ADDITIONAL BRANDS API FUNCTIONS ====================
+
+/**
+ * Get brand details
+ */
+export const getBrandDetails = async (brandId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BRANDS.Details(brandId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get brand details API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new brand
+ */
+export const createBrand = async (brandData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BRANDS.Create, 'POST', brandData, token);
+    return response;
+  } catch (error) {
+    console.error('Create brand API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update brand
+ */
+export const updateBrand = async (brandId: number | string, brandData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BRANDS.Update(brandId), 'PUT', brandData, token);
+    return response;
+  } catch (error) {
+    console.error('Update brand API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete brand
+ */
+export const deleteBrand = async (brandId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BRANDS.Delete(brandId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete brand API call error:', error);
+    throw error;
+  }
+};
+
+// ==================== ADDITIONAL CATEGORIES API FUNCTIONS ====================
+
+/**
+ * Create new category
+ */
+export const createCategory = async (categoryData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.CATEGORIES.Create, 'POST', categoryData, token);
+    return response;
+  } catch (error) {
+    console.error('Create category API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update category
+ */
+export const updateCategory = async (categoryId: number | string, categoryData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.CATEGORIES.Update(categoryId), 'POST', categoryData, token);
+    return response;
+  } catch (error) {
+    console.error('Update category API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete category
+ */
+export const deleteCategory = async (categoryId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.CATEGORIES.Delete(categoryId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete category API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new user (admin endpoint)
+ */
+export const createUser = async (userData: {
+  full_name: string;
+  user_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  country: string;
+  state: string;
+  role: string;
+  referral_code?: string;
+  profile_picture?: File | null;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('full_name', userData.full_name);
+    formData.append('user_name', userData.user_name);
+    formData.append('email', userData.email);
+    formData.append('phone', userData.phone);
+    formData.append('password', userData.password);
+    formData.append('country', userData.country);
+    formData.append('state', userData.state);
+    formData.append('role', userData.role);
+    
+    if (userData.referral_code) {
+      formData.append('referral_code', userData.referral_code);
+    }
+    
+    if (userData.profile_picture) {
+      formData.append('profile_picture', userData.profile_picture);
+    }
+
+    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Create, 'POST', formData, token);
+    return response;
+  } catch (error) {
+    console.error('Create user API call error:', error);
+    throw error;
+  }
+};
+

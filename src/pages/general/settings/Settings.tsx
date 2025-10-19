@@ -1,11 +1,14 @@
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ManagementSettingTable from "./components/managementsettingtable";
 import AddNewAdmin from "./components/addnewadmin";
 import AdminDetail from "./components/admindetail";
 import Categories from "./components/categories";
+import BrandsManagement from "./components/brandsManagement";
 import QuestionModal from "./components/questionmodal";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
+import { getAllUsers, getUserDetails } from "../../../utils/queries/users";
 
 type FaqItem = {
   id: string;
@@ -16,15 +19,59 @@ type FaqItem = {
 };
 
 interface Admin {
-  id: string;
-  name: string;
-  avatar: string;
-  role: string;
-  dateJoined: string;
+  id: number;
+  full_name: string;
+  email: string;
+  phone: string;
+  profile_picture: string | null;
+  role: "buyer" | "seller";
   status: "active" | "inactive";
-  email?: string;
-  location?: string;
-  lastLogin?: string;
+  wallet_balance: string | null;
+  escrow_balance: string | null;
+  points_balance: string | null;
+  store_name: string | null;
+  created_at: string;
+  formatted_date: string;
+}
+
+interface UserDetails {
+  user_info: {
+    id: number;
+    full_name: string;
+    email: string;
+    phone: string;
+    user_name: string;
+    country: string;
+    state: string;
+    role: "buyer" | "seller";
+    status: "active" | "inactive";
+    profile_picture: string | null;
+    user_code: string;
+    created_at: string;
+    updated_at: string;
+  };
+  wallet_info: {
+    id: number;
+    balance: string | null;
+    escrow_balance: string | null;
+    points_balance: string | null;
+    created_at: string;
+  };
+  store_info: any | null;
+  statistics: {
+    total_orders: number;
+    total_transactions: number;
+    total_loyalty_points: number;
+    total_spent: number;
+    average_order_value: number;
+  };
+  recent_orders: any[];
+  activities: Array<{
+    id: number;
+    activity: string;
+    created_at: string;
+  }>;
+  recent_transactions: any[];
 }
 
 interface Question {
@@ -42,6 +89,7 @@ const AllUsers = () => {
   const [isAddAdminModalOpen, setIsAddAdminModalOpen] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
+  const [selectedUserDetails, setSelectedUserDetails] = useState<UserDetails | null>(null);
   const [newAdminData, setNewAdminData] = useState<{
     name: string;
     email: string;
@@ -49,7 +97,37 @@ const AllUsers = () => {
     role: string;
   } | null>(null);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search);
+
+  // API Queries
+  const { 
+    data: usersData, 
+    isLoading: usersLoading, 
+    error: usersError,
+    refetch: refetchUsers 
+  } = useQuery({
+    queryKey: ['allUsers', currentPage, debouncedSearch],
+    queryFn: () => getAllUsers(currentPage, debouncedSearch),
+    enabled: activeTab === "Admin Management"
+  });
+
+  const { 
+    data: userDetailsData, 
+    isLoading: userDetailsLoading, 
+    error: userDetailsError 
+  } = useQuery({
+    queryKey: ['userDetails', selectedAdmin?.id],
+    queryFn: () => getUserDetails(selectedAdmin!.id),
+    enabled: !!selectedAdmin?.id
+  });
+
+  // Update selectedUserDetails when userDetailsData changes
+  useEffect(() => {
+    if (userDetailsData?.data) {
+      setSelectedUserDetails(userDetailsData.data);
+    }
+  }, [userDetailsData]);
 
   const [faqItems, setFaqItems] = useState<FaqItem[]>([
     {
@@ -141,12 +219,25 @@ const AllUsers = () => {
   const dropdownOptions = ["Online", "All", "Active", "Inactive"];
 
   const handleAddNewAdmin = (adminData: {
-    name: string;
+    full_name: string;
+    user_name: string;
     email: string;
+    phone: string;
     password: string;
+    country: string;
+    state: string;
     role: string;
+    referral_code?: string;
+    profile_picture?: File | null;
   }) => {
-    setNewAdminData(adminData);
+    // Refetch users data after adding new admin
+    refetchUsers();
+    setNewAdminData({
+      name: adminData.full_name,
+      email: adminData.email,
+      password: adminData.password,
+      role: adminData.role
+    });
     setTimeout(() => {
       setNewAdminData(null);
     }, 100);
@@ -164,6 +255,11 @@ const AllUsers = () => {
 
   const handleAdminDetails = (admin: Admin) => {
     setSelectedAdmin(admin);
+  };
+
+  const handleBackFromDetails = () => {
+    setSelectedAdmin(null);
+    setSelectedUserDetails(null);
   };
 
   const handleOpenQuestionModal = () => {
@@ -222,9 +318,22 @@ const AllUsers = () => {
   return (
     <>
       {selectedAdmin ? (
-        <AdminDetail admin={selectedAdmin} />
+        <AdminDetail 
+          admin={selectedAdmin} 
+          userDetails={selectedUserDetails}
+          onBack={handleBackFromDetails}
+          loading={userDetailsLoading}
+          error={userDetailsError}
+        />
       ) : activeTab === "Categories" ? (
         <Categories
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isThisWeekDropdownOpen={isThisWeekDropdownOpen}
+          setIsThisWeekDropdownOpen={setIsThisWeekDropdownOpen}
+        />
+      ) : activeTab === "Brands" ? (
+        <BrandsManagement
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           isThisWeekDropdownOpen={isThisWeekDropdownOpen}
@@ -236,27 +345,27 @@ const AllUsers = () => {
             <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
 
             <div className="flex items-center gap-3">
-              {/* Main Tabs Group */}
-              <div className="flex items-center bg-white border border-[#989898] rounded-lg p-2 ">
-                {["General", "Admin Management", "Categories", "FAQs"].map(
-                  (tab) => {
-                    const isActive = activeTab === tab;
-                    return (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
-                          isActive
-                            ? "bg-[#E53E3E] text-white"
-                            : "text-gray-700 hover:text-gray-900"
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    );
-                  }
-                )}
-              </div>
+        {/* Main Tabs Group */}
+        <div className="flex items-center bg-white border border-[#989898] rounded-lg p-2 ">
+          {["General", "Admin Management", "Categories", "Brands", "FAQs"].map(
+            (tab) => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? "bg-[#E53E3E] text-white"
+                      : "text-gray-700 hover:text-gray-900"
+                  }`}
+                >
+                  {tab}
+                </button>
+              );
+            }
+          )}
+        </div>
 
               {/* This Week Dropdown - Separate */}
               <div className="relative">
@@ -312,7 +421,7 @@ const AllUsers = () => {
               {activeTab === "Admin Management" && (
                 <>
                   <div className="flex flex-row justify-between items-center">
-                    {/* Card 1 */}
+                    {/* Card 1 - Total Users */}
                     <div
                       className="flex flex-row rounded-2xl  "
                       style={{
@@ -324,9 +433,11 @@ const AllUsers = () => {
                       </div>
                       <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
                         <span className="font-semibold text-[15px]">
-                          Total Admins
+                          Total Users
                         </span>
-                        <span className="font-semibold text-2xl">50</span>
+                        <span className="font-semibold text-2xl">
+                          {usersLoading ? "..." : usersData?.data?.statistics?.total_users || 0}
+                        </span>
                         <span className="text-[#00000080] text-[13px] ">
                           <span className="text-[#1DB61D]">+5%</span> increase
                           from last month
@@ -334,8 +445,7 @@ const AllUsers = () => {
                       </div>
                     </div>
 
-                    {/* Card 2 */}
-
+                    {/* Card 2 - Active Users */}
                     <div
                       className="flex flex-row rounded-2xl"
                       style={{
@@ -347,9 +457,11 @@ const AllUsers = () => {
                       </div>
                       <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
                         <span className="font-semibold text-[15px]">
-                          Online Admins
+                          Active Users
                         </span>
-                        <span className="font-semibold text-2xl">20</span>
+                        <span className="font-semibold text-2xl">
+                          {usersLoading ? "..." : usersData?.data?.statistics?.active_users || 0}
+                        </span>
                         <span className="text-[#00000080] text-[13px] ">
                           <span className="text-[#1DB61D]">+5%</span> increase
                           from last month
@@ -357,8 +469,7 @@ const AllUsers = () => {
                       </div>
                     </div>
 
-                    {/* Card 3 */}
-
+                    {/* Card 3 - Buyers */}
                     <div
                       className="flex flex-row rounded-2xl"
                       style={{
@@ -370,9 +481,11 @@ const AllUsers = () => {
                       </div>
                       <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
                         <span className="font-semibold text-[15px]">
-                          Active Admins
+                          Buyers
                         </span>
-                        <span className="font-semibold text-2xl">40</span>
+                        <span className="font-semibold text-2xl">
+                          {usersLoading ? "..." : usersData?.data?.statistics?.buyer_users || 0}
+                        </span>
                         <span className="text-[#00000080] text-[13px] ">
                           <span className="text-[#1DB61D]">+5%</span> increase
                           from last month
@@ -421,11 +534,29 @@ const AllUsers = () => {
                       </div>
                     </div>
                   </div>
-                  <ManagementSettingTable
-                    newAdmin={newAdminData}
-                    onAdminDetails={handleAdminDetails}
-                    searchTerm={debouncedSearch} // <- NEW
-                  />
+                  {usersLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg text-gray-600">Loading users...</div>
+                    </div>
+                  ) : usersError ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg text-red-600">Error loading users. Please try again.</div>
+                    </div>
+                  ) : (
+                    <ManagementSettingTable
+                      users={usersData?.data?.users || []}
+                      newAdmin={newAdminData}
+                      onAdminDetails={handleAdminDetails}
+                      searchTerm={debouncedSearch}
+                      pagination={{
+                        currentPage: usersData?.data?.pagination?.current_page || 1,
+                        totalPages: usersData?.data?.pagination?.last_page || 1,
+                        total: usersData?.data?.pagination?.total || 0,
+                        perPage: usersData?.data?.pagination?.per_page || 15,
+                        onPageChange: setCurrentPage
+                      }}
+                    />
+                  )}
                   <AddNewAdmin
                     isOpen={isAddAdminModalOpen}
                     onClose={handleCloseModal}
@@ -444,7 +575,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2 ">
-                {["General", "Admin Management", "Categories", "FAQs"].map(
+                {["General", "Admin Management", "Categories", "Brands", "FAQs"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -533,7 +664,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2">
-                {["General", "Admin Management", "Categories", "FAQs"].map(
+                {["General", "Admin Management", "Categories", "Brands", "FAQs"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
