@@ -33,6 +33,101 @@ type Post = {
   user?: any;
 };
 
+interface MediaItem {
+  id: number;
+  type: string;
+  url: string;
+  position: number;
+}
+
+// Media Slider Component
+const MediaSlider: React.FC<{ media: MediaItem[] }> = ({ media }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % media.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + media.length) % media.length);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  return (
+    <div className="relative">
+      {/* Main Image Display */}
+      <div className="relative w-full rounded-lg overflow-hidden">
+        <img 
+          className="w-full h-auto rounded-lg" 
+          src={media[currentIndex].url} 
+          alt={`Media ${currentIndex + 1}`}
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+          }}
+        />
+        
+        {/* Navigation Arrows */}
+        {media.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+        
+        {/* Image Counter */}
+        {media.length > 1 && (
+          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+            {currentIndex + 1} / {media.length}
+          </div>
+        )}
+      </div>
+      
+      {/* Thumbnail Navigation */}
+      {media.length > 1 && (
+        <div className="flex gap-2 mt-3 overflow-x-auto">
+          {media.map((item, index) => (
+            <button
+              key={item.id}
+              onClick={() => goToSlide(index)}
+              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                index === currentIndex 
+                  ? 'border-red-500' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <img 
+                className="w-full h-full object-cover" 
+                src={item.url} 
+                alt={`Thumbnail ${index + 1}`}
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMiAzMkwyOCAzNkwyMCAyOEwyNCAyNEwzMiAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SocialFeed = () => {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
@@ -66,7 +161,7 @@ const SocialFeed = () => {
   // Transform API data to component format
   const posts = useMemo(() => {
     if (!socialFeedData?.data?.posts) return [];
-    
+
     return socialFeedData.data.posts.map((post: any) => ({
       id: post.id.toString(),
       storeName: post.store?.store_name || post.user?.full_name || "Unknown Store",
@@ -114,8 +209,8 @@ const SocialFeed = () => {
       const matchesSearch = !q
         ? true
         : [p.storeName, p.location, p.text].some((f) =>
-            f.toLowerCase().includes(q)
-          );
+          f.toLowerCase().includes(q)
+        );
       return matchesStore && matchesSearch;
     });
   }, [debouncedSearch, posts, selectedStore]);
@@ -187,9 +282,8 @@ const SocialFeed = () => {
                     </div>
                     <div className="flex-shrink-0">
                       <img
-                        className={`w-3 h-3 mt-1 transition-transform ${
-                          isStoreDropdownOpen ? "rotate-180" : ""
-                        }`}
+                        className={`w-3 h-3 mt-1 transition-transform ${isStoreDropdownOpen ? "rotate-180" : ""
+                          }`}
                         src={images.dropdown}
                         alt=""
                       />
@@ -221,9 +315,8 @@ const SocialFeed = () => {
                                 setSelectedStore(name);
                                 setIsStoreDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-4 py-2.5 hover:bg-gray-50 truncate ${
-                                selectedStore === name ? "font-semibold" : ""
-                              }`}
+                              className={`w-full text-left px-4 py-2.5 hover:bg-gray-50 truncate ${selectedStore === name ? "font-semibold" : ""
+                                }`}
                               title={name} // Show full text on hover
                             >
                               {name}
@@ -329,19 +422,38 @@ const SocialFeed = () => {
                         </div>
                       </div>
 
-                      {/* Image - Only show if image exists */}
-                      {post.image && (
+                      {/* Media Display */}
+                      {(post.media && post.media.length > 0) || post.image ? (
                         <div>
-                          <img 
-                            className="w-full rounded-lg" 
-                            src={post.image} 
-                            alt=""
-                            onError={(e) => {
-                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                            }}
-                          />
+                          {post.media && post.media.length > 0 ? (
+                            // Multiple images with slider
+                            post.media.length === 1 ? (
+                              // Single image from media array
+                              <img
+                                className="w-full rounded-lg"
+                                src={post.media[0].url}
+                                alt=""
+                                onError={(e) => {
+                                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                                }}
+                              />
+                            ) : (
+                              // Multiple images with slider
+                              <MediaSlider media={post.media} />
+                            )
+                          ) : post.image ? (
+                            // Fallback to single image
+                            <img
+                              className="w-full rounded-lg"
+                              src={post.image}
+                              alt=""
+                              onError={(e) => {
+                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                              }}
+                            />
+                          ) : null}
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Caption */}
                       <div className="bg-[#F0F0F0] rounded-xl p-5 text-xl font-normal">
@@ -442,9 +554,9 @@ const SocialFeed = () => {
                   allComments.map((comment, index) => (
                     <div key={index} className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2">
                       <div>
-                        <img 
-                          className="w-12 h-12 rounded-full object-cover" 
-                          src={images.sasha} 
+                        <img
+                          className="w-12 h-12 rounded-full object-cover"
+                          src={images.sasha}
                           alt=""
                           onError={(e) => {
                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDIwQzI2LjIwOTEgMjAgMjggMTguMjA5MSAyOCAxNkMyOCAxMy43OTA5IDI2LjIwOTEgMTIgMjQgMTJDMjEuNzkwOSAxMiAyMCAxMy43OTA5IDIwIDE2QzIwIDE4LjIwOTEgMjEuNzkwOSAyMCAyNCAyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDI4QzI2LjIwOTEgMjggMjggMjYuMjA5MSAyOCAyNEMyOCAyMS43OTA5IDI2LjIwOTEgMjAgMjQgMjBDMjEuNzkwOSAyMCAyMCAyMS43OTA5IDIwIDI0QzIwIDI2LjIwOTEgMjEuNzkwOSAyOCAyNCAyOFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
@@ -455,7 +567,7 @@ const SocialFeed = () => {
                         <div className="font-medium text-md">
                           {comment.body || comment.comment || "No comment text"}{" "}
                           <span>
-                            <button 
+                            <button
                               className="text-[#E53E3E] font-bold cursor-pointer"
                               onClick={() => handleShowDetails(comment.postId)}
                             >

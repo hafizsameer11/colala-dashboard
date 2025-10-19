@@ -17,6 +17,101 @@ interface SocialFeedModelProps {
   postId?: number | null;
 }
 
+interface MediaItem {
+  id: number;
+  type: string;
+  url: string;
+  position: number;
+}
+
+// Media Slider Component
+const MediaSlider: React.FC<{ media: MediaItem[] }> = ({ media }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % media.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + media.length) % media.length);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  return (
+    <div className="relative">
+      {/* Main Image Display */}
+      <div className="relative w-full rounded-lg overflow-hidden">
+        <img 
+          className="w-full h-auto rounded-lg" 
+          src={media[currentIndex].url} 
+          alt={`Media ${currentIndex + 1}`}
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+          }}
+        />
+        
+        {/* Navigation Arrows */}
+        {media.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+        
+        {/* Image Counter */}
+        {media.length > 1 && (
+          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+            {currentIndex + 1} / {media.length}
+          </div>
+        )}
+      </div>
+      
+      {/* Thumbnail Navigation */}
+      {media.length > 1 && (
+        <div className="flex gap-2 mt-3 overflow-x-auto">
+          {media.map((item, index) => (
+            <button
+              key={item.id}
+              onClick={() => goToSlide(index)}
+              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                index === currentIndex 
+                  ? 'border-red-500' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <img 
+                className="w-full h-full object-cover" 
+                src={item.url} 
+                alt={`Thumbnail ${index + 1}`}
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMiAzMkwyOCAzNkwyMCAyOEwyNCAyNEwzMiAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   isOpen,
   onClose,
@@ -33,6 +128,10 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
     enabled: !!postId && isOpen,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Debug logging
+  console.log('SocialFeedModal Debug - Post details:', postDetails);
+  console.log('SocialFeedModal Debug - Comments:', postDetails?.data?.recent_comments);
 
   // State to store actual replies for each comment
   const [replies, setReplies] = useState<{ [commentId: string]: Reply[] }>({});
@@ -62,29 +161,29 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
 
   // Handle reply submission
   const handleReplySubmit = (commentId: string) => {
-    const replyText = replyTexts[commentId];
-    if (!replyText || replyText.trim() === "") return;
+    const text = replyTexts[commentId];
+    if (!text.trim()) return;
 
-    // Create new reply
     const newReply: Reply = {
-      id: `reply_${Date.now()}`,
-      text: replyText.trim(),
-      author: "Sasha Stores",
-      replyTo: "Adam Chris",
-      timestamp: "now",
+      id: Date.now().toString(),
+      text: text.trim(),
+      author: "Admin", // You can get this from auth context
+      replyTo: "Original Commenter", // You can get this from the comment data
+      timestamp: "Just now",
     };
 
-    // Add reply to the comment
     setReplies((prev) => ({
       ...prev,
       [commentId]: [...(prev[commentId] || []), newReply],
     }));
 
-    // Clear the reply text and close the reply input
+    // Clear the reply text
     setReplyTexts((prev) => ({
       ...prev,
       [commentId]: "",
     }));
+
+    // Close the reply input
     setOpenReplies((prev) => {
       const newSet = new Set(prev);
       newSet.delete(commentId);
@@ -96,7 +195,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   const handleReplyDelete = (commentId: string, replyId: string) => {
     setReplies((prev) => ({
       ...prev,
-      [commentId]: prev[commentId].filter((reply) => reply.id !== replyId),
+      [commentId]: (prev[commentId] || []).filter((reply) => reply.id !== replyId),
     }));
   };
 
@@ -125,7 +224,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
             </div>
           </div>
         </div>
-        {/* Content */}
+搭        {/* Content */}
         <div className="pr-5 pl-5 mt-3">
           {isLoading ? (
             <div className="text-center py-10">
@@ -167,17 +266,23 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
                 </div>
               </div>
               
-              {/* Media */}
+              {/* Media Slider */}
               {postDetails.data.media && postDetails.data.media.length > 0 && (
                 <div className="mt-4">
-                  <img 
-                    className="w-full rounded-lg" 
-                    src={postDetails.data.media[0].url} 
-                    alt=""
-                    onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                    }}
-                  />
+                  {postDetails.data.media.length === 1 ? (
+                    // Single image
+                    <img 
+                      className="w-full rounded-lg" 
+                      src={postDetails.data.media[0].url} 
+                      alt=""
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                      }}
+                    />
+                  ) : (
+                    // Multiple images with slider
+                    <MediaSlider media={postDetails.data.media} />
+                  )}
                 </div>
               )}
               
@@ -243,330 +348,96 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
                     </div>
                     <div className="flex flex-row mt-3 justify-between items-center">
                       <div className="flex gap-2">
-                        <span className="text-[#00000080] cursor-pointer">Reply</span>
+                        <span
+                          className="text-[#00000080] cursor-pointer"
+                          onClick={() => toggleReply(comment.id?.toString() || index.toString())}
+                        >
+                          Reply
+                        </span>
                         <span className="text-[#00000080] cursor-pointer">Like</span>
                       </div>
                       <div className="text-[#FF0000] font-bold cursor-pointer">Delete</div>
                     </div>
+
+                    {/* Reply Input */}
+                    {openReplies.has(comment.id?.toString() || index.toString()) && (
+                      <div className="mt-3 flex flex-row gap-2 items-center">
+                        <img className="w-8 h-8" src={images.sasha} alt="" />
+                        <div className="flex-1 flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Write a reply..."
+                            value={replyTexts[comment.id?.toString() || index.toString()] || ""}
+                            onChange={(e) =>
+                              handleReplyTextChange(comment.id?.toString() || index.toString(), e.target.value)
+                            }
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                handleReplySubmit(comment.id?.toString() || index.toString());
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
+                          />
+                          <button
+                            onClick={() => handleReplySubmit(comment.id?.toString() || index.toString())}
+                            className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Display Replies */}
+                    {replies[comment.id?.toString() || index.toString()]?.map((reply) => (
+                      <div key={reply.id} className="flex flex-row gap-3 mt-3">
+                        <div>
+                          <img className="w-10 h-10" src={images.sasha} alt="" />
+                        </div>
+                        <div className="flex flex-col w-full">
+                          <div className="flex flex-row gap-1">
+                            <span className="text-[#E53E3E] font-semibold text-sm">
+                              {reply.author}
+                            </span>
+                            <span className="text-[#00000080] text-sm">
+                              {reply.timestamp}
+                            </span>
+                          </div>
+                          <div className="flex flex-row justify-between items-center w-full">
+                            <div className="text-[14px] font-semibold">
+                              <span className="text-[#FF0000]">
+                                @{reply.replyTo}
+                              </span>{" "}
+                              {reply.text}
+                            </div>
+                            <div
+                              className="text-[#FF0000] font-bold cursor-pointer"
+                              onClick={() =>
+                                handleReplyDelete(comment.id?.toString() || index.toString(), reply.id)
+                              }
+                            >
+                              Delete
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
           )}
           
-          <div className="flex flex-col mt-4 gap-4 mb-10">
-            {/* Comment 1 */}
-            <div className="flex flex-row gap-3">
-              <div>
-                <img className="w-15 h-15" src={images.adam} alt="" />
-              </div>
-              <div className="flex flex-col w-full">
-                <div className="flex flex-row gap-1">
-                  <span className="text-[#E53E3E] font-semibold text-md">
-                    Adam Chris
-                  </span>
-                  <span className="text-[#00000080]">1 min</span>
-                </div>
-                <div>
-                  <span className="text-[14px] font-semibold">
-                    This product looks really nice, do you deliver nationwide?
-                  </span>
-                </div>
-                <div className="flex flex-row mt-3 justify-between items-center">
-                  <div className="flex gap-2">
-                    <span
-                      className="text-[#00000080] cursor-pointer"
-                      onClick={() => toggleReply("comment1")}
-                    >
-                      Reply
-                    </span>
-                    <img
-                      className="cursor-pointer"
-                      src={images.comment}
-                      alt=""
-                    />
-                    <span>{replies.comment1?.length || 0}</span>
-                  </div>
-                  <div className="text-[#FF0000] font-bold cursor-pointer">
-                    Delete
-                  </div>
-                </div>
-
-                {/* Reply Input */}
-                {openReplies.has("comment1") && (
-                  <div className="mt-3 flex flex-row gap-2 items-center">
-                    <img className="w-8 h-8" src={images.sasha} alt="" />
-                    <div className="flex-1 flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Write a reply..."
-                        value={replyTexts["comment1"] || ""}
-                        onChange={(e) =>
-                          handleReplyTextChange("comment1", e.target.value)
-                        }
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            handleReplySubmit("comment1");
-                          }
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
-                      />
-                      <button
-                        onClick={() => handleReplySubmit("comment1")}
-                        className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
-                      >
-                        Reply
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Display Replies */}
-                {replies.comment1?.map((reply) => (
-                  <div key={reply.id} className="flex flex-row gap-3  mt-3">
-                    <div>
-                      <img className="w-10 h-10" src={images.sasha} alt="" />
-                    </div>
-                    <div className="flex flex-col w-full">
-                      <div className="flex flex-row gap-1">
-                        <span className="text-[#E53E3E] font-semibold text-sm">
-                          {reply.author}
-                        </span>
-                        <span className="text-[#00000080] text-sm">
-                          {reply.timestamp}
-                        </span>
-                      </div>
-                      <div className="flex flex-row justify-between items-center w-full">
-                        <div className="text-[14px] font-semibold">
-                          <span className="text-[#FF0000]">
-                            @{reply.replyTo}
-                          </span>{" "}
-                          {reply.text}
-                        </div>
-                        <div
-                          className="text-[#FF0000] font-bold cursor-pointer"
-                          onClick={() =>
-                            handleReplyDelete("comment1", reply.id)
-                          }
-                        >
-                          Delete
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Show message if no comments */}
+          {(!postDetails?.data?.recent_comments || postDetails.data.recent_comments.length === 0) && (
+            <div className="text-center py-10 text-gray-500">
+              No comments yet. Be the first to comment!
             </div>
-
-            {/* Comment 2 */}
-            <div className="flex flex-row gap-3">
-              <div>
-                <img className="w-15 h-15" src={images.adam} alt="" />
-              </div>
-              <div className="flex flex-col w-full">
-                <div className="flex flex-row gap-1">
-                  <span className="text-[#E53E3E] font-semibold text-md">
-                    Adam Chris
-                  </span>
-                  <span className="text-[#00000080]">1 min</span>
-                </div>
-                <div>
-                  <span className="text-[14px] font-semibold">
-                    This product looks really nice, do you deliver nationwide?
-                  </span>
-                </div>
-                <div className="flex flex-row mt-3 justify-between items-center">
-                  <div className="flex gap-2">
-                    <span
-                      className="text-[#00000080] cursor-pointer"
-                      onClick={() => toggleReply("comment2")}
-                    >
-                      Reply
-                    </span>
-                    <img
-                      className="cursor-pointer"
-                      src={images.comment}
-                      alt=""
-                    />
-                    <span>{replies.comment2?.length || 0}</span>
-                  </div>
-                  <div className="text-[#FF0000] font-bold cursor-pointer">
-                    Delete
-                  </div>
-                </div>
-
-                {/* Reply Input */}
-                {openReplies.has("comment2") && (
-                  <div className="mt-3 flex flex-row gap-2 items-center">
-                    <img className="w-8 h-8" src={images.sasha} alt="" />
-                    <div className="flex-1 flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Write a reply..."
-                        value={replyTexts["comment2"] || ""}
-                        onChange={(e) =>
-                          handleReplyTextChange("comment2", e.target.value)
-                        }
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            handleReplySubmit("comment2");
-                          }
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
-                      />
-                      <button
-                        onClick={() => handleReplySubmit("comment2")}
-                        className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
-                      >
-                        Reply
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Display Replies */}
-                {replies.comment2?.map((reply) => (
-                  <div key={reply.id} className="flex flex-row gap-3 mt-3">
-                    <div>
-                      <img className="w-10 h-10" src={images.sasha} alt="" />
-                    </div>
-                    <div className="flex flex-col w-full">
-                      <div className="flex flex-row gap-1">
-                        <span className="text-[#E53E3E] font-semibold text-sm">
-                          {reply.author}
-                        </span>
-                        <span className="text-[#00000080] text-sm">
-                          {reply.timestamp}
-                        </span>
-                      </div>
-                      <div className="flex flex-row justify-between items-center w-full">
-                        <div className="text-[14px] font-semibold">
-                          <span className="text-[#FF0000]">
-                            @{reply.replyTo}
-                          </span>{" "}
-                          {reply.text}
-                        </div>
-                        <div
-                          className="text-[#FF0000] font-bold cursor-pointer"
-                          onClick={() =>
-                            handleReplyDelete("comment2", reply.id)
-                          }
-                        >
-                          Delete
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Comment 3 */}
-            <div className="flex flex-row gap-3">
-              <div>
-                <img className="w-15 h-15" src={images.adam} alt="" />
-              </div>
-              <div className="flex flex-col w-full">
-                <div className="flex flex-row gap-1">
-                  <span className="text-[#E53E3E] font-semibold text-md">
-                    Adam Chris
-                  </span>
-                  <span className="text-[#00000080]">1 min</span>
-                </div>
-                <div>
-                  <span className="text-[14px] font-semibold">
-                    This product looks really nice, do you deliver nationwide?
-                  </span>
-                </div>
-                <div className="flex flex-row mt-3 justify-between items-center">
-                  <div className="flex gap-2">
-                    <span
-                      className="text-[#00000080] cursor-pointer"
-                      onClick={() => toggleReply("comment3")}
-                    >
-                      Reply
-                    </span>
-                    <img
-                      className="cursor-pointer"
-                      src={images.comment}
-                      alt=""
-                    />
-                    <span>{replies.comment3?.length || 0}</span>
-                  </div>
-                  <div className="text-[#FF0000] font-bold cursor-pointer">
-                    Delete
-                  </div>
-                </div>
-
-                {/* Reply Input */}
-                {openReplies.has("comment3") && (
-                  <div className="mt-3 flex flex-row gap-2 items-center">
-                    <img className="w-8 h-8" src={images.sasha} alt="" />
-                    <div className="flex-1 flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Write a reply..."
-                        value={replyTexts["comment3"] || ""}
-                        onChange={(e) =>
-                          handleReplyTextChange("comment3", e.target.value)
-                        }
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            handleReplySubmit("comment3");
-                          }
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E53E3E]"
-                      />
-                      <button
-                        onClick={() => handleReplySubmit("comment3")}
-                        className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors"
-                      >
-                        Reply
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Display Replies */}
-                {replies.comment3?.map((reply) => (
-                  <div key={reply.id} className="flex flex-row gap-3 mt-3">
-                    <div>
-                      <img className="w-10 h-10" src={images.sasha} alt="" />
-                    </div>
-                    <div className="flex flex-col w-full">
-                      <div className="flex flex-row gap-1">
-                        <span className="text-[#E53E3E] font-semibold text-sm">
-                          {reply.author}
-                        </span>
-                        <span className="text-[#00000080] text-sm">
-                          {reply.timestamp}
-                        </span>
-                      </div>
-                      <div className="flex flex-row justify-between items-center w-full">
-                        <div className="text-[14px] font-semibold">
-                          <span className="text-[#FF0000]">
-                            @{reply.replyTo}
-                          </span>{" "}
-                          {reply.text}
-                        </div>
-                        <div
-                          className="text-[#FF0000] font-bold cursor-pointer"
-                          onClick={() =>
-                            handleReplyDelete("comment3", reply.id)
-                          }
-                        >
-                          Delete
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 export default SocialFeedModel;
