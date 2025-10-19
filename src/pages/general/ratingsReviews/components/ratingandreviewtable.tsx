@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getProductReviews, getStoreReviews, deleteProductReview, deleteStoreReview } from "../../../../utils/queries/users";
 import ProductRatingModal from "./productrating";
+import StoreRatingModal from "./storerating";
 
 type RowType = "Store" | "Product";
 
@@ -11,6 +14,17 @@ interface RatingReview {
   averageRating: number;
   lastRating: string;
   other: string;
+  user?: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+  store?: {
+    id: number;
+    store_name: string;
+  };
+  comment?: string;
+  images?: string[];
 }
 
 interface RatingAndReviewTableProps {
@@ -28,17 +42,78 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showProductRatingModal, setShowProductRatingModal] = useState(false);
+  const [showStoreRatingModal, setShowStoreRatingModal] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<RatingReview | null>(null);
 
-  // Sample data — assign types for filtering
-  const ratingReviews: RatingReview[] = [
-    { id: "1", type: "Store",   storeName: "Benny's Bakery",    noOfReviews: 56,  averageRating: 5, lastRating: "18-07-2025/06:22AM", other: "View Reviews" },
-    { id: "2", type: "Product", storeName: "Gadget Galaxy",     noOfReviews: 86,  averageRating: 3, lastRating: "05-06-2025/09:00AM", other: "View Reviews" },
-    { id: "3", type: "Store",   storeName: "The Corner Shop",   noOfReviews: 340, averageRating: 5, lastRating: "20-07-2025/05:45PM", other: "View Reviews" },
-    { id: "4", type: "Product", storeName: "Sasha Stores",       noOfReviews: 25,  averageRating: 4, lastRating: "20-07-2025/07:58PM", other: "View Reviews" },
-    { id: "5", type: "Store",   storeName: "Mia's Boutique",     noOfReviews: 15,  averageRating: 4, lastRating: "15-07-2025/11:30AM", other: "View Reviews" },
-    { id: "6", type: "Store",   storeName: "J.P. Haberdashery",  noOfReviews: 9,   averageRating: 4, lastRating: "19-07-2025/10:11PM", other: "View Reviews" },
-    { id: "7", type: "Store",   storeName: "Leo's Emporium",     noOfReviews: 112, averageRating: 5, lastRating: "19-07-2025/02:15PM", other: "View Reviews" },
-  ];
+  // Fetch product reviews
+  const { data: productReviewsData, isLoading: productLoading, error: productError } = useQuery({
+    queryKey: ['productReviews', searchQuery],
+    queryFn: () => getProductReviews(1, searchQuery),
+    enabled: tabFilter === "All" || tabFilter === "Product",
+  });
+
+  // Fetch store reviews
+  const { data: storeReviewsData, isLoading: storeLoading, error: storeError } = useQuery({
+    queryKey: ['storeReviews', searchQuery],
+    queryFn: () => getStoreReviews(1, searchQuery),
+    enabled: tabFilter === "All" || tabFilter === "Store",
+  });
+
+  // Debug logging
+  console.log('Product Reviews Debug:', productReviewsData);
+  console.log('Store Reviews Debug:', storeReviewsData);
+
+  // Transform API data to RatingReview format
+  const ratingReviews: RatingReview[] = useMemo(() => {
+    const productReviews = productReviewsData?.data?.reviews?.map((review: {
+      id: number;
+      rating: number;
+      comment: string;
+      images: string[];
+      user: { id: number; full_name: string; email: string };
+      store: { id: number; store_name: string };
+      product?: { id: number; name: string };
+      created_at: string;
+      formatted_date: string;
+    }) => ({
+      id: `product-${review.id}`,
+      type: "Product" as RowType,
+      storeName: review.product?.name || "Unknown Product",
+      noOfReviews: 1, // Each row represents one review
+      averageRating: review.rating,
+      lastRating: review.formatted_date || review.created_at,
+      other: "View Reviews",
+      user: review.user,
+      store: review.store,
+      comment: review.comment,
+      images: review.images || [],
+    })) || [];
+
+    const storeReviews = storeReviewsData?.data?.reviews?.map((review: {
+      id: number;
+      rating: number;
+      comment: string;
+      images: string[];
+      user: { id: number; full_name: string; email: string };
+      store: { id: number; store_name: string };
+      created_at: string;
+      formatted_date: string;
+    }) => ({
+      id: `store-${review.id}`,
+      type: "Store" as RowType,
+      storeName: review.store?.store_name || "Unknown Store",
+      noOfReviews: 1, // Each row represents one review
+      averageRating: review.rating,
+      lastRating: review.formatted_date || review.created_at,
+      other: "View Reviews",
+      user: review.user,
+      store: review.store,
+      comment: review.comment,
+      images: review.images || [],
+    })) || [];
+
+    return [...productReviews, ...storeReviews];
+  }, [productReviewsData, storeReviewsData]);
 
   // Filtered rows based on tab + search (case-insensitive)
   const filteredRows = useMemo(() => {
@@ -53,14 +128,14 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
         row.lastRating.toLowerCase().includes(q);
       return matchTab && matchSearch;
     });
-  }, [tabFilter, searchQuery]);
+  }, [tabFilter, searchQuery, ratingReviews]);
 
   // When filters change, clear selection so it stays consistent
   useEffect(() => {
     setSelectedRows([]);
     setSelectAll(false);
     onRowSelect?.([]);
-  }, [tabFilter, searchQuery]);
+  }, [tabFilter, searchQuery, onRowSelect]);
 
   const renderStars = (rating: number) => {
     return (
@@ -71,8 +146,33 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
     );
   };
 
-  const handleViewReviews = () => {
-    setShowProductRatingModal(true);
+  const handleViewReviews = (review: RatingReview) => {
+    setSelectedReview(review);
+    if (review.type === "Store") {
+      setShowStoreRatingModal(true);
+    } else {
+      setShowProductRatingModal(true);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      try {
+        if (reviewId.startsWith('product-')) {
+          const id = reviewId.replace('product-', '');
+          await deleteProductReview(id);
+        } else if (reviewId.startsWith('store-')) {
+          const id = reviewId.replace('store-', '');
+          await deleteStoreReview(id);
+        }
+        // Refresh the data by invalidating queries
+        // Note: In a real app, you'd use queryClient.invalidateQueries here
+        window.location.reload(); // Temporary solution
+      } catch (error) {
+        console.error('Error deleting review:', error);
+        alert('Failed to delete review. Please try again.');
+      }
+    }
   };
 
   const handleSelectAll = () => {
@@ -125,7 +225,19 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
           </thead>
 
           <tbody>
-            {filteredRows.length === 0 ? (
+            {productLoading || storeLoading ? (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-sm text-gray-500">
+                  Loading reviews...
+                </td>
+              </tr>
+            ) : productError || storeError ? (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-sm text-red-500">
+                  Error loading reviews. Please try again.
+                </td>
+              </tr>
+            ) : filteredRows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-6 text-center text-sm text-gray-500">
                   No reviews match your filter.
@@ -165,12 +277,20 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
                     {ratingReview.lastRating}
                   </td>
                   <td className="p-4 text-center">
-                    <button
-                      onClick={handleViewReviews}
-                      className="px-6 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F]"
-                    >
-                      View Reviews
-                    </button>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() => handleViewReviews(ratingReview)}
+                        className="px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F] text-sm"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleDeleteReview(ratingReview.id)}
+                        className="px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-red-600 text-white hover:bg-red-700 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -183,6 +303,14 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
       <ProductRatingModal
         isOpen={showProductRatingModal}
         onClose={() => setShowProductRatingModal(false)}
+        reviewData={selectedReview}
+      />
+
+      {/* Store Rating Modal */}
+      <StoreRatingModal
+        isOpen={showStoreRatingModal}
+        onClose={() => setShowStoreRatingModal(false)}
+        reviewData={selectedReview}
       />
     </div>
   );

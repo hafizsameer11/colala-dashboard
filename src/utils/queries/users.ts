@@ -1256,3 +1256,147 @@ export const getBrands = async () => {
     throw error;
   }
 };
+
+/**
+ * Get analytics dashboard data
+ */
+export const getAnalyticsDashboard = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ANALYTICS.Dashboard, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get analytics dashboard API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get ratings and reviews summary
+ */
+export const getRatingsReviewsSummary = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.RATINGS_REVIEWS.Summary, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get ratings reviews summary API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get product reviews list
+ */
+export const getProductReviews = async (page: number = 1, search?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      ...(search && { search }),
+    });
+    const response = await apiCall(`${API_ENDPOINTS.RATINGS_REVIEWS.Products.List}?${params}`, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get product reviews API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get store reviews list
+ */
+export const getStoreReviews = async (page: number = 1, search?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      ...(search && { search }),
+    });
+    const response = await apiCall(`${API_ENDPOINTS.RATINGS_REVIEWS.Stores.List}?${params}`, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get store reviews API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get product review details
+ */
+export const getProductReviewDetails = async (reviewId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.RATINGS_REVIEWS.Products.Details(reviewId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get product review details API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get store review details
+ */
+export const getStoreReviewDetails = async (reviewId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.RATINGS_REVIEWS.Stores.Details(reviewId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get store review details API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete product review
+ */
+export const deleteProductReview = async (reviewId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.RATINGS_REVIEWS.Products.Delete(reviewId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete product review API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete store review
+ */
+export const deleteStoreReview = async (reviewId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.RATINGS_REVIEWS.Stores.Delete(reviewId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete store review API call error:', error);
+    throw error;
+  }
+};

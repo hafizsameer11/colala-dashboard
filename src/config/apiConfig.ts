@@ -17,6 +17,11 @@ const API_ENDPOINTS = {
     LatestOrders: API_DOMAIN + "/admin/latest-orders", // GET
   },
 
+  // ANALYTICS
+  ANALYTICS: {
+    Dashboard: API_DOMAIN + "/admin/analytics/dashboard", // GET
+  },
+
   // ALL USERS
   ALL_USERS: {
     List: API_DOMAIN + "/admin/all-users", // GET
@@ -330,6 +335,22 @@ const API_ENDPOINTS = {
     TrackView: (id: number | string) => `${API_DOMAIN}/banners/${id}/view`, // POST
     TrackClick: (id: number | string) => `${API_DOMAIN}/banners/${id}/click`, // POST
   },
+
+  // RATINGS & REVIEWS
+  RATINGS_REVIEWS: {
+    Summary: API_DOMAIN + "/admin/ratings-reviews/summary", // GET
+    Products: {
+      List: API_DOMAIN + "/admin/ratings-reviews/products", // GET
+      Details: (id: number | string) => `${API_DOMAIN}/admin/ratings-reviews/products/${id}/details`, // GET
+      Delete: (id: number | string) => `${API_DOMAIN}/admin/ratings-reviews/products/${id}`, // DELETE
+    },
+    Stores: {
+      List: API_DOMAIN + "/admin/ratings-reviews/stores", // GET
+      Details: (id: number | string) => `${API_DOMAIN}/admin/ratings-reviews/stores/${id}/details`, // GET
+      Delete: (id: number | string) => `${API_DOMAIN}/admin/ratings-reviews/stores/${id}`, // DELETE
+    },
+  },
+  
 };
 
 export { API_DOMAIN, API_ENDPOINTS };

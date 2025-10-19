@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import images from "../../../constants/images";
 import {
   Chart as ChartJS,
@@ -11,6 +12,7 @@ import {
   ArcElement,
 } from "chart.js";
 import { Bar, Doughnut } from "react-chartjs-2";
+import { getAnalyticsDashboard } from "../../../utils/queries/users";
 
 ChartJS.register(
   CategoryScale,
@@ -33,6 +35,33 @@ const Analytics = () => {
   const [selectedSubRevenue, setSelectedSubRevenue] = useState("Sub Revenue");
   const [selectedPromRevenue, setSelectedPromRevenue] =
     useState("Prom Revenue");
+
+  // Fetch analytics data
+  const { data: analyticsData, isLoading, error } = useQuery({
+    queryKey: ['analyticsDashboard'],
+    queryFn: getAnalyticsDashboard,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Debug logging
+  console.log('Analytics Debug - API data:', analyticsData);
+
+  // Extract data from API response
+  const siteStats = analyticsData?.data?.site_statistics || {};
+  const userTrends = analyticsData?.data?.user_trends || [];
+  const orderTrends = analyticsData?.data?.order_trends || [];
+  const revenueTrends = analyticsData?.data?.revenue_trends || [];
+
+  // Type definitions for API data
+  interface TrendData {
+    date: string;
+    total_users?: number;
+    buyers?: string | number;
+    sellers?: string | number;
+    total_orders?: number;
+    total_revenue?: string | number;
+    successful_revenue?: string | number;
+  }
 
   const exportOptions = [
     "All User data",
@@ -97,26 +126,16 @@ const Analytics = () => {
     setIsTimeDropdownOpen(false);
   };
 
-  // Chart data based on the image - Site Statistics
+  // Chart data based on API data - Site Statistics
   const chartData = {
-    labels: [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ],
+    labels: userTrends.slice(-12).map((trend: TrendData) => {
+      const date = new Date(trend.date);
+      return date.toLocaleDateString('en-US', { month: 'short' });
+    }),
     datasets: [
       {
         label: "Orders",
-        data: [680, 1160, 660, 660, 660, 950, 660, 240, 540, 360, 500, 980],
+        data: orderTrends.slice(-12).map((trend: TrendData) => trend.total_orders || 0),
         backgroundColor: "#E53E3E",
         borderRadius: 50,
         barThickness: 20,
@@ -124,7 +143,7 @@ const Analytics = () => {
       },
       {
         label: "Users",
-        data: [240, 140, 360, 100, 520, 680, 100, 360, 1160, 240, 140, 100],
+        data: userTrends.slice(-12).map((trend: TrendData) => trend.total_users || 0),
         backgroundColor: "#008000",
         borderRadius: 50,
         barThickness: 20,
@@ -133,7 +152,8 @@ const Analytics = () => {
     ],
   };
 
-  const chartOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -149,6 +169,7 @@ const Analytics = () => {
         cornerRadius: 8,
         displayColors: false,
         callbacks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label: function (context: any) {
             const label = context.dataset.label || "";
             const value = context.parsed.y;
@@ -194,13 +215,13 @@ const Analytics = () => {
   // Pie chart data for Users vs Orders
   const pieChartData = {
     labels: ["Users", "Orders"],
-
     datasets: [
       {
-        data: [70, 30],
-
+        data: [
+          siteStats.total_users || 0,
+          siteStats.total_orders || 0
+        ],
         backgroundColor: ["#E53E3E", "#000000"],
-
         borderWidth: 0,
         cutout: "55%", // Creates the doughnut hole
       },
@@ -209,19 +230,22 @@ const Analytics = () => {
 
   // Revenue chart data for Subscription Revenue vs Promotions Revenue
   const revenueChartData = {
-    labels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+    labels: revenueTrends.slice(-11).map((trend: TrendData) => {
+      const date = new Date(trend.date);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }),
     datasets: [
       {
-        label: "Subscription Revenue",
-        data: [350, 720, 580, 920, 650, 480, 750, 640, 820, 560, 680],
+        label: "Total Revenue",
+        data: revenueTrends.slice(-11).map((trend: TrendData) => parseFloat(String(trend.total_revenue)) || 0),
         backgroundColor: "#E53E3E",
         borderRadius: 5,
         barThickness: 33,
         stack: "stack1",
       },
       {
-        label: "Promotions Revenue",
-        data: [450, 280, 620, 380, 540, 720, 360, 880, 420, 790, 520],
+        label: "Successful Revenue",
+        data: revenueTrends.slice(-11).map((trend: TrendData) => parseFloat(String(trend.successful_revenue)) || 0),
         backgroundColor: "#000",
         borderRadius: 5,
         barThickness: 33,
@@ -230,7 +254,8 @@ const Analytics = () => {
     ],
   };
 
-  const revenueChartOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const revenueChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -246,6 +271,7 @@ const Analytics = () => {
         cornerRadius: 8,
         displayColors: false,
         callbacks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label: function (context: any) {
             const label = context.dataset.label || "";
             const value = context.parsed.y;
@@ -293,7 +319,8 @@ const Analytics = () => {
     },
   };
 
-  const pieChartOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pieChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -309,6 +336,7 @@ const Analytics = () => {
         cornerRadius: 8,
         displayColors: false,
         callbacks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label: function (context: any) {
             return `${context.label}: ${context.parsed}%`;
           },
@@ -400,8 +428,22 @@ const Analytics = () => {
 
       {/* Analytics Content */}
       <div className="p-6 pb-0">
-        <div className="flex flex-row gap-6">
-          {/* Site Statistics Bar Chart */}
+        {isLoading && (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-lg">Loading analytics data...</div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-lg text-red-600">Error loading analytics data. Please try again.</div>
+          </div>
+        )}
+        
+        {!isLoading && !error && (
+          <>
+            <div className="flex flex-row gap-6">
+              {/* Site Statistics Bar Chart */}
           <div
             className="border border-[#989898] rounded-2xl bg-white"
             style={{ width: "716px", height: "411px" }}
@@ -473,10 +515,14 @@ const Analytics = () => {
               {/* Percentage Labels */}
               <div className="absolute bottom-0 left-8 flex items-center gap-1">
                 <div className="w-2 h-7 bg-[#E53E3E] rounded"></div>
-                <span className="text-3xl font-bold text-[#E53E3E]">70 %</span>
+                <span className="text-3xl font-bold text-[#E53E3E]">
+                  {isLoading ? '...' : siteStats.total_users ? Math.round((siteStats.total_users / (siteStats.total_users + siteStats.total_orders)) * 100) : 0}%
+                </span>
               </div>
               <div className="absolute bottom-0 right-8 flex items-center gap-1">
-                <span className="text-3xl font-bold text-[#000000]">30 %</span>
+                <span className="text-3xl font-bold text-[#000000]">
+                  {isLoading ? '...' : siteStats.total_orders ? Math.round((siteStats.total_orders / (siteStats.total_users + siteStats.total_orders)) * 100) : 0}%
+                </span>
                 <div className="w-2 h-7 bg-[#000000] rounded"></div>
               </div>
             </div>
@@ -543,11 +589,13 @@ const Analytics = () => {
 
                 <div className="text-center mt-auto">
                   <div className="text-3xl font-bold text-black mb-2">
-                    200,000
+                    {isLoading ? '...' : (siteStats.total_users || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px]  text-gray-600">
-                    <span className="text-green-600 font-semibold">500</span>{" "}
-                    increase from last week
+                    <span className="text-green-600 font-semibold">
+                      {isLoading ? '...' : (siteStats.total_buyers || 0)}
+                    </span>{" "}
+                    buyers
                   </div>
                 </div>
               </div>
@@ -609,11 +657,13 @@ const Analytics = () => {
 
                 <div className="text-center mt-auto">
                   <div className="text-3xl font-bold text-black mb-2">
-                    100,000
+                    {isLoading ? '...' : (siteStats.total_sellers || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-gray-600">
-                    <span className="text-green-600 font-semibold">500</span>{" "}
-                    increase from last week
+                    <span className="text-green-600 font-semibold">
+                      {isLoading ? '...' : (siteStats.total_products || 0)}
+                    </span>{" "}
+                    products
                   </div>
                 </div>
               </div>
@@ -675,11 +725,13 @@ const Analytics = () => {
 
                 <div className="text-center mt-auto">
                   <div className="text-3xl font-bold text-black mb-2">
-                    100,000
+                    {isLoading ? '...' : (siteStats.total_buyers || 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-gray-600">
-                    <span className="text-green-600 font-semibold">500</span>{" "}
-                    increase from last week
+                    <span className="text-green-600 font-semibold">
+                      {isLoading ? '...' : (siteStats.total_orders || 0)}
+                    </span>{" "}
+                    orders
                   </div>
                 </div>
               </div>
@@ -741,11 +793,13 @@ const Analytics = () => {
 
                 <div className="text-center mt-auto">
                   <div className="text-3xl font-bold text-black mb-2">
-                    N200,000
+                    {isLoading ? '...' : `₦${(siteStats.total_revenue || 0).toLocaleString()}`}
                   </div>
                   <div className="text-[10px] text-gray-600">
-                    <span className="text-green-600 font-semibold">500</span>{" "}
-                    increase from last week
+                    <span className="text-green-600 font-semibold">
+                      {isLoading ? '...' : (siteStats.total_chats || 0)}
+                    </span>{" "}
+                    chats
                   </div>
                 </div>
               </div>
@@ -927,7 +981,9 @@ const Analytics = () => {
               </div>
             </div>
           </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

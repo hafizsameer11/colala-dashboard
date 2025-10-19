@@ -2,6 +2,8 @@ import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
 import { useEffect, useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import { useQuery } from "@tanstack/react-query";
+import { getRatingsReviewsSummary } from "../../../utils/queries/users";
 
 import RatingAndReviewTable from "./components/ratingandreviewtable";
 
@@ -19,6 +21,16 @@ const AllRatingAndReview = () => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 400); // 400ms delay
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Fetch ratings and reviews summary
+  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+    queryKey: ['ratingsReviewsSummary'],
+    queryFn: getRatingsReviewsSummary,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Debug logging
+  console.log('Ratings Reviews Summary Debug - API data:', summaryData);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -60,7 +72,9 @@ const AllRatingAndReview = () => {
               <span className="font-semibold text-[13px]">
                 Total Store Reviews
               </span>
-              <span className="font-semibold text-xl">10</span>
+              <span className="font-semibold text-xl">
+                {summaryLoading ? '...' : (summaryData?.data?.total_store_reviews || 0).toLocaleString()}
+              </span>
               <span className="text-[#00000080] text-[11px]">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -80,7 +94,9 @@ const AllRatingAndReview = () => {
               <span className="font-semibold text-[13px]">
                 Total Product Reviews
               </span>
-              <span className="font-semibold text-xl">2</span>
+              <span className="font-semibold text-xl">
+                {summaryLoading ? '...' : (summaryData?.data?.total_product_reviews || 0).toLocaleString()}
+              </span>
               <span className="text-[#00000080] text-[11px]">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -101,7 +117,9 @@ const AllRatingAndReview = () => {
                 Average Store Rating
               </span>
               <div className="flex items-center gap-1">
-                <span className="font-semibold text-xl">4.5</span>
+                <span className="font-semibold text-xl">
+                  {summaryLoading ? '...' : (summaryData?.data?.average_store_rating || 0).toFixed(1)}
+                </span>
                 <span className="text-[#E53E3E] text-lg">★</span>
               </div>
               <span className="text-[#00000080] text-[11px]">
@@ -124,7 +142,9 @@ const AllRatingAndReview = () => {
                 Average Product Rating
               </span>
               <div className="flex items-center gap-1">
-                <span className="font-semibold text-xl">4</span>
+                <span className="font-semibold text-xl">
+                  {summaryLoading ? '...' : (summaryData?.data?.average_product_rating || 0).toFixed(1)}
+                </span>
                 <span className="text-[#E53E3E] text-lg">★</span>
               </div>
               <span className="text-[#00000080] text-[11px]">
@@ -158,7 +178,8 @@ const AllRatingAndReview = () => {
                     type="text"
                     placeholder="Search"
                     value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    onChange={(e: any) => setSearchInput(e.target.value)}
                     className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

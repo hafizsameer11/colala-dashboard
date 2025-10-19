@@ -2,27 +2,44 @@ import React, { useState } from "react";
 import images from "../../../../constants/images";
 import StoreRatingModal from "./storerating";
 
+interface ReviewData {
+  id: string;
+  type: "Store" | "Product";
+  storeName: string;
+  noOfReviews: number;
+  averageRating: number;
+  lastRating: string;
+  other: string;
+  user?: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+  store?: {
+    id: number;
+    store_name: string;
+  };
+  comment?: string;
+  images?: string[];
+}
+
 interface ProductRatingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  reviewData?: ReviewData | null;
 }
 
 const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
   isOpen,
   onClose,
+  reviewData,
 }) => {
   const [showStoreModal, setShowStoreModal] = useState(false);
-  const [selectedReviewData, setSelectedReviewData] = useState({
-    storeName: "Sasha Stores",
-    reviewer: "Adam Sandler",
-    rating: 4,
-    totalReviews: 20
-  });
+  // Removed unused selectedReviewData state
 
   if (!isOpen) return null;
 
-  const handleReviewClick = (reviewData: any) => {
-    setSelectedReviewData(reviewData);
+  const handleReviewClick = () => {
     setShowStoreModal(true);
   };
 
@@ -104,12 +121,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
             {/* Review 1 - Adam Sandler */}
             <div 
               className="mt-5 border border-[#C3C3C3] rounded-2xl w-full p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => handleReviewClick({
-                storeName: "Sasha Stores",
-                reviewer: "Adam Sandler", 
-                rating: 4,
-                totalReviews: 20
-              })}
+              onClick={handleReviewClick}
             >
               <div className="flex flex-row justify-between">
                 <div className="flex flex-row gap-2">
@@ -158,12 +170,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
             {/* Review 2 - Chris Pine with images */}
             <div 
               className="mt-5 border border-[#C3C3C3] rounded-2xl w-full p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => handleReviewClick({
-                storeName: "Sasha Stores",
-                reviewer: "Chris Pine", 
-                rating: 5,
-                totalReviews: 20
-              })}
+              onClick={handleReviewClick}
             >
               <div className="flex flex-row justify-between mb-3">
                 <div className="flex flex-row gap-2">
@@ -221,12 +228,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
             {/* Review 3 - Adam Sandler */}
             <div 
               className="mt-5 border border-[#C3C3C3] rounded-2xl w-full p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => handleReviewClick({
-                storeName: "Sasha Stores",
-                reviewer: "Adam Sandler", 
-                rating: 4,
-                totalReviews: 20
-              })}
+              onClick={handleReviewClick}
             >
               <div className="flex flex-row justify-between">
                 <div className="flex flex-row gap-2">
@@ -275,12 +277,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
             {/* Review 4 - Chris Pine with images */}
             <div 
               className="mt-5 border border-[#C3C3C3] rounded-2xl w-full p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => handleReviewClick({
-                storeName: "Sasha Stores",
-                reviewer: "Chris Pine", 
-                rating: 5,
-                totalReviews: 20
-              })}
+              onClick={handleReviewClick}
             >
               <div className="flex flex-row justify-between mb-3">
                 <div className="flex flex-row gap-2">
@@ -342,9 +339,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
       <StoreRatingModal 
         isOpen={showStoreModal}
         onClose={() => setShowStoreModal(false)}
-        storeName={selectedReviewData.storeName}
-        rating={selectedReviewData.rating}
-        totalReviews={selectedReviewData.totalReviews}
+        reviewData={reviewData}
       />
     </div>
   );
