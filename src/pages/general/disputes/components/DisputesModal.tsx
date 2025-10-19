@@ -1,33 +1,50 @@
 import React, { useState, useEffect, useCallback } from "react";
 import images from "../../../../constants/images";
 import WarningModal from "./WarningModal";
+import { getDisputeDetails, resolveDispute, closeDispute } from "../../../../utils/queries/disputes";
 
 interface Dispute {
-  id: string;
-  storeName: string;
-  userName: string;
-  lastMessage: string;
-  chatDate: string;
-  wonBy: string;
-  status: "pending" | "resolved" | "onhold";
+  id: string | number;
+  store_name?: string;
+  user_name?: string;
+  last_message?: string;
+  chat_date?: string;
+  won_by?: string;
+  status: "pending" | "resolved" | "on_hold";
+  created_at?: string;
+  updated_at?: string;
+  // Legacy fields for backward compatibility
+  storeName?: string;
+  userName?: string;
+  lastMessage?: string;
+  chatDate?: string;
+  wonBy?: string;
 }
 
 interface DisputesModalProps {
   isOpen: boolean;
   onClose: () => void;
   disputeData?: Dispute | null;
+  onDisputeUpdate?: () => void;
 }
 
 const DisputesModal: React.FC<DisputesModalProps> = ({
   isOpen,
   onClose,
   disputeData,
+  onDisputeUpdate,
 }) => {
   // ✅ Hooks must always run in the same order
   const [hasJoinedChat, setHasJoinedChat] = useState(false);
   const [wonBy, setWonBy] = useState<"" | "customer" | "store">("");
   const [wonByDropdownOpen, setWonByDropdownOpen] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
+  
+  // Dispute details and loading states
+  const [disputeDetails, setDisputeDetails] = useState<any>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const openWarning = useCallback(() => setShowWarningModal(true), []);
   const closeWarning = useCallback(() => setShowWarningModal(false), []);
@@ -36,6 +53,28 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
     if (hasJoinedChat && !wonBy) openWarning();
     else onClose();
   }, [hasJoinedChat, wonBy, onClose, openWarning]);
+
+  // Fetch dispute details when modal opens
+  useEffect(() => {
+    if (isOpen && disputeData?.id) {
+      const fetchDisputeDetails = async () => {
+        try {
+          setIsLoadingDetails(true);
+          const response = await getDisputeDetails(disputeData.id);
+          if (response.status === 'success') {
+            setDisputeDetails(response.data);
+          }
+        } catch (error: unknown) {
+          console.error('Error fetching dispute details:', error);
+          console.error('Failed to load dispute details');
+        } finally {
+          setIsLoadingDetails(false);
+        }
+      };
+
+      fetchDisputeDetails();
+    }
+  }, [isOpen, disputeData?.id]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -63,6 +102,52 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
   const handleWonByChange = (value: "customer" | "store") => {
     setWonBy(value);
     setWonByDropdownOpen(false);
+  };
+
+  // Handle resolve dispute
+  const handleResolveDispute = async () => {
+    if (!disputeData?.id || !wonBy) {
+      console.error('Please select who won the dispute before resolving');
+      return;
+    }
+
+    try {
+      setIsResolving(true);
+      const response = await resolveDispute(disputeData.id, { won_by: wonBy });
+      if (response.status === 'success') {
+        console.log('Dispute resolved successfully');
+        onDisputeUpdate?.();
+        onClose();
+      }
+    } catch (error: unknown) {
+      console.error('Error resolving dispute:', error);
+      console.error('Failed to resolve dispute');
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  // Handle close dispute
+  const handleCloseDispute = async () => {
+    if (!disputeData?.id) {
+      console.error('No dispute selected');
+      return;
+    }
+
+    try {
+      setIsClosing(true);
+      const response = await closeDispute(disputeData.id);
+      if (response.status === 'success') {
+        console.log('Dispute closed successfully');
+        onDisputeUpdate?.();
+        onClose();
+      }
+    } catch (error: unknown) {
+      console.error('Error closing dispute:', error);
+      console.error('Failed to close dispute');
+    } finally {
+      setIsClosing(false);
+    }
   };
 
   return (
@@ -162,22 +247,46 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
               </div>
             </div>
 
-            <div className="mt-5">
+            <div className="mt-5 flex flex-col gap-2">
               {!hasJoinedChat ? (
                 <button
                   onClick={handleJoinChat}
-                  className="px-5 py-3 cursor-pointer text-white bg-[#E53E3E] rounded-lg mr-2"
+                  className="px-5 py-3 cursor-pointer text-white bg-[#E53E3E] rounded-lg"
                 >
                   Join Chat
                 </button>
               ) : (
                 <button
                   onClick={handleLeaveChat}
-                  className="px-5 py-3 cursor-pointer text-white bg-[#E53E3E] rounded-lg mr-2"
+                  className="px-5 py-3 cursor-pointer text-white bg-[#E53E3E] rounded-lg"
                 >
                   Leave Chat
                 </button>
               )}
+              
+              {hasJoinedChat && wonBy && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleResolveDispute}
+                    disabled={isResolving}
+                    className={`px-4 py-2 cursor-pointer text-white bg-green-600 rounded-lg text-sm ${
+                      isResolving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+                    }`}
+                  >
+                    {isResolving ? 'Resolving...' : 'Resolve Dispute'}
+                  </button>
+                  <button
+                    onClick={handleCloseDispute}
+                    disabled={isClosing}
+                    className={`px-4 py-2 cursor-pointer text-white bg-gray-600 rounded-lg text-sm ${
+                      isClosing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-700'
+                    }`}
+                  >
+                    {isClosing ? 'Closing...' : 'Close Dispute'}
+                  </button>
+                </div>
+              )}
+              
               <button className="px-3 py-3 cursor-pointer text-white bg-black rounded-lg">
                 Switch to buyer
               </button>

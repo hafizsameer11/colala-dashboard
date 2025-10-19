@@ -3,6 +3,7 @@ import images from "../../../constants/images";
 import { useEffect, useState } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import DisputesTable from "./components/disputeTable";
+import { getDisputeStatistics } from "../../../utils/queries/disputes";
 
 type Tab = "All" | "Pending" | "On Hold" | "Resolved";
 
@@ -14,10 +15,42 @@ const Disputes = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // --- Dispute Statistics State ---
+  const [disputeStats, setDisputeStats] = useState({
+    total_disputes: 0,
+    pending_disputes: 0,
+    resolved_disputes: 0,
+    on_hold_disputes: 0,
+    recent_disputes: 0,
+    disputes_by_category: [],
+    disputes_by_status: []
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
     return () => clearTimeout(id);
   }, [searchInput]);
+
+  // Fetch dispute statistics on component mount
+  useEffect(() => {
+    const fetchDisputeStatistics = async () => {
+      try {
+        setIsLoadingStats(true);
+        const response = await getDisputeStatistics();
+        if (response.status === 'success') {
+          setDisputeStats(response.data);
+        }
+      } catch (error: unknown) {
+        console.error('Error fetching dispute statistics:', error);
+        console.error('Failed to load dispute statistics');
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchDisputeStatistics();
+  }, []);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -48,24 +81,7 @@ const Disputes = () => {
 
       <div className="p-5">
         <div className="flex flex-row justify-between items-center">
-          {/* Cards (static for now) */}
-          <div
-            className="flex flex-row rounded-2xl  w-90"
-            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
-          >
-            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-              <img className="w-9 h-9" src={images.chats} alt="" />
-            </div>
-            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Total Chats</span>
-              <span className="font-semibold text-2xl">10</span>
-              <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
-                month
-              </span>
-            </div>
-          </div>
-
+          {/* Total Disputes Card */}
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -74,8 +90,10 @@ const Disputes = () => {
               <img className="w-9 h-9" src={images.chats} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Pending Chats</span>
-              <span className="font-semibold text-2xl">2</span>
+              <span className="font-semibold text-[15px]">Total Disputes</span>
+              <span className="font-semibold text-2xl">
+                {isLoadingStats ? '...' : disputeStats.total_disputes}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month
@@ -83,6 +101,7 @@ const Disputes = () => {
             </div>
           </div>
 
+          {/* Pending Disputes Card */}
           <div
             className="flex flex-row rounded-2xl w-90"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
@@ -91,8 +110,50 @@ const Disputes = () => {
               <img className="w-9 h-9" src={images.chats} alt="" />
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-              <span className="font-semibold text-[15px]">Resolved Chats</span>
-              <span className="font-semibold text-2xl">0</span>
+              <span className="font-semibold text-[15px]">Pending Disputes</span>
+              <span className="font-semibold text-2xl">
+                {isLoadingStats ? '...' : disputeStats.pending_disputes}
+              </span>
+              <span className="text-[#00000080] text-[13px] ">
+                <span className="text-[#1DB61D]">+5%</span> increase from last
+                month
+              </span>
+            </div>
+          </div>
+
+          {/* Resolved Disputes Card */}
+          <div
+            className="flex flex-row rounded-2xl w-90"
+            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+          >
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
+              <img className="w-9 h-9" src={images.chats} alt="" />
+            </div>
+            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+              <span className="font-semibold text-[15px]">Resolved Disputes</span>
+              <span className="font-semibold text-2xl">
+                {isLoadingStats ? '...' : disputeStats.resolved_disputes}
+              </span>
+              <span className="text-[#00000080] text-[13px] ">
+                <span className="text-[#1DB61D]">+5%</span> increase from last
+                month
+              </span>
+            </div>
+          </div>
+
+          {/* On Hold Disputes Card */}
+          <div
+            className="flex flex-row rounded-2xl w-90"
+            style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
+          >
+            <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
+              <img className="w-9 h-9" src={images.chats} alt="" />
+            </div>
+            <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
+              <span className="font-semibold text-[15px]">On Hold Disputes</span>
+              <span className="font-semibold text-2xl">
+                {isLoadingStats ? '...' : disputeStats.on_hold_disputes}
+              </span>
               <span className="text-[#00000080] text-[13px] ">
                 <span className="text-[#1DB61D]">+5%</span> increase from last
                 month

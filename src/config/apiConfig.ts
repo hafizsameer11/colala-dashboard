@@ -353,6 +353,15 @@ const API_ENDPOINTS = {
       Delete: (id: number | string) => `${API_DOMAIN}/admin/ratings-reviews/stores/${id}`, // DELETE
     },
   },
+
+  // DISPUTES
+  DISPUTES: {
+    List: API_DOMAIN + "/admin/disputes", // GET
+    Statistics: API_DOMAIN + "/admin/disputes/statistics", // GET
+    Details: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/details`, // GET
+    Resolve: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/resolve`, // POST
+    Close: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/close`, // POST
+  },
   
 };
 

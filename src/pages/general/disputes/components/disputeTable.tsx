@@ -1,14 +1,23 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import DisputesModal from "./DisputesModal";
+import { getDisputesList, getDisputeDetails, resolveDispute, closeDispute } from "../../../../utils/queries/disputes";
 
 export interface Dispute {
-  id: string;
-  storeName: string;
-  userName: string;
-  lastMessage: string;
-  chatDate: string;
-  wonBy: string;
-  status: "pending" | "resolved" | "onhold";
+  id: string | number;
+  store_name?: string;
+  user_name?: string;
+  last_message?: string;
+  chat_date?: string;
+  won_by?: string;
+  status: "pending" | "resolved" | "on_hold";
+  created_at?: string;
+  updated_at?: string;
+  // Legacy fields for backward compatibility
+  storeName?: string;
+  userName?: string;
+  lastMessage?: string;
+  chatDate?: string;
+  wonBy?: string;
 }
 
 type Tab = "All" | "Pending" | "On Hold" | "Resolved";
@@ -29,105 +38,70 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
+  
+  // Real dispute data state
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 20,
+    total: 0
+  });
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Sample data (source)
-  const disputes: Dispute[] = [
-    {
-      id: "1",
-      storeName: "Pet Paradise",
-      userName: "David Chen",
-      lastMessage: "What are the ingredients in your gr...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "Store",
-      status: "resolved",
-    },
-    {
-      id: "2",
-      storeName: "Fitness Forward",
-      userName: "Sofia Rossi",
-      lastMessage: "I'd like to return the yoga mat I...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "-",
-      status: "pending",
-    },
-    {
-      id: "3",
-      storeName: "Fresh Blooms Co.",
-      userName: "Elena Petrova",
-      lastMessage: "Can I change the delivery address for...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "Store",
-      status: "resolved",
-    },
-    {
-      id: "4",
-      storeName: "AutoPro Parts",
-      userName: "Kenji Tanaka",
-      lastMessage: "Is this compatible with a 2023 Hon...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "-",
-      status: "pending",
-    },
-    {
-      id: "5",
-      storeName: "Gadget Haven",
-      userName: "Qamar Malik",
-      lastMessage: "I need this delivered to my location...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "Store",
-      status: "onhold",
-    },
-    {
-      id: "6",
-      storeName: "Artisan Coffee Roasters",
-      userName: "Liam O'Connell",
-      lastMessage: "Do you offer a subscription servi...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "Store",
-      status: "resolved",
-    },
-    {
-      id: "7",
-      storeName: "The Book Nook",
-      userName: "Fatima Al-Sayed",
-      lastMessage: "My order seems to be delayed, any...",
-      chatDate: "20-07-2025/07:58PM",
-      wonBy: "Store",
-      status: "resolved",
-    },
-  ];
+  // Fetch disputes data
+  const fetchDisputes = async () => {
+    try {
+      setIsLoading(true);
+      const params: any = {
+        page: currentPage,
+        per_page: 20
+      };
 
-  // Map tab → status value in data
-  const statusForTab: Record<Exclude<Tab, "All">, Dispute["status"]> = {
-    Pending: "pending",
-    "On Hold": "onhold",
-    Resolved: "resolved",
+      // Add status filter based on active tab
+      if (activeTab !== "All") {
+        const statusMap: Record<string, string> = {
+          "Pending": "pending",
+          "On Hold": "on_hold", 
+          "Resolved": "resolved"
+        };
+        params.status = statusMap[activeTab];
+      }
+
+      // Add search parameter
+      if (search) {
+        params.search = search;
+      }
+
+      const response = await getDisputesList(params);
+      if (response.status === 'success') {
+        setDisputes(response.data.disputes || []);
+        setPagination(response.data.pagination || pagination);
+      }
+    } catch (error: unknown) {
+      console.error('Error fetching disputes:', error);
+      console.error('Failed to load disputes');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Filter by tab + search (case-insensitive)
-  const filteredDisputes = useMemo(() => {
-    let rows = disputes;
+  // Fetch disputes when component mounts or dependencies change
+  useEffect(() => {
+    fetchDisputes();
+  }, [activeTab, search, currentPage]);
 
-    if (activeTab !== "All") {
-      rows = rows.filter(
-        (d) => d.status === statusForTab[activeTab as Exclude<Tab, "All">]
-      );
-    }
-
-    if (search) {
-      const q = search.toLowerCase();
-      rows = rows.filter(
-        (d) =>
-          d.storeName.toLowerCase().includes(q) ||
-          d.userName.toLowerCase().includes(q) ||
-          d.lastMessage.toLowerCase().includes(q) ||
-          d.chatDate.toLowerCase().includes(q) ||
-          d.wonBy.toLowerCase().includes(q)
-      );
-    }
-
-    return rows;
-  }, [disputes, activeTab, search]);
+  // Helper function to get display values from dispute object
+  const getDisputeDisplayValues = (dispute: Dispute) => {
+    return {
+      storeName: dispute.store_name || dispute.storeName || 'N/A',
+      userName: dispute.user_name || dispute.userName || 'N/A',
+      lastMessage: dispute.last_message || dispute.lastMessage || 'N/A',
+      chatDate: dispute.chat_date || dispute.chatDate || 'N/A',
+      wonBy: dispute.won_by || dispute.wonBy || '-'
+    };
+  };
 
   const getStatusIndicator = (status: string) => {
     switch (status) {
@@ -135,7 +109,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
         return <div className="w-4 h-4 bg-[#008000] rounded-full"></div>;
       case "pending":
         return <div className="w-4 h-4 bg-[#FFA500] rounded-full"></div>;
-      case "onhold":
+      case "on_hold":
         return <div className="w-4 h-4 bg-[#000000] rounded-full"></div>;
       default:
         return <div className="w-4 h-4 bg-gray-300 rounded-full"></div>;
@@ -152,7 +126,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       setSelectedRows([]);
       onRowSelect?.([]);
     } else {
-      const ids = filteredDisputes.map((d) => d.id);
+      const ids = disputes.map((d) => d.id.toString());
       setSelectedRows(ids);
       onRowSelect?.(ids);
     }
@@ -167,7 +141,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       newSelectedRows = [...selectedRows, disputeId];
     }
     setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === filteredDisputes.length);
+    setSelectAll(newSelectedRows.length === disputes.length && disputes.length > 0);
     onRowSelect?.(newSelectedRows);
   };
 
@@ -183,7 +157,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
               <th className="text-center p-3 font-normal w-12">
                 <input
                   type="checkbox"
-                  checked={selectAll && filteredDisputes.length > 0}
+                  checked={selectAll && disputes.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                 />
@@ -199,47 +173,61 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
           </thead>
 
           <tbody>
-            {filteredDisputes.map((dispute, index) => (
-              <tr
-                key={dispute.id}
-                className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === filteredDisputes.length - 1 ? "" : "border-b"
-                }`}
-              >
-                <td className="p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(dispute.id)}
-                    onChange={() => handleRowSelect(dispute.id)}
-                    className="w-5 h-5 border border-gray-300 rounded cursor-pointer text-center"
-                  />
-                </td>
-                <td className="p-4 text-black text-left">
-                  {dispute.storeName}
-                </td>
-                <td className="p-4 text-black text-left">{dispute.userName}</td>
-                <td className="p-4 text-black text-left">
-                  {dispute.lastMessage}
-                </td>
-                <td className="p-4 text-black text-left">{dispute.chatDate}</td>
-                <td className="p-4 text-black text-left">{dispute.wonBy}</td>
-                <td className="p-4 text-left">
-                  <div className="flex items-center">
-                    {getStatusIndicator(dispute.status)}
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-sm text-[#555]">
+                  <div className="flex justify-center items-center">
+                    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mr-2"></div>
+                    Loading disputes...
                   </div>
                 </td>
-                <td className="p-4 text-center">
-                  <button
-                    onClick={() => handleShowDetails(dispute)}
-                    className="bg-[#E53E3E] text-white px-6 py-2 rounded-lg text-[12px] font-medium hover:bg-[#D32F2F] cursor-pointer"
-                  >
-                    View Chat
-                  </button>
-                </td>
               </tr>
-            ))}
+            ) : (
+              disputes.map((dispute, index) => {
+                const displayValues = getDisputeDisplayValues(dispute);
+                return (
+                  <tr
+                    key={dispute.id}
+                    className={`border-t border-[#E5E5E5] transition-colors ${
+                      index === disputes.length - 1 ? "" : "border-b"
+                    }`}
+                  >
+                    <td className="p-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(dispute.id.toString())}
+                        onChange={() => handleRowSelect(dispute.id.toString())}
+                        className="w-5 h-5 border border-gray-300 rounded cursor-pointer text-center"
+                      />
+                    </td>
+                    <td className="p-4 text-black text-left">
+                      {displayValues.storeName}
+                    </td>
+                    <td className="p-4 text-black text-left">{displayValues.userName}</td>
+                    <td className="p-4 text-black text-left">
+                      {displayValues.lastMessage}
+                    </td>
+                    <td className="p-4 text-black text-left">{displayValues.chatDate}</td>
+                    <td className="p-4 text-black text-left">{displayValues.wonBy}</td>
+                    <td className="p-4 text-left">
+                      <div className="flex items-center">
+                        {getStatusIndicator(dispute.status)}
+                      </div>
+                    </td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => handleShowDetails(dispute)}
+                        className="bg-[#E53E3E] text-white px-6 py-2 rounded-lg text-[12px] font-medium hover:bg-[#D32F2F] cursor-pointer"
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
 
-            {filteredDisputes.length === 0 && (
+            {!isLoading && disputes.length === 0 && (
               <tr>
                 <td colSpan={8} className="p-6 text-center text-sm text-[#555]">
                   No disputes found.
@@ -255,6 +243,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         disputeData={selectedDispute}
+        onDisputeUpdate={fetchDisputes}
       />
     </div>
   );
