@@ -171,13 +171,13 @@ const BuyerTransactionDetails: React.FC<BuyerTransactionDetailsProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Transaction Details</h2>
             <div className="flex flex-row items-center gap-3">
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={onClose}
                 className="p-2 rounded-md  cursor-pointer"

@@ -67,6 +67,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   // Debug logging
   console.log('Product details data:', productDetails?.data);
+  console.log('Product ID:', product?.id);
   console.log('Images array:', images);
   console.log('Selected image index:', selectedImageIndex);
   console.log('Current image:', images[selectedImageIndex]);
@@ -191,6 +192,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   storeInfo={storeInfo}
                   images={images}
                   variants={variants}
+                  productId={product?.id}
                 />
               )}
 

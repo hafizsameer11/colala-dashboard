@@ -7,6 +7,7 @@ import BulkActionDropdown from "../../components/BulkActionDropdown";
 import OrdersTable from "./OrdersTable";
 import PageHeader from "../../components/PageHeader";
 import { getDashboardData } from "../../utils/queries/dashboard";
+import ChatsModel from "../../components/chatsModel";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -47,6 +48,8 @@ const ORDER_FILTER_TABS = [
 
 type OrderFilterTab = (typeof ORDER_FILTER_TABS)[number];
 
+// (no-op)
+
 // ============================================================================
 // MAIN DASHBOARD COMPONENT
 // ============================================================================
@@ -63,7 +66,14 @@ const Dashboard = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Selected orders for bulk actions
-  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<unknown[]>([]);
+
+  // Chats modal state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<{
+    userId?: string | number;
+    chatId?: string | number;
+  } | null>(null);
 
   // ============================================================================
   // API DATA FETCHING
@@ -133,7 +143,7 @@ const Dashboard = () => {
   /**
    * Handle selected orders change for bulk actions
    */
-  const handleSelectedOrdersChange = (orders: any[]) => {
+  const handleSelectedOrdersChange = (orders: unknown[]) => {
     setSelectedOrders(orders);
   };
 
@@ -142,6 +152,29 @@ const Dashboard = () => {
    */
   const handlePeriodChange = (period: string) => {
     console.log("Period changed to:", period);
+  };
+
+  /**
+   * Open chat modal with the provided user and chat IDs
+   */
+  const openChatModal = (userId?: string | number, chatId?: string | number) => {
+    if (!userId || !chatId) return;
+    setSelectedChat({ userId, chatId });
+    setIsChatOpen(true);
+  };
+
+  /**
+   * Close chat modal and clear selection
+   */
+  const closeChatModal = () => {
+    setIsChatOpen(false);
+    setSelectedChat(null);
+  };
+
+  // Search input change handler (typed to avoid DOM lib dependency issues)
+  const handleSearchInputChange = (event: unknown) => {
+    const target = (event as { target?: { value?: string } })?.target;
+    setSearchInput(target?.value ?? "");
   };
 
   // ============================================================================
@@ -153,14 +186,14 @@ const Dashboard = () => {
    * Maps site statistics to Chart.js format
    */
   const chartData = {
-    labels: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.month) || [
+    labels: dashboardData?.data?.site_stats?.chart_data?.map((item: { month: string }) => item.month) || [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ],
     datasets: [
       {
         label: "Users",
-        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.users) ||
+        data: dashboardData?.data?.site_stats?.chart_data?.map((item: { users: number }) => item.users) ||
           new Array(12).fill(0),
         backgroundColor: "#E53E3E",
         borderRadius: 50,
@@ -169,7 +202,7 @@ const Dashboard = () => {
       },
       {
         label: "Orders",
-        data: dashboardData?.data?.site_stats?.chart_data?.map((item: any) => item.orders) ||
+        data: dashboardData?.data?.site_stats?.chart_data?.map((item: { orders: number }) => item.orders) ||
           new Array(12).fill(0),
         backgroundColor: "#008000",
         borderRadius: 50,
@@ -492,7 +525,7 @@ const Dashboard = () => {
                     <div>Customer</div>
                   </div>
                   {dashboardData?.data?.latest_chats?.length > 0 ? (
-                    dashboardData.data.latest_chats.map((chat: any) => (
+                    dashboardData.data.latest_chats.map((chat: { id?: number | string; chat_id?: number | string; store?: { name?: string; profile_image?: string }; customer?: { id?: number | string; user_id?: number | string; name?: string; profile_image?: string }; customer_id?: number | string }) => (
                       <div key={chat.id} className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
                         <div className="flex flex-row items-center gap-2">
                           <img
@@ -513,7 +546,14 @@ const Dashboard = () => {
                             <img
                               className="w-10 h-10 cursor-pointer"
                               src={images.eye}
-                              alt=""
+                              alt="View chat"
+                              onClick={() =>
+                                openChatModal(
+                                  // Prefer explicit IDs if available; fall back to common fields
+                                  chat.customer?.id ?? chat.customer?.user_id ?? chat.customer_id,
+                                  chat.id ?? chat.chat_id
+                                )
+                              }
                             />
                           </span>
                         </div>
@@ -550,7 +590,7 @@ const Dashboard = () => {
                 type="text"
                 placeholder="Search"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={handleSearchInputChange}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -584,6 +624,13 @@ const Dashboard = () => {
           />
         </div>
       </div>
+      {/* Chats Modal */}
+      <ChatsModel
+        isOpen={isChatOpen}
+        onClose={closeChatModal}
+        userId={selectedChat?.userId}
+        chatId={selectedChat?.chatId}
+      />
     </>
   );
 };

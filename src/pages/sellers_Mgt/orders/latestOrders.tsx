@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../Modals/orderDetails";
+import ChatsModel from "../Modals/chatsModel";
 
 interface ApiOrder {
   store_order_id: number;
@@ -12,6 +13,15 @@ interface ApiOrder {
   total_amount: string;
   created_at: string;
   formatted_date: string;
+  // Optional identifiers for chat modal - try multiple possible field names
+  chat_id?: number | string;
+  user_id?: number | string;
+  customer_id?: number | string;
+  buyer_id?: number | string;
+  chatId?: number | string;
+  userId?: number | string;
+  customerId?: number | string;
+  buyerId?: number | string;
 }
 
 interface Order {
@@ -25,6 +35,8 @@ interface Order {
   totalAmount: string;
   orderDate: string;
   formattedDate: string;
+  chatId?: number | string;
+  userId?: number | string;
 }
 
 interface LatestOrdersProps {
@@ -34,11 +46,11 @@ interface LatestOrdersProps {
   searchTerm?: string;
   orders?: ApiOrder[];
   isLoading?: boolean;
-  error?: any;
+  error?: unknown;
   pagination?: { current_page: number; last_page: number; total: number; per_page: number };
   currentPage?: number;
   onPageChange?: (page: number) => void;
-  onStatusUpdate?: (storeOrderId: string, statusData: any) => void;
+  onStatusUpdate?: (storeOrderId: string, statusData: unknown) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -70,22 +82,63 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<{ userId?: string; chatId?: string } | null>(null);
 
   // Normalize API data to UI format
   const normalizedOrders: Order[] = useMemo(() => {
-    return orders.map((order: ApiOrder) => ({
-      id: order.store_order_id.toString(),
-      orderNumber: order.order_number,
-      storeName: order.store_name,
-      sellerName: order.seller_name,
-      customerName: order.customer_name,
-      status: order.status,
-      itemsCount: order.items_count,
-      totalAmount: order.total_amount,
-      orderDate: order.created_at,
-      formattedDate: order.formatted_date,
-    }));
+    return orders.map((order: ApiOrder) => {
+      // Debug log to see what fields are available
+      console.log('Order data:', order);
+      
+      return {
+        id: order.store_order_id.toString(),
+        orderNumber: order.order_number,
+        storeName: order.store_name,
+        sellerName: order.seller_name,
+        customerName: order.customer_name,
+        status: order.status,
+        itemsCount: order.items_count,
+        totalAmount: order.total_amount,
+        orderDate: order.created_at,
+        formattedDate: order.formatted_date,
+        // Try multiple possible field names for chat data
+        chatId: order.chat_id || order.chatId,
+        userId: order.user_id || order.userId || order.customer_id || order.customerId || order.buyer_id || order.buyerId,
+      };
+    });
   }, [orders]);
+  const openChat = (userId?: number | string, chatId?: number | string) => {
+    console.log('Opening chat with:', { userId, chatId });
+    
+    // Check if we have the required IDs
+    if (!userId || !chatId) {
+      console.log('Missing chat data:', { userId, chatId });
+      
+      // If we have userId but no chatId, we could potentially create a new chat
+      if (userId && !chatId) {
+        const createNewChat = confirm("No existing chat found for this order. Would you like to start a new conversation?");
+        if (createNewChat) {
+          // For now, use a placeholder chatId - in a real app, you'd create a new chat via API
+          setSelectedChat({ userId: String(userId), chatId: `new-${userId}` });
+          setIsChatOpen(true);
+          return;
+        }
+      } else {
+        alert("Chat unavailable for this order - missing user or chat ID");
+      }
+      return;
+    }
+    
+    setSelectedChat({ userId: String(userId), chatId: String(chatId) });
+    setIsChatOpen(true);
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false);
+    setSelectedChat(null);
+  };
+
 
   // Combine tab filter + search filter
   const filteredOrders = useMemo(() => {
@@ -127,7 +180,6 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     onRowSelect?.(newSelection);
   };
 
-  const handleShowDetails = () => setShowModal(true);
 
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
@@ -210,7 +262,10 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                     >
                       Details
                     </button>
-                    <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                    <button
+                      onClick={() => openChat(order.userId, order.chatId)}
+                      className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer"
+                    >
                       View Chat
                     </button>
                   </td>
@@ -249,6 +304,12 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
         onClose={() => setShowModal(false)}
         orderId={selectedOrder?.id}
         onStatusUpdate={onStatusUpdate}
+      />
+      <ChatsModel 
+        isOpen={isChatOpen}
+        onClose={closeChat}
+        userId={selectedChat?.userId}
+        chatId={selectedChat?.chatId}
       />
     </div>
   );

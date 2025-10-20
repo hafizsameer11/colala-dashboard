@@ -1,20 +1,27 @@
-import images from "../../../constants/images";
 import React, { useState } from "react";
+import BoostProductModal from "./boostProductModal";
+import images from "../../../constants/images";
 
 interface OverviewProps {
   quantity: number;
   setQuantity: (quantity: number) => void;
-  productInfo?: any;
-  storeInfo?: any;
-  images?: any[];
-  variants?: any[];
+  productInfo?: {
+    name?: string;
+    price?: string;
+    discount_price?: string;
+    tags?: Array<{ name?: string } | string>;
+  };
+  storeInfo?: unknown;
+  images?: unknown[];
+  variants?: Array<{ color?: string }>;
+  productId?: string | number;
 }
 
 // ColorPicker component
-const ColorPicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
+const ColorPicker: React.FC<{ variants?: Array<{ color?: string }> }> = ({ variants = [] }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
-  const colors = variants.length > 0 ? variants.map(v => v.color) : ["#000000", "#0000FF", "#FF0000", "#FFFF00", "#00FFFF"];
+  const colors = variants.length > 0 ? variants.map(v => v.color || "#000000") : ["#000000", "#0000FF", "#FF0000", "#FFFF00", "#00FFFF"];
 
   return (
     <div className="flex gap-2 pb-4">
@@ -22,9 +29,8 @@ const ColorPicker: React.FC<{ variants?: any[] }> = ({ variants = [] }) => {
         <span
           key={index}
           onClick={() => setSelected(index)}
-          className={`rounded-full w-12 h-12 inline-block cursor-pointer ${
-            selected === index ? "border-3 border-[#E53E3E]" : ""
-          }`}
+          className={`rounded-full w-12 h-12 inline-block cursor-pointer ${selected === index ? "border-3 border-[#E53E3E]" : ""
+            }`}
           style={{ backgroundColor: color }}
         ></span>
       ))}
@@ -45,10 +51,9 @@ const SizePicker: React.FC = () => {
           key={index}
           onClick={() => setSelected(index)}
           className={`flex items-center justify-center rounded-2xl w-15 h-15 cursor-pointer text-lg border border-[#00000080]
-            ${
-              selected === index
-                ? "bg-[#E53E3E] text-white"
-                : "bg-white text-black"
+            ${selected === index
+              ? "bg-[#E53E3E] text-white"
+              : "bg-white text-black"
             }`}
         >
           {size}
@@ -58,13 +63,15 @@ const SizePicker: React.FC = () => {
   );
 };
 
-const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo, storeInfo, images, variants }) => {
+const Overview: React.FC<OverviewProps> = ({ productInfo, variants, productId }) => {
+  const [isBoostModalOpen, setIsBoostModalOpen] = useState(false);
+
   return (
     <div className="">
       <div>
         <div className="flex flex-row justify-between w-80">
           <span className="font-semibold text-[17px]">{productInfo?.name || "Product Name"}</span>
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             <img 
               className="w-5 h-5" 
               src={images.start1} 
@@ -74,7 +81,7 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
               }}
             />
             <span className="text-[#00000080] text-[17px]">{productInfo?.average_rating || "0"}</span>
-          </div>
+          </div> */}
         </div>
         <div className="mt-2">
           <span className="font-bold text-[#E53E3E] text-[17px]">
@@ -89,30 +96,31 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
         {/* Information tags - Only show if we have tag data from backend */}
         {productInfo?.tags && productInfo.tags.length > 0 && (
           <div className="mt-4 space-y-2">
-            {productInfo.tags.map((tag: any, index: number) => {
+            {productInfo.tags.map((tag: { name?: string } | string, index: number) => {
+              const tagName = typeof tag === 'string' ? tag : tag.name || 'Tag';
               const colors = [
                 { bg: '#FFA500', dark: '#FF3300' },
                 { bg: '#0000FF', dark: '#14146F' },
                 { bg: '#800080', dark: '#050531' }
               ];
               const color = colors[index % colors.length];
-              
+
               return (
                 <div key={index} className="flex items-center text-white rounded-md" style={{ backgroundColor: color.bg }}>
                   <div className="relative w-15 h-10 overflow-hidden rounded-md flex items-center px-3" style={{ backgroundColor: color.dark }}>
                     {/* Right-side tilted shape */}
                     <div className="absolute top-0 right-0 w-1/3 h-full [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]" style={{ backgroundColor: color.bg }}></div>
                     {/* Cart Icon */}
-                    <img 
-                      className="w-5 h-5" 
-                      src={images.cart1} 
-                      alt="Cart" 
+                    <img
+                      className="w-5 h-5"
+                      src={images?.cart1 || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTcgMkg1QzMuOSAyIDMgMi45IDMgNFYxNkMzIDE3LjEgMy45IDE4IDUgMThIMTVDMTYuMSAxOCAxNyAxNy4xIDE3IDE2VjRIMTdDMTcuMSA0IDE3IDMuMSAxNyAySDdWNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg=='}
+                      alt="Cart"
                       onError={(e) => {
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTcgMkg1QzMuOSAyIDMgMi45IDMgNFYxNkMzIDE3LjEgMy45IDE4IDUgMThIMTVDMTYuMSAxOCAxNyAxNy4xIDE3IDE2VjRIMTdDMTcuMSA0IDE3IDMuMSAxNyAySDdWNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==';
                       }}
                     />
                   </div>
-                  <span className="text-sm font-medium">{tag.name || tag}</span>
+                  <span className="text-sm font-medium">{tagName}</span>
                 </div>
               );
             })}
@@ -140,7 +148,7 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
         </div>
 
         {/* Quantity Left and Counter */}
-        <div className="mt-4 flex flex-row justify-between items-center border-b border-[#00000080] pb-3">
+        {/* <div className="mt-4 flex flex-row justify-between items-center border-b border-[#00000080] pb-3">
           <div className="flex flex-col py-4">
             <span className="text-gray-500 text-sm">Quantity Left</span>
             <span className="text-[#E53E3E] font-bold text-2xl">{productInfo?.quantity || 0}</span>
@@ -174,7 +182,7 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
               <span className="text-xl font-bold">+</span>
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Action Buttons */}
         <div className="mt-4 flex flex-col gap-3">
@@ -221,12 +229,27 @@ const Overview: React.FC<OverviewProps> = ({ quantity, setQuantity, productInfo,
           {/* Boost Product Button */}
           <button
             type="button"
+            onClick={() => {
+              if (!productId) {
+                alert('Product ID is required to boost this product');
+                return;
+              }
+              setIsBoostModalOpen(true);
+            }}
             className="w-full bg-black text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-gray-800 transition-colors"
           >
             Boost Product
           </button>
         </div>
       </div>
+
+      {/* Boost Product Modal */}
+      <BoostProductModal
+        isOpen={isBoostModalOpen}
+        onClose={() => setIsBoostModalOpen(false)}
+        productId={productId}
+        productName={productInfo?.name}
+      />
     </div>
   );
 };

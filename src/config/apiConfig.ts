@@ -214,6 +214,7 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/products", // GET
     Create: API_DOMAIN + "/admin/products", // POST
     Details: (productId: number | string) => `${API_DOMAIN}/admin/products/${productId}/details`, // GET
+    Boost: (productId: number | string) => `${API_DOMAIN}/admin/products/${productId}/boost`, // POST
   },
 
   // ADMIN SERVICES
