@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import images from "../constants/images";
-import { useQuery } from "@tanstack/react-query";
-import { getAdminSocialFeedDetails } from "../utils/queries/users";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminSocialFeedDetails, deleteAdminSocialFeedPost, deleteAdminSocialFeedComment } from "../utils/queries/users";
+import { useToast } from "../contexts/ToastContext";
 
 interface Reply {
   id: string;
@@ -44,15 +45,15 @@ const MediaSlider: React.FC<{ media: MediaItem[] }> = ({ media }) => {
     <div className="relative">
       {/* Main Image Display */}
       <div className="relative w-full rounded-lg overflow-hidden">
-        <img 
-          className="w-full h-auto rounded-lg" 
-          src={media[currentIndex].url} 
+        <img
+          className="w-full h-auto rounded-lg"
+          src={media[currentIndex].url}
           alt={`Media ${currentIndex + 1}`}
           onError={(e) => {
             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
           }}
         />
-        
+
         {/* Navigation Arrows */}
         {media.length > 1 && (
           <>
@@ -74,7 +75,7 @@ const MediaSlider: React.FC<{ media: MediaItem[] }> = ({ media }) => {
             </button>
           </>
         )}
-        
+
         {/* Image Counter */}
         {media.length > 1 && (
           <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
@@ -82,7 +83,7 @@ const MediaSlider: React.FC<{ media: MediaItem[] }> = ({ media }) => {
           </div>
         )}
       </div>
-      
+
       {/* Thumbnail Navigation */}
       {media.length > 1 && (
         <div className="flex gap-2 mt-3 overflow-x-auto">
@@ -90,15 +91,14 @@ const MediaSlider: React.FC<{ media: MediaItem[] }> = ({ media }) => {
             <button
               key={item.id}
               onClick={() => goToSlide(index)}
-              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                index === currentIndex 
-                  ? 'border-red-500' 
+              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === currentIndex
+                  ? 'border-red-500'
                   : 'border-gray-300 hover:border-gray-400'
-              }`}
+                }`}
             >
-              <img 
-                className="w-full h-full object-cover" 
-                src={item.url} 
+              <img
+                className="w-full h-full object-cover"
+                src={item.url}
                 alt={`Thumbnail ${index + 1}`}
                 onError={(e) => {
                   e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMiAzMkwyOCAzNkwyMCAyOEwyNCAyNEwzMiAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
@@ -120,6 +120,48 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   // State to track which reply inputs are open
   const [openReplies, setOpenReplies] = useState<Set<string>>(new Set());
   const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+
+  // Helper function to construct proper image URL
+  const getImageUrl = (profilePicture: string | null) => {
+    if (!profilePicture) return images.adam;
+    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+  };
+
+  // Toast and query client
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Delete post mutation
+  const deletePostMutation = useMutation({
+    mutationFn: deleteAdminSocialFeedPost,
+    onSuccess: () => {
+      showToast('Post deleted successfully', 'success');
+      queryClient.invalidateQueries({ queryKey: ['adminSocialFeed'] });
+      onClose();
+    },
+    onError: (error: any) => {
+      console.error('Delete post error:', error);
+      showToast(error?.response?.data?.message || 'Failed to delete post', 'error');
+    },
+  });
+
+  // Delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: ({ postId, commentId }: { postId: number | string, commentId: number | string }) =>
+      deleteAdminSocialFeedComment(postId, commentId),
+    onSuccess: () => {
+      showToast('Comment deleted successfully', 'success');
+      queryClient.invalidateQueries({ queryKey: ['adminSocialFeedDetails', postId] });
+      setCommentToDelete(null);
+    },
+    onError: (error: any) => {
+      console.error('Delete comment error:', error);
+      showToast(error?.response?.data?.message || 'Failed to delete comment', 'error');
+      setCommentToDelete(null);
+    },
+  });
 
   // Fetch post details
   const { data: postDetails, isLoading, error } = useQuery({
@@ -132,6 +174,39 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   // Debug logging
   console.log('SocialFeedModal Debug - Post details:', postDetails);
   console.log('SocialFeedModal Debug - Comments:', postDetails?.data?.recent_comments);
+  console.log('SocialFeedModal Debug - Comment profile pictures:', postDetails?.data?.recent_comments?.map((c: any) => c.profile_picture));
+
+  // Handler functions
+  const handleDeletePost = () => {
+    if (postId) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDeletePost = () => {
+    if (postId) {
+      deletePostMutation.mutate(postId);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const cancelDeletePost = () => {
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setCommentToDelete(commentId);
+  };
+
+  const confirmDeleteComment = () => {
+    if (postId && commentToDelete) {
+      deleteCommentMutation.mutate({ postId, commentId: commentToDelete });
+    }
+  };
+
+  const cancelDeleteComment = () => {
+    setCommentToDelete(null);
+  };
 
   // State to store actual replies for each comment
   const [replies, setReplies] = useState<{ [commentId: string]: Reply[] }>({});
@@ -207,13 +282,13 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Chat</h2>
             <div className="flex flex-row items-center gap-3">
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={onClose}
                 className="p-2 rounded-md  cursor-pointer"
@@ -224,7 +299,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
             </div>
           </div>
         </div>
-搭        {/* Content */}
+        {/* Content */}
         <div className="pr-5 pl-5 mt-3">
           {isLoading ? (
             <div className="text-center py-10">
@@ -239,41 +314,42 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
               <div className="flex flex-row justify-between">
                 <div className="flex gap-2">
                   <div>
-                    <img 
-                      className="w-20 h-20 rounded-full object-cover" 
-                      src={postDetails.data.user_info?.store_name ? 
-                        (postDetails.data.user_info.store_name === "Awesome store" ? images.sasha : images.sasha) : 
-                        images.sasha
-                      } 
-                      alt=""
+                    <img
+                      className="w-20 h-20 rounded-full object-cover"
+                      src={postDetails.data.user_info?.profile_picture || images.sasha}
+                      alt={postDetails.data.user_info?.name || "User"}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTQwIDMwQzQ0LjQxODMgMzAgNDggMzMuNTgxNyA0OCAzOEM0OCA0Mi40MTgzIDQ0LjQxODMgNDYgNDAgNDZTNDAgNDIuNDE4MyAzNiA0Mi40MTgzIDM2IDM4QzM2IDMzLjU4MTcgMzkuNTgxNyAzMCA0MCAzMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTQwIDUwQzQ0LjQxODMgNTAgNDggNDcuNDE4MyA0OCA0M0M0OCAzOC41ODE3IDQ0LjQxODMgMzUgNDAgMzVDMzUuNTgxNyAzNSAzMiAzOC41ODE3IDMyIDQzQzMyIDQ3LjQxODMgMzUuNTgxNyA1MCA0MCA1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                        e.currentTarget.src = images.sasha;
                       }}
                     />
                   </div>
                   <div className="flex flex-col gap-2 items-center justify-center">
                     <span className="text-[20px]">{postDetails.data.user_info?.name || "Unknown User"}</span>
                     <span className="text-[#00000080] text-[10px]">
-                      {postDetails.data.user_info?.location || "Unknown Location"} {postDetails.data.post_info?.created_at ? 
+                      {postDetails.data.user_info?.location || "Unknown Location"} {postDetails.data.post_info?.created_at ?
                         new Date(postDetails.data.post_info.created_at).toLocaleDateString() : "Unknown time"}
                     </span>
                   </div>
                 </div>
                 <div className="mt-5">
-                  <button className="font-bold text-[#FF0000] text-lg cursor-pointer">
-                    Delete Post
+                  <button
+                    className="font-bold text-[#FF0000] text-lg cursor-pointer disabled:opacity-50"
+                    onClick={handleDeletePost}
+                    disabled={deletePostMutation.isPending}
+                  >
+                    {deletePostMutation.isPending ? 'Deleting...' : 'Delete Post'}
                   </button>
                 </div>
               </div>
-              
+
               {/* Media Slider */}
               {postDetails.data.media && postDetails.data.media.length > 0 && (
                 <div className="mt-4">
                   {postDetails.data.media.length === 1 ? (
                     // Single image
-                    <img 
-                      className="w-full rounded-lg" 
-                      src={postDetails.data.media[0].url} 
+                    <img
+                      className="w-full rounded-lg"
+                      src={postDetails.data.media[0].url}
                       alt=""
                       onError={(e) => {
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDQwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTAwTDIyMCAxMjBMMjAwIDE0MEwxODAgMTIwTDIwMCAxMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
@@ -285,12 +361,12 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
                   )}
                 </div>
               )}
-              
+
               {/* Post content */}
               <div className="w-full bg-[#F0F0F0] rounded-lg p-3 mt-4">
                 {postDetails.data.post_info?.body || "No content available"}
               </div>
-              
+
               {/* Engagement stats */}
               <div className="flex flex-row gap-3 mt-4">
                 <div className="flex items-center gap-1">
@@ -318,19 +394,19 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
               <div className="text-gray-500">No post data available</div>
             </div>
           )}
-          
+
           {/* Comments Section */}
           {postDetails?.data?.recent_comments && postDetails.data.recent_comments.length > 0 && (
             <div className="flex flex-col mt-4 gap-4 mb-10">
               {postDetails.data.recent_comments.map((comment: any, index: number) => (
                 <div key={comment.id || index} className="flex flex-row gap-3">
                   <div>
-                    <img 
-                      className="w-15 h-15 rounded-full object-cover" 
-                      src={images.adam} 
-                      alt=""
+                    <img
+                      className="w-15 h-15 rounded-full object-cover"
+                      src={getImageUrl(comment.profile_picture)}
+                      alt={comment.user_name || "User"}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMzAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTMwIDI1QzMyLjc2MTQgMjUgMzUgMjcuMjM4NiAzNSAzMEMzNSAzMi43NjE0IDMyLjc2MTQgMzUgMzAgMzVDMjcuMjM4NiAzNSAyNSAzMi43NjE0IDI1IDMwQzI1IDI3LjIzODYgMjcuMjM4NiAyNSAzMCAyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTMwIDM1QzMyLjc2MTQgMzUgMzUgMzIuNzYxNCAzNSAzMEMzNSAyNy4yMzg2IDMyLjc2MTQgMjUgMzAgMjVDMjcuMjM4NiAyNSAyNSAyNy4yMzg2IDI1IDMwQzI1IDMyLjc2MTQgMjcuMjM4NiAzNSAzMCAzNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                        e.currentTarget.src = images.adam;
                       }}
                     />
                   </div>
@@ -356,7 +432,12 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
                         </span>
                         <span className="text-[#00000080] cursor-pointer">Like</span>
                       </div>
-                      <div className="text-[#FF0000] font-bold cursor-pointer">Delete</div>
+                      <div
+                        className="text-[#FF0000] font-bold cursor-pointer disabled:opacity-50"
+                        onClick={() => handleDeleteComment(comment.id?.toString() || index.toString())}
+                      >
+                        {deleteCommentMutation.isPending && commentToDelete === (comment.id?.toString() || index.toString()) ? 'Deleting...' : 'Delete'}
+                      </div>
                     </div>
 
                     {/* Reply Input */}
@@ -427,7 +508,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
               ))}
             </div>
           )}
-          
+
           {/* Show message if no comments */}
           {(!postDetails?.data?.recent_comments || postDetails.data.recent_comments.length === 0) && (
             <div className="text-center py-10 text-gray-500">
@@ -436,6 +517,62 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
           )}
         </div>
       </div>
+
+      {/* Delete Post Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this post? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={cancelDeletePost}
+                disabled={deletePostMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                onClick={confirmDeletePost}
+                disabled={deletePostMutation.isPending}
+              >
+                {deletePostMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Comment Confirmation Dialog */}
+      {commentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={cancelDeleteComment}
+                disabled={deleteCommentMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                onClick={confirmDeleteComment}
+                disabled={deleteCommentMutation.isPending}
+              >
+                {deleteCommentMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

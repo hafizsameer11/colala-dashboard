@@ -159,6 +159,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   // File upload states
   const [productVideo, setProductVideo] = useState<File | null>(null);
   const [productImages, setProductImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<Array<{id: string, url: string, path: string}>>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -192,6 +193,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     if (editMode && initialProductData) {
       const productInfo = initialProductData.product_info;
       const variantsData = initialProductData.variants || [];
+      const imagesData = initialProductData.images || [];
       
       if (productInfo) {
         setProductName(productInfo.name || "");
@@ -203,6 +205,15 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         setDiscountPrice(productInfo.discount_price?.toString() || "");
         setHasVariants(productInfo.has_variants || false);
         setLoyaltyPoints(productInfo.loyalty_points_applicable || false);
+        
+        // Set existing images data
+        if (imagesData.length > 0) {
+          setExistingImages(imagesData.map((img: any) => ({
+            id: img.id?.toString() || "",
+            url: img.url || img.path || "",
+            path: img.path || img.url || "",
+          })));
+        }
         
         // Set variants data
         if (variantsData.length > 0) {
@@ -331,7 +342,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       deliveryLocation:
         selectedDeliveryLocation === "" ? "Delivery location is required" : "",
       productImages:
-        productImages.length < 3 ? "At least 3 images are required" : "",
+        (existingImages.length + productImages.length) < 3 ? "At least 3 images are required" : "",
     };
 
     setErrors(newErrors);
@@ -404,7 +415,15 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       // Add loyalty points (boolean)
       formData.append('loyality_points_applicable', loyaltyPoints.toString());
       
-      // Add image files (array)
+      // Add existing image IDs (for edit mode)
+      if (editMode && existingImages.length > 0) {
+        existingImages.forEach((image, index) => {
+          formData.append(`existing_images[${index}][id]`, image.id);
+          formData.append(`existing_images[${index}][url]`, image.url);
+        });
+      }
+      
+      // Add new image files (array)
       productImages.forEach((image, index) => {
         formData.append(`images[${index}]`, image);
       });
@@ -595,14 +614,41 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   Upload at least 3 clear pictures of your product
                 </div>
                 <div className="flex gap-3 flex-wrap">
+                  {/* Display existing images */}
+                  {existingImages.map((image, index) => (
+                    <div
+                      key={`existing-${image.id}`}
+                      className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden"
+                    >
+                      <img
+                        src={image.url.startsWith('http') ? image.url : `https://colala.hmstech.xyz/storage/${image.path}`}
+                        alt={`Existing Product ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newExistingImages = existingImages.filter(
+                            (_, i) => i !== index
+                          );
+                          setExistingImages(newExistingImages);
+                        }}
+                        className="absolute top-1 right-1 w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center text-white text-sm hover:bg-gray-800"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Display new uploaded images */}
                   {productImages.map((image, index) => (
                     <div
-                      key={index}
+                      key={`new-${index}`}
                       className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden"
                     >
                       <img
                         src={URL.createObjectURL(image)}
-                        alt={`Product ${index + 1}`}
+                        alt={`New Product ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
                       <button
@@ -620,7 +666,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                     </div>
                   ))}
 
-                  {productImages.length < 3 && (
+                  {/* Show upload button if total images (existing + new) < 3 */}
+                  {(existingImages.length + productImages.length) < 3 && (
                     <div className="border border-[#CDCDCD] rounded-2xl justify-center items-center w-24 h-24 relative cursor-pointer flex flex-col">
                       <input
                         type="file"

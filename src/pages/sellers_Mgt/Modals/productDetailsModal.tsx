@@ -242,8 +242,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   onEditProduct={handleEditProduct}
                   onDeleteProduct={handleDeleteProduct}
                   onViewAnalytics={() => {
-                    // TODO: Implement analytics view functionality
-                    console.log('View analytics for product:', product?.id);
+                    setActiveTab("Product Stats");
                   }}
                   onUpdateStatus={() => {
                     // TODO: Implement status update functionality

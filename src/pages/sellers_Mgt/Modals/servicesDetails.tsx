@@ -90,10 +90,10 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
             {/* Video Section */}
             {realServiceData.service_info.video && (
               <div className="relative rounded-2xl overflow-hidden">
-                <video 
-                  src={realServiceData.service_info.video.startsWith('http') 
-                    ? realServiceData.service_info.video 
-                    : `https://colala.hmstech.xyz/storage/${realServiceData.service_info.video}`} 
+                <video
+                  src={realServiceData.service_info.video.startsWith('http')
+                    ? realServiceData.service_info.video
+                    : `https://colala.hmstech.xyz/storage/${realServiceData.service_info.video}`}
                   controls
                   className="w-full h-auto object-cover"
                   preload="metadata"
@@ -108,8 +108,8 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
               <div className="flex flex-row mt-5 gap-3">
                 {realServiceData.media.slice(0, 3).map((img: any, index: number) => (
                   <div key={index}>
-                    <img 
-                      src={img.url || img.path} 
+                    <img
+                      src={img.url || img.path}
                       alt={`Service image ${index + 1}`}
                       className="w-full h-32 object-cover rounded-lg"
                     />
@@ -309,11 +309,10 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
                 onClick={() =>
                   setActiveTab(tab as "Product Details" | "Product Stats")
                 }
-                className={`px-6 py-3 rounded-xl cursor-pointer font-medium transition-colors text-sm ${
-                  activeTab === tab
+                className={`px-6 py-3 rounded-xl cursor-pointer font-medium transition-colors text-sm ${activeTab === tab
                     ? "bg-[#E53E3E] text-white shadow-sm"
                     : "text-[#000000] "
-                }`}
+                  }`}
               >
                 {tab}
               </button>

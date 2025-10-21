@@ -139,6 +139,12 @@ const SocialFeed = () => {
 
   const debouncedSearch = useDebouncedValue(search, 450);
 
+  // Helper function to construct proper image URL
+  const getImageUrl = (profilePicture: string | null) => {
+    if (!profilePicture) return images.sasha;
+    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+  };
+
   // Fetch social feed data
   const { data: socialFeedData, isLoading: isLoadingPosts, error: postsError } = useQuery({
     queryKey: ['adminSocialFeed', currentPage],
@@ -556,10 +562,10 @@ const SocialFeed = () => {
                       <div>
                         <img
                           className="w-12 h-12 rounded-full object-cover"
-                          src={images.sasha}
-                          alt=""
+                          src={getImageUrl(comment.profile_picture)}
+                          alt={comment.user_name || "User"}
                           onError={(e) => {
-                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDIwQzI2LjIwOTEgMjAgMjggMTguMjA5MSAyOCAxNkMyOCAxMy43OTA5IDI2LjIwOTEgMTIgMjQgMTJDMjEuNzkwOSAxMiAyMCAxMy43OTA5IDIwIDE2QzIwIDE4LjIwOTEgMjEuNzkwOSAyMCAyNCAyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDI4QzI2LjIwOTEgMjggMjggMjYuMjA5MSAyOCAyNEMyOCAyMS43OTA5IDI2LjIwOTEgMjAgMjQgMjBDMjEuNzkwOSAyMCAyMCAyMS43OTA5IDIwIDI0QzIwIDI2LjIwOTEgMjEuNzkwOSAyOCAyNCAyOFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                            e.currentTarget.src = images.sasha;
                           }}
                         />
                       </div>

@@ -1202,6 +1202,40 @@ export const getAdminSocialFeedStatistics = async () => {
 };
 
 /**
+ * Delete admin social feed post
+ */
+export const deleteAdminSocialFeedPost = async (postId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SOCIAL_FEED.Delete(postId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete admin social feed post API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete admin social feed comment
+ */
+export const deleteAdminSocialFeedComment = async (postId: number | string, commentId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SOCIAL_FEED.DeleteComment(postId, commentId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete admin social feed comment API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all users list with pagination
  */
 export const getAllUsers = async (page: number = 1, search?: string) => {

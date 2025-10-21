@@ -245,6 +245,8 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/social-feed", // GET
     Details: (postId: number | string) => `${API_DOMAIN}/admin/social-feed/${postId}/details`, // GET
     Statistics: API_DOMAIN + "/admin/social-feed/statistics", // GET
+    Delete: (postId: number | string) => `${API_DOMAIN}/admin/social-feed/${postId}`, // DELETE
+    DeleteComment: (postId: number | string, commentId: number | string) => `${API_DOMAIN}/admin/social-feed/${postId}/comments/${commentId}`, // DELETE
   },
 
   // SELLER SOCIAL FEED

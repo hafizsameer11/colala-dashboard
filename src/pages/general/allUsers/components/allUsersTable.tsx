@@ -80,6 +80,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
 
+  // Helper function to construct proper image URL
+  const getImageUrl = (profilePicture: string | null) => {
+    if (!profilePicture) return "/assets/layout/admin.png";
+    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+  };
+
   // Fetch users data from API
   const { data: usersData, isLoading, error } = useQuery({
     queryKey: ['allUsers', currentPage, searchTerm],
@@ -241,7 +247,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
                 <td className="p-3 text-left flex items-center justify-start gap-2">
                   <img
-                    src={user.userImage || "/assets/layout/admin.png"}
+                    src={getImageUrl(user.userImage)}
                     alt="User"
                     className="w-8 h-8 rounded-full object-cover"
                     onError={(e) => {
