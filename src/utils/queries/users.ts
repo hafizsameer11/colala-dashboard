@@ -1797,3 +1797,20 @@ export const bulkActionBuyerOrders = async (
   }
 };
 
+/**
+ * Get detailed user balance information including transactions
+ */
+export const getUserBalanceDetails = async (userId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BALANCE.UserDetails(userId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get user balance details API call error:', error);
+    throw error;
+  }
+};
+

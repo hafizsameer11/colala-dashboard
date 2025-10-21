@@ -59,3 +59,43 @@ export const getChatDetails = async (chatId: number | string) => {
     throw error;
   }
 };
+
+/**
+ * Send message to chat
+ */
+export const sendChatMessage = async (chatId: number | string, messageData: {
+  message: string;
+  sender_type: 'buyer' | 'store';
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.CHATS.SendMessage(chatId), 'POST', messageData, token);
+    return response;
+  } catch (error) {
+    console.error('Send chat message API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update chat status
+ */
+export const updateChatStatus = async (chatId: number | string, statusData: {
+  status: 'open' | 'closed' | 'resolved';
+  type?: 'general' | 'support' | 'dispute';
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.CHATS.UpdateStatus(chatId), 'PUT', statusData, token);
+    return response;
+  } catch (error) {
+    console.error('Update chat status API call error:', error);
+    throw error;
+  }
+};

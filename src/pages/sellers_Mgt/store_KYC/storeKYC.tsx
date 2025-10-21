@@ -43,8 +43,15 @@ const StoreKYC = () => {
     staleTime: 2 * 60 * 1000,
   });
 
-  const stores = storesData?.data?.stores || [];
-  const statistics = storesData?.data?.statistics || {};
+  // Debug logging to understand the data structure
+  console.log('StoreKYC Debug - storesData:', storesData);
+  console.log('StoreKYC Debug - storesData.data:', storesData?.data);
+  console.log('StoreKYC Debug - storesData.data.stores:', storesData?.data?.stores);
+  console.log('StoreKYC Debug - storesData.data.stores.data:', storesData?.data?.stores?.data);
+  
+  // Extract stores from the correct nested structure: data.stores.data
+  const stores = Array.isArray(storesData?.data?.stores?.data) ? storesData.data.stores.data : [];
+  const statistics = storesData?.data?.summary_stats || {};
   const pagination = storesData?.data?.pagination || {};
 
   const TabButtons = () => (
@@ -104,9 +111,9 @@ const StoreKYC = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Total Stores</span>
-              <span className="font-semibold text-2xl">{statistics.total_stores || 0}</span>
+              <span className="font-semibold text-2xl">{statistics.total_stores?.count || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
+                <span className="text-[#1DB61D]">+{statistics.total_stores?.increase || 0}%</span> increase from last
                 month
               </span>
             </div>
@@ -122,9 +129,9 @@ const StoreKYC = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Pending KYC</span>
-              <span className="font-semibold text-2xl">{statistics.pending_kyc || 0}</span>
+              <span className="font-semibold text-2xl">{statistics.pending_kyc?.count || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
+                <span className="text-[#1DB61D]">+{statistics.pending_kyc?.increase || 0}%</span> increase from last
                 month
               </span>
             </div>
@@ -140,9 +147,9 @@ const StoreKYC = () => {
             </div>
             <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
               <span className="font-semibold text-[15px]">Approved KYC</span>
-              <span className="font-semibold text-2xl">{statistics.approved_kyc || 0}</span>
+              <span className="font-semibold text-2xl">{statistics.approved_kyc?.count || 0}</span>
               <span className="text-[#00000080] text-[13px] ">
-                <span className="text-[#1DB61D]">+5%</span> increase from last
+                <span className="text-[#1DB61D]">+{statistics.approved_kyc?.increase || 0}%</span> increase from last
                 month
               </span>
             </div>

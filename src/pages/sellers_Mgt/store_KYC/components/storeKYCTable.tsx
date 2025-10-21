@@ -5,15 +5,17 @@ import ViewStoreModal from "./viewStoreModal";
 interface ApiStore {
   id: number;
   store_name: string;
+  store_email: string;
+  store_phone: string;
   profile_image: string | null;
   banner_image: string | null;
   owner_name: string | null;
   owner_email: string | null;
-  status?: string;
-  onboarding_level?: number;
-  created_at?: string;
-  formatted_date?: string;
-  status_color?: string;
+  owner_phone: string | null;
+  status: "pending" | "approved" | "rejected";
+  level: number;
+  submission_date: string;
+  formatted_date: string;
 }
 
 interface StoreKYC {
@@ -67,16 +69,21 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
   const normalizedStores = useMemo(() => {
     console.log('StoreKYCTable Debug - Raw stores data:', stores);
     
+    // Ensure stores is an array before mapping
+    if (!stores || !Array.isArray(stores)) {
+      console.log('StoreKYCTable Debug - Stores is not an array:', stores);
+      return [];
+    }
+    
     const transformed = stores.map((store: ApiStore): StoreKYC => {
       // Handle the actual API response structure
       const storeName = store.store_name || "N/A";
-      const emailAddress = store.owner_email || "N/A";
-      const phoneNumber = "N/A"; // Not available in current API response
-      const submissionDate = store.formatted_date || store.created_at || new Date().toLocaleDateString();
-      const level = store.onboarding_level || 1; // Default to level 1
+      const emailAddress = store.store_email || "N/A"; // Use store_email instead of owner_email
+      const phoneNumber = store.store_phone || "N/A"; // Use store_phone from API
+      const submissionDate = store.formatted_date || store.submission_date || new Date().toLocaleDateString();
+      const level = store.level || 1; // Use level from API
       
-      // Since the API doesn't provide status, we'll default to "Pending"
-      // This could be enhanced based on business logic
+      // Map status from API response
       const status = store.status === "pending" ? "Pending" : 
                     store.status === "approved" ? "Successful" : 
                     store.status === "rejected" ? "Rejected" : "Pending";

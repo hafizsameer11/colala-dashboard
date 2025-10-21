@@ -1,21 +1,27 @@
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
+import AddUserModal from "../../../components/addUserModel";
 import { getAllUsersStats } from "../../../utils/queries/users";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
 const AllUsers = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [userRole, setUserRole] = useState<"buyer" | "seller">("buyer");
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 500);
     return () => clearTimeout(t);
@@ -65,6 +71,23 @@ const AllUsers = () => {
 
   const handleUserSelection = (selectedIds: string[]) => {
     console.log("Selected user IDs:", selectedIds);
+  };
+
+  // Handler for Add New Buyer button
+  const handleAddNewBuyer = () => {
+    setUserRole("buyer");
+    setShowAddUserModal(true);
+  };
+
+  // Handler for Add New Seller button
+  const handleAddNewSeller = () => {
+    // Navigate to seller stores management page where the add store functionality exists
+    navigate("/stores-mgt");
+  };
+
+  // Handler for closing the add user modal
+  const handleCloseAddUserModal = () => {
+    setShowAddUserModal(false);
   };
 
   return (
@@ -170,12 +193,18 @@ const AllUsers = () => {
           </div>
           <div className="flex flex-row gap-2">
             <div>
-              <button className="bg-black text-white cursor-pointer px-4 py-3.5 rounded-2xl">
+              <button 
+                onClick={handleAddNewBuyer}
+                className="bg-black text-white cursor-pointer px-4 py-3.5 rounded-2xl hover:bg-gray-800 transition-colors duration-200"
+              >
                 Add New Buyer
               </button>
             </div>
             <div>
-              <button className="bg-[#E53E3E] text-white cursor-pointer px-4 py-3.5 rounded-2xl">
+              <button 
+                onClick={handleAddNewSeller}
+                className="bg-[#E53E3E] text-white cursor-pointer px-4 py-3.5 rounded-2xl hover:bg-red-600 transition-colors duration-200"
+              >
                 Add New Seller
               </button>
             </div>
@@ -216,6 +245,13 @@ const AllUsers = () => {
           />
         </div>
       </div>
+
+      {/* Add User Modal */}
+      <AddUserModal
+        isOpen={showAddUserModal}
+        onClose={handleCloseAddUserModal}
+        defaultRole={userRole}
+      />
     </>
   );
 };

@@ -33,6 +33,7 @@ interface UsersTableProps {
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
   error?: any;
+  onUserDetailsClick?: (userId: number) => void;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
@@ -46,6 +47,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   onPageChange,
   isLoading = false,
   error,
+  onUserDetailsClick,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -208,7 +210,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   </span>
                 </td>
                 <td className="p-3 flex items-center justify-start gap-2">
-                  <button className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer">
+                  <button 
+                    onClick={() => onUserDetailsClick?.(user.id)}
+                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors"
+                  >
                     User Details
                   </button>
                 </td>

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../constants/images";
-import { getChatDetails } from "../../../../utils/queries/chats";
+import { getChatDetails, sendChatMessage, updateChatStatus } from "../../../../utils/queries/chats";
+import { useToast } from "../../../../contexts/ToastContext";
 
 interface ChatsModelProps {
   isOpen: boolean;
@@ -20,10 +21,12 @@ interface ChatsModelProps {
 }
 
 const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buyerPart }) => {
-  const [newMessages, setNewMessages] = useState<
-    Array<{ text: string; time: string }>
-  >([]);
   const [input, setInput] = useState("");
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<'open' | 'closed' | 'resolved'>('open');
+  
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Fetch chat details
   const { data: chatDetails, isLoading, error } = useQuery({
@@ -36,19 +39,87 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: (messageData: { message: string; sender_type: 'buyer' | 'store' }) => 
+      sendChatMessage(chatData!.id, messageData),
+    onSuccess: () => {
+      // Invalidate and refetch chat details to get updated messages
+      queryClient.invalidateQueries({ queryKey: ['chatDetails', chatData?.id] });
+      setInput("");
+      showToast('Message sent successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Send message error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send message';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  // Update chat status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: (statusData: { status: 'open' | 'closed' | 'resolved'; type?: 'general' | 'support' | 'dispute' }) => 
+      updateChatStatus(chatData!.id, statusData),
+    onSuccess: () => {
+      // Invalidate and refetch chat details to get updated status
+      queryClient.invalidateQueries({ queryKey: ['chatDetails', chatData?.id] });
+      setShowStatusDropdown(false);
+      showToast('Chat status updated successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Update status error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update chat status';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  // Update selected status when chat details load
+  useEffect(() => {
+    if (chatDetails?.data?.chat_info?.status) {
+      setSelectedStatus(chatDetails.data.chat_info.status as 'open' | 'closed' | 'resolved');
+    }
+  }, [chatDetails]);
+
+  // Close status dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showStatusDropdown && !target.closest('.status-dropdown')) {
+        setShowStatusDropdown(false);
+      }
+    };
+
+    if (showStatusDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStatusDropdown]);
+
   if (!isOpen) return null;
 
   const handleSend = () => {
-    if (input.trim() === "") return;
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const formattedTime = `${(((hours + 11) % 12) + 1)
-      .toString()
-      .padStart(2, "0")}:${minutes.toString().padStart(2, "0")}${ampm}`;
-    setNewMessages([...newMessages, { text: input, time: formattedTime }]);
-    setInput("");
+    if (input.trim() === "" || sendMessageMutation.isPending) return;
+    
+    sendMessageMutation.mutate({
+      message: input.trim(),
+      sender_type: 'store' // Admin sending as store
+    });
+  };
+
+  const handleStatusUpdate = (status: 'open' | 'closed' | 'resolved') => {
+    setSelectedStatus(status);
+    updateStatusMutation.mutate({
+      status,
+      type: chatDetails?.data?.chat_info?.type || 'general'
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setInput((e.target as any).value);
   };
 
   return (
@@ -59,16 +130,51 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Chat</h2>
             <div className="flex flex-row items-center gap-3">
-              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
-                <img
-                  className="cursor-pointer"
-                  src={images.shoppingcart}
-                  alt=""
-                />
-              </div> */}
+              {/* Status Dropdown */}
+              <div className="relative status-dropdown">
+                <button
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  disabled={updateStatusMutation.isPending}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    selectedStatus === 'open' 
+                      ? 'bg-green-100 text-green-800' 
+                      : selectedStatus === 'closed' 
+                      ? 'bg-red-100 text-red-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  } ${updateStatusMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
+                >
+                  {updateStatusMutation.isPending ? 'Updating...' : selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)}
+                </button>
+                
+                {showStatusDropdown && (
+                  <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <div className="py-1">
+                      <button
+                        onClick={() => handleStatusUpdate('open')}
+                        className="block w-full text-left px-4 py-2 text-sm text-green-800 hover:bg-green-50"
+                      >
+                        Open
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate('closed')}
+                        className="block w-full text-left px-4 py-2 text-sm text-red-800 hover:bg-red-50"
+                      >
+                        Closed
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate('resolved')}
+                        className="block w-full text-left px-4 py-2 text-sm text-blue-800 hover:bg-blue-50"
+                      >
+                        Resolved
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               <button
                 onClick={onClose}
-                className="p-2 rounded-md  cursor-pointer"
+                className="p-2 rounded-md cursor-pointer"
                 aria-label="Close"
               >
                 <img className="w-7 h-7" src={images.close} alt="Close" />
@@ -206,18 +312,6 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
               <p className="text-sm">No messages in this chat yet</p>
             </div>
           )}
-          {/* New Messages */}
-          {newMessages.map((msg, idx) => (
-            <div key={idx} className="flex flex-row justify-between">
-              <div></div>
-              <div className="bg-[#E53E3E] flex flex-col px-4 py-3 w-fit max-w-[75%] mt-3 rounded-t-3xl rounded-bl-3xl rounded-br-lg mb-2">
-                <span className="text-white">{msg.text}</span>
-                <span className="text-[#FFFFFF80] text-[12px] flex justify-end-safe mr-4">
-                  {msg.time}
-                </span>
-              </div>
-            </div>
-          ))}
           </div>
         ) : (
           <div className="text-center text-gray-500 p-4">
@@ -234,7 +328,7 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
                 placeholder="Type a message"
                 className="w-full pl-12 pr-16 py-5 border border-[#CDCDCD] rounded-2xl  bg-[#FFFFFF]"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSend();
                 }}
@@ -249,10 +343,17 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
               </div>
               {/* Send Button */}
               <button
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2"
+                className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 ${
+                  sendMessageMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
                 onClick={handleSend}
+                disabled={sendMessageMutation.isPending || input.trim() === ""}
               >
-                <img className="cursor-pointer" src={images.share3} alt="Send" />
+                {sendMessageMutation.isPending ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#E53E3E]"></div>
+                ) : (
+                  <img className="cursor-pointer" src={images.share3} alt="Send" />
+                )}
               </button>
             </div>
           </div>

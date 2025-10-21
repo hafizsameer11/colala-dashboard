@@ -3,6 +3,7 @@ import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
+import UserBalanceDetailsModal from "./components/userBalanceDetailsModal";
 import { useQuery } from "@tanstack/react-query";
 import { getBalanceData } from "../../../utils/queries/users";
 
@@ -11,6 +12,8 @@ type Tab = "All" | "Buyers" | "Sellers";
 const Balance = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const tabs: Tab[] = ["All", "Buyers", "Sellers"];
 
   // Debounced search
@@ -57,6 +60,16 @@ const Balance = () => {
 
   const handleUserSelection = (selectedIds: string[]) => {
     console.log("Selected user IDs:", selectedIds);
+  };
+
+  const handleUserDetailsClick = (userId: number) => {
+    setSelectedUserId(userId);
+    setShowUserDetailsModal(true);
+  };
+
+  const handleCloseUserDetailsModal = () => {
+    setShowUserDetailsModal(false);
+    setSelectedUserId(null);
   };
 
   return (
@@ -237,9 +250,17 @@ const Balance = () => {
             onPageChange={setCurrentPage}
             isLoading={isLoading}
             error={error}
+            onUserDetailsClick={handleUserDetailsClick}
           />
         </div>
       </div>
+
+      {/* User Balance Details Modal */}
+      <UserBalanceDetailsModal
+        isOpen={showUserDetailsModal}
+        onClose={handleCloseUserDetailsModal}
+        userId={selectedUserId}
+      />
     </>
   );
 };

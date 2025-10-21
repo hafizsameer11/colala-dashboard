@@ -6,9 +6,10 @@ import { createUser } from "../utils/mutations/users";
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultRole?: "buyer" | "seller";
 }
 
-const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
+const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, defaultRole = "buyer" }) => {
   const [activeTab, setActiveTab] = useState<"profile" | "address">("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
@@ -47,7 +48,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
         password: "",
         country: "",
         state: "",
-        role: "buyer",
+        role: defaultRole,
         referral_code: "",
         profile_picture: null,
       });
@@ -93,7 +94,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     password: "",
     country: "",
     state: "",
-    role: "buyer" as "buyer" | "seller",
+    role: defaultRole as "buyer" | "seller",
     referral_code: "",
     profile_picture: null as File | null,
   });

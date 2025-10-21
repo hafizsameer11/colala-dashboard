@@ -45,7 +45,8 @@ const API_ENDPOINTS = {
     Search: API_DOMAIN + "/admin/chats/search", // GET
     BulkAction: API_DOMAIN + "/admin/chats/bulk-action", // POST
     Details: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/details`, // GET
-    SendMessage: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/send`, // POST
+    SendMessage: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/send-message`, // POST
+    UpdateStatus: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/status`, // PUT
     MarkAsRead: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/mark-read`, // POST
     MarkAsUnread: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/mark-unread`, // POST
     Close: (id: number | string) => `${API_DOMAIN}/admin/chats/${id}/close`, // POST
@@ -315,6 +316,7 @@ const API_ENDPOINTS = {
   BALANCE: {
     List: API_DOMAIN + "/admin/balances", // GET
     Statistics: API_DOMAIN + "/admin/balances/statistics", // GET
+    UserDetails: (userId: number | string) => `${API_DOMAIN}/admin/balances/${userId}/details`, // GET
   },
 
   // REFERRAL MANAGEMENT
