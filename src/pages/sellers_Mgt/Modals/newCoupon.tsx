@@ -3,9 +3,20 @@ import images from "../../../constants/images";
 interface NewCouponProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreateCoupon?: (couponData: any) => void;
+  isLoading?: boolean;
+  editMode?: boolean;
+  initialCouponData?: any;
 }
 
-const NewCoupon: React.FC<NewCouponProps> = ({ isOpen, onClose }) => {
+const NewCoupon: React.FC<NewCouponProps> = ({ 
+  isOpen, 
+  onClose, 
+  onCreateCoupon, 
+  isLoading = false, 
+  editMode = false, 
+  initialCouponData 
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -15,7 +26,7 @@ const NewCoupon: React.FC<NewCouponProps> = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Add New Coupon</h2>
+              <h2 className="text-xl font-bold">{editMode ? 'Edit Coupon' : 'Add New Coupon'}</h2>
               <div className="flex items-center">
                 <button
                   onClick={onClose}

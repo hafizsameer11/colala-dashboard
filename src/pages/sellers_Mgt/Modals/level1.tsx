@@ -17,30 +17,41 @@ interface Level1Props {
     socialLinks?: Array<{ type: string; url: string }>;
   }) => void;
   isLoading?: boolean;
+  editMode?: boolean;
+  initialData?: {
+    storeName?: string;
+    email?: string;
+    phoneNumber?: string;
+    category?: number;
+    showPhoneOnProfile?: boolean;
+    profileImage?: string | null;
+    bannerImage?: string | null;
+    socialLinks?: Array<{ type: string; url: string }>;
+  };
 }
 
-const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = false }) => {
-  const [showPhoneOnProfile, setShowPhoneOnProfile] = useState(false);
+const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = false, editMode = false, initialData }) => {
+  const [showPhoneOnProfile, setShowPhoneOnProfile] = useState(initialData?.showPhoneOnProfile || false);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(initialData?.category || null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Form data state
   const [formData, setFormData] = useState({
-    storeName: "",
-    email: "",
-    phoneNumber: "",
-    instagramProfile: "",
-    twitterHandle: "",
-    facebookProfile: "",
+    storeName: initialData?.storeName || "",
+    email: initialData?.email || "",
+    phoneNumber: initialData?.phoneNumber || "",
+    instagramProfile: initialData?.socialLinks?.find(link => link.type === 'instagram')?.url || "",
+    twitterHandle: initialData?.socialLinks?.find(link => link.type === 'twitter')?.url || "",
+    facebookProfile: initialData?.socialLinks?.find(link => link.type === 'facebook')?.url || "",
   });
 
   // Image upload state
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [bannerImage, setBannerImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(initialData?.profileImage || null);
+  const [bannerImage, setBannerImage] = useState<string | null>(initialData?.bannerImage || null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null); // For form submission
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null); // For form submission
 

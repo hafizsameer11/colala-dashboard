@@ -1,5 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { bulkActionUsers } from "../../../utils/queries/users";
+import { useToast } from "../../../contexts/ToastContext";
 import images from "../../../constants/images";
 
 interface DotsDropdownProps {
@@ -69,6 +72,7 @@ interface UsersTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   onSelectedUsersChange?: (selectedUsers: User[]) => void;
+  onUsersDeleted?: (deletedUserIds: string[]) => void;
   searchQuery?: string;
   users?: User[];
   pagination?: {
@@ -90,6 +94,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   title = "Users",
   onRowSelect,
   onSelectedUsersChange,
+  onUsersDeleted,
   searchQuery = "",
   users = [],
   pagination = null,
@@ -99,7 +104,45 @@ const UsersTable: React.FC<UsersTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Bulk action mutation
+  const bulkActionMutation = useMutation({
+    mutationFn: ({ userIds, action }: { userIds: string[], action: 'activate' | 'deactivate' | 'delete' }) => 
+      bulkActionUsers(userIds, action),
+    onSuccess: (_, variables) => {
+      const actionMessages = {
+        activate: 'Users activated successfully',
+        deactivate: 'Users deactivated successfully', 
+        delete: 'Users deleted successfully'
+      };
+      showToast(actionMessages[variables.action], 'success');
+      
+      // For delete action, notify parent component and invalidate queries
+      if (variables.action === 'delete') {
+        // Notify parent component about deleted users
+        onUsersDeleted?.(variables.userIds);
+      }
+      
+      // Invalidate all relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['usersList'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['buyerUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['userStats'] });
+      
+      // Clear selection
+      setSelectedRows([]);
+      setShowBulkActions(false);
+    },
+    onError: (error) => {
+      console.error('Bulk action error:', error);
+      showToast('Failed to perform bulk action', 'error');
+    },
+  });
 
   // Helper function to normalize user data from API
   const normalizeUser = (user: User): User => ({
@@ -141,6 +184,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
         filteredUsers.every((u) => selectedRows.includes(String(u.id)))
     );
   }, [filteredUsers, selectedRows]);
+
+  // Show/hide bulk actions based on selection
+  useEffect(() => {
+    setShowBulkActions(selectedRows.length > 0);
+  }, [selectedRows]);
 
   // Remove the problematic useEffect hooks that cause infinite loops
   // We'll handle the selection in the event handlers instead
@@ -196,11 +244,80 @@ const UsersTable: React.FC<UsersTableProps> = ({
     });
   };
 
+  // Bulk action handlers
+  const handleBulkAction = (action: 'activate' | 'deactivate' | 'delete') => {
+    if (selectedRows.length === 0) {
+      showToast('Please select users first', 'warning');
+      return;
+    }
+
+    bulkActionMutation.mutate({
+      userIds: selectedRows,
+      action: action
+    });
+  };
+
+  const handleIndividualAction = (userId: number, action: string) => {
+    const actionMap: Record<string, 'activate' | 'deactivate' | 'delete'> = {
+      'Block user': 'deactivate',
+      'Ban user': 'delete'
+    };
+
+    const mappedAction = actionMap[action];
+    if (mappedAction) {
+      bulkActionMutation.mutate({
+        userIds: [String(userId)],
+        action: mappedAction
+      });
+    }
+  };
+
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
         {title}
       </div>
+      
+      {/* Bulk Actions Bar */}
+      {showBulkActions && (
+        <div className="bg-blue-50 border-b border-gray-300 px-5 py-3 flex items-center justify-between">
+          <span className="text-sm text-gray-700">
+            {selectedRows.length} user{selectedRows.length !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleBulkAction('activate')}
+              disabled={bulkActionMutation.isPending}
+              className="bg-green-500 hover:bg-green-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
+            >
+              Activate
+            </button>
+            <button
+              onClick={() => handleBulkAction('deactivate')}
+              disabled={bulkActionMutation.isPending}
+              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
+            >
+              Deactivate
+            </button>
+            <button
+              onClick={() => handleBulkAction('delete')}
+              disabled={bulkActionMutation.isPending}
+              className="bg-red-500 hover:bg-red-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => {
+                setSelectedRows([]);
+                setShowBulkActions(false);
+              }}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-b-2xl overflow-hidden">
         <table className="w-full">
           <thead className="bg-[#F2F2F2]">
@@ -284,9 +401,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
                 <td className="p-3">
                   <DotsDropdown
-                    onActionSelect={(action) =>
-                      console.log(`Action ${action} for user ${user.id}`)
-                    }
+                    onActionSelect={(action) => handleIndividualAction(user.id, action)}
                   />
                 </td>
               </tr>

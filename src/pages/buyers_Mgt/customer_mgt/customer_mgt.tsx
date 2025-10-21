@@ -67,6 +67,12 @@ const customer_mgt = () => {
     setCurrentPage(page);
   };
 
+  const handleUsersDeleted = (deletedUserIds: string[]) => {
+    // Users are automatically refreshed via query invalidation
+    // This callback can be used for additional logic if needed
+    console.log('Users deleted:', deletedUserIds);
+  };
+
 
   return (
     <>
@@ -164,6 +170,7 @@ const customer_mgt = () => {
               title="Users"
               onRowSelect={handleUserSelection}
               onSelectedUsersChange={handleSelectedUsersChange}
+              onUsersDeleted={handleUsersDeleted}
               searchQuery={debouncedQuery}
               users={usersData?.data?.data || []}
               pagination={usersData?.data || null}

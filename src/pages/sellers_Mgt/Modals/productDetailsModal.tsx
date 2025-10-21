@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getAdminProductDetails } from "../../../utils/queries/users";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminProductDetails, deleteSellerProduct } from "../../../utils/queries/users";
+import { useToast } from "../../../contexts/ToastContext";
 import Overview from "./overview";
 import Description from "./description";
 import Review from "./review";
 import ProductStats from "./productStats";
+import AddNewProduct from "./addNewProduct";
+import images from "../../../constants/images";
 
 interface Product {
   id: string;
@@ -25,12 +28,14 @@ interface ProductDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   product?: Product;
+  userId?: string;
 }
 
 const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   isOpen,
   onClose,
   product,
+  userId,
 }) => {
   const [activeTab, setActiveTab] = useState<
     "Product Details" | "Product Stats"
@@ -42,6 +47,11 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const tabs = ["Product Details", "Product Stats"];
 
@@ -64,6 +74,41 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const variants = productDetails?.data?.variants || [];
   const reviews = productDetails?.data?.reviews || [];
   const statistics = productDetails?.data?.statistics;
+
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: () => deleteSellerProduct(userId!, product!.id),
+    onSuccess: () => {
+      showToast('Product deleted successfully', 'success');
+      // Invalidate and refetch product lists
+      queryClient.invalidateQueries({ queryKey: ['sellerProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProductDetails'] });
+      // Close the modal
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Failed to delete product:', error);
+      showToast('Failed to delete product', 'error');
+    },
+  });
+
+  const handleEditProduct = () => {
+    setShowEditModal(true);
+  };
+
+  const handleDeleteProduct = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    deleteProductMutation.mutate();
+    setShowDeleteConfirm(false);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+  };
 
   // Debug logging
   console.log('Product details data:', productDetails?.data);
@@ -193,6 +238,17 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   images={images}
                   variants={variants}
                   productId={product?.id}
+                  userId={userId}
+                  onEditProduct={handleEditProduct}
+                  onDeleteProduct={handleDeleteProduct}
+                  onViewAnalytics={() => {
+                    // TODO: Implement analytics view functionality
+                    console.log('View analytics for product:', product?.id);
+                  }}
+                  onUpdateStatus={() => {
+                    // TODO: Implement status update functionality
+                    console.log('Update status for product:', product?.id);
+                  }}
                 />
               )}
 
@@ -227,7 +283,10 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Product Details</h2>
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
+             
+              
+              {/* Close Button */}
               <button
                 onClick={onClose}
                 className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
@@ -264,6 +323,54 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           {renderTabContent()}
         </div>
       </div>
+
+      {/* Edit Product Modal */}
+      {showEditModal && (
+        <AddNewProduct
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          selectedStore={{ id: userId }}
+          editMode={true}
+          initialProductData={productDetails?.data}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <img src={images.error} alt="Warning" className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Product</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this product? This will permanently remove the product and all its associated data.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelDelete}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteProductMutation.isPending}
+                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${
+                  deleteProductMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
+                }`}
+              >
+                {deleteProductMutation.isPending ? 'Deleting...' : 'Delete Product'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,14 +1,49 @@
 import images from "../../../constants/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface PointsSettingsProps {
   isOpen: boolean;
   onClose: () => void;
+  loyaltySettings?: any;
+  onUpdateSettings?: (settingsData: any) => void;
+  isLoading?: boolean;
 }
 
-const PointsSettings: React.FC<PointsSettingsProps> = ({ isOpen, onClose }) => {
-  const [completedOrderPoints, setCompletedOrderPoints] = useState(true);
-  const [referralPoints, setReferralPoints] = useState(true);
+const PointsSettings: React.FC<PointsSettingsProps> = ({ 
+  isOpen, 
+  onClose, 
+  loyaltySettings, 
+  onUpdateSettings, 
+  isLoading = false 
+}) => {
+  const [completedOrderPoints, setCompletedOrderPoints] = useState(
+    loyaltySettings?.enable_order_points === 1
+  );
+  const [referralPoints, setReferralPoints] = useState(
+    loyaltySettings?.enable_referral_points === 1
+  );
+  const [pointsPerOrder, setPointsPerOrder] = useState(
+    loyaltySettings?.points_per_order?.toString() ?? "0"
+  );
+  const [pointsPerReferral, setPointsPerReferral] = useState(
+    loyaltySettings?.points_per_referral?.toString() ?? "0"
+  );
+
+  // Update state when loyaltySettings prop changes
+  useEffect(() => {
+    console.log('PointsSettings - loyaltySettings received:', loyaltySettings);
+    if (loyaltySettings) {
+      console.log('PointsSettings - enable_order_points:', loyaltySettings.enable_order_points);
+      console.log('PointsSettings - enable_referral_points:', loyaltySettings.enable_referral_points);
+      console.log('PointsSettings - points_per_order:', loyaltySettings.points_per_order);
+      console.log('PointsSettings - points_per_referral:', loyaltySettings.points_per_referral);
+      
+      setCompletedOrderPoints(loyaltySettings.enable_order_points === 1);
+      setReferralPoints(loyaltySettings.enable_referral_points === 1);
+      setPointsPerOrder(loyaltySettings.points_per_order?.toString() ?? "0");
+      setPointsPerReferral(loyaltySettings.points_per_referral?.toString() ?? "0");
+    }
+  }, [loyaltySettings]);
 
   if (!isOpen) return null;
 
@@ -32,17 +67,32 @@ const PointsSettings: React.FC<PointsSettingsProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
           <div className="p-3">
-            <form action="#">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (onUpdateSettings) {
+                const formData = {
+                  points_per_order: parseInt(pointsPerOrder),
+                  points_per_referral: parseInt(pointsPerReferral),
+                  enable_order_points: completedOrderPoints ? 1 : 0,
+                  enable_referral_points: referralPoints ? 1 : 0,
+                };
+                console.log('PointsSettings - Form data being sent:', formData);
+                onUpdateSettings(formData);
+              }
+            }}>
               <div className="flex flex-col gap-3">
                 <label htmlFor="pointsPerOrder" className="text-xl font-medium">
                   Number of points/completed order
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="pointsPerOrder"
                   id="pointsPerOrder"
+                  value={pointsPerOrder}
+                  onChange={(e) => setPointsPerOrder(e.target.value)}
                   placeholder="Number of points/completed order"
                   className="w-full rounded-2xl border border-[#989898] p-5"
+                  min="0"
                 />
               </div>
               <div className="flex flex-col gap-3 mt-5">
@@ -53,11 +103,14 @@ const PointsSettings: React.FC<PointsSettingsProps> = ({ isOpen, onClose }) => {
                   Number of points/referral
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="pointsPerReferral"
                   id="pointsPerReferral"
+                  value={pointsPerReferral}
+                  onChange={(e) => setPointsPerReferral(e.target.value)}
                   placeholder="Number of points/referral"
                   className="w-full rounded-2xl border border-[#989898] p-5"
+                  min="0"
                 />
               </div>
 
@@ -113,8 +166,16 @@ const PointsSettings: React.FC<PointsSettingsProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               <div className="mt-5">
-                <button className="bg-[#E53E3E] text-white cursor-pointer py-4 w-full rounded-2xl">
-                  Save
+                <button 
+                  type="submit"
+                  disabled={isLoading}
+                  className={`text-white cursor-pointer py-4 w-full rounded-2xl transition-colors ${
+                    isLoading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-[#E53E3E] hover:bg-red-600'
+                  }`}
+                >
+                  {isLoading ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

@@ -1,46 +1,227 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
+import AddStoreModal from "../../../Modals/addStoreModel";
+import { useToast } from "../../../../../contexts/ToastContext";
+import { apiCall } from "../../../../../utils/customApiCall";
+import Cookies from "js-cookie";
 
 
 interface ActivityProps {
   userData: {
-    id?: string;
-    userName: string;
-    email: string;
-    phoneNumber: string;
-    walletBalance: string;
-    escrowBalance?: string | number;
-    rewardBalance?: string | number;
-    referralBalance?: string | number;
-    loyaltyPoints?: string | number;
-    location?: string;
-    lastLogin?: string;
-    createdAt?: string;
-    username?: string;
+    // User Info
+    id?: string | number;
+    full_name?: string;
+    userName?: string;
+    username?: string | null;
+    email?: string;
+    phone?: string;
+    phoneNumber?: string;
+    profile_picture?: string | null;
     profileImage?: string | null;
-    bannerImage?: string | null;
+    is_verified?: number;
+    is_active?: number;
+    created_at?: string;
+    last_login?: string;
+    location?: string;
+    
+    // Store Info
     storeName?: string;
     storeEmail?: string;
     storePhone?: string;
     storeLocation?: string;
-    storeStatus?: string;
-    onboardingStatus?: string;
+    bannerImage?: string | null;
+    banner_image?: string | null;
     themeColor?: string | null;
-    businessDetails?: any;
-    addresses?: any[];
-    deliveryPricing?: any[];
-    socialLinks?: any[];
-    categories?: any[];
+    theme_color?: string | null;
+    storeStatus?: string;
+    status?: string;
+    onboardingStatus?: string;
+    onboarding_status?: string;
+    businessDetails?: {
+      businessType?: string;
+      description?: string;
+      website?: string;
+      [key: string]: unknown;
+    };
+    business_details?: {
+      businessType?: string;
+      description?: string;
+      website?: string;
+      [key: string]: unknown;
+    };
+    
+    // Financial Info
+    walletBalance?: string;
+    escrowBalance?: string | number;
+    rewardBalance?: string | number;
+    referralBalance?: string | number;
+    loyaltyPoints?: string | number;
+    
+    // Store Data Arrays
+    addresses?: Array<{
+      id: number;
+      store_id: number;
+      state: string;
+      local_government: string;
+      full_address: string;
+      is_main: boolean;
+      opening_hours?: Array<{
+        day: string;
+        open_time: string;
+        close_time: string;
+      }>;
+      created_at: string;
+      updated_at: string;
+    }>;
+    deliveryPricing?: Array<{
+      id: number;
+      store_id: number;
+      state: string;
+      local_government: string;
+      variant: string;
+      price: string;
+      is_free: number;
+      created_at: string;
+      updated_at: string;
+    }>;
+    socialLinks?: Array<{
+      type: string;
+      url: string;
+      id?: string;
+    }>;
+    social_links?: Array<{
+      type: string;
+      url: string;
+      id?: string;
+    }>;
+    categories?: Array<{
+      id: number;
+      name: string;
+      description?: string;
+    }>;
+    
+    // Statistics
+    statistics?: {
+      total_products?: number;
+      total_orders?: number;
+      total_revenue?: {
+        amount: string;
+        formatted: string;
+      };
+      total_customers?: number;
+      average_rating?: number;
+    };
+    
+    // Activities
+    recentActivities?: Array<{ 
+      id: number; 
+      activity: string; 
+      created_at: string 
+    }>;
+    recent_activities?: Array<{ 
+      id: number; 
+      activity: string; 
+      created_at: string 
+    }>;
+    
+    // Legacy fields for backward compatibility
     isVerified?: boolean;
-    recentActivities?: Array<{ id: number; activity: string; created_at: string }>;
+    createdAt?: string;
   };
 }
 
+// Seller-specific API functions
+const toggleSellerBlock = async (sellerId: string | number, action: 'block' | 'unblock') => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(
+      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/toggle-block`,
+      'POST',
+      { action },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Toggle seller block API call error:', error);
+    throw error;
+  }
+};
+
+const removeSeller = async (sellerId: string | number) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(
+      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/remove`,
+      'DELETE',
+      undefined,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Remove seller API call error:', error);
+    throw error;
+  }
+};
+
 const Activity: React.FC<ActivityProps> = ({ userData }) => {
   // const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Seller block/unblock mutation
+  const toggleBlockMutation = useMutation({
+    mutationFn: ({ sellerId, action }: { sellerId: string | number; action: 'block' | 'unblock' }) => 
+      toggleSellerBlock(sellerId, action),
+    onSuccess: (_, variables) => {
+      const actionMessages = {
+        block: 'Seller blocked successfully',
+        unblock: 'Seller unblocked successfully'
+      };
+      showToast(actionMessages[variables.action], 'success');
+      
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+      queryClient.invalidateQueries({ queryKey: ['sellers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+    },
+    onError: (error) => {
+      console.error('Toggle block error:', error);
+      showToast('Failed to update seller status', 'error');
+    },
+  });
+
+  // Remove seller mutation
+  const removeSellerMutation = useMutation({
+    mutationFn: (sellerId: string | number) => removeSeller(sellerId),
+    onSuccess: () => {
+      showToast('Seller removed successfully', 'success');
+      
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+      queryClient.invalidateQueries({ queryKey: ['sellers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+      
+      // Redirect to sellers list after successful deletion
+      setTimeout(() => {
+        window.location.href = '/stores-mgt';
+      }, 1500);
+    },
+    onError: (error) => {
+      console.error('Remove seller error:', error);
+      showToast('Failed to remove seller', 'error');
+    },
+  });
 
   // Debug logging
   console.log('Activity component userData:', userData);
@@ -70,9 +251,30 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   }, []);
 
   const handleDropdownAction = (action: string) => {
-    console.log(`${action} action triggered for user:`, userData.userName);
+    console.log(`${action} action triggered for seller:`, userData.userName || userData.full_name);
     setIsDropdownOpen(false);
-    // Add your action logic here
+    
+    if (!userData.id) {
+      showToast('Seller ID not found', 'error');
+      return;
+    }
+    
+    if (action === 'Toggle Block') {
+      // Check current status to determine block/unblock action
+      const isCurrentlyBlocked = userData.is_active === 0;
+      const blockAction = isCurrentlyBlocked ? 'unblock' : 'block';
+      
+      toggleBlockMutation.mutate({
+        sellerId: userData.id,
+        action: blockAction
+      });
+    } else if (action === 'Delete Seller') {
+      if (window.confirm('Are you sure you want to remove this seller? This action cannot be undone.')) {
+        removeSellerMutation.mutate(userData.id);
+      }
+    } else {
+      showToast('Unknown action', 'error');
+    }
   };
 
   const DotsDropdown = () => (
@@ -90,8 +292,10 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
           style={{ boxShadow: "5px 5px 15px 0px rgba(0, 0, 0, 0.25)" }}
         >
           <div
-            onClick={() => handleDropdownAction("Block User")}
-            className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+            onClick={() => !toggleBlockMutation.isPending && !removeSellerMutation.isPending && handleDropdownAction("Toggle Block")}
+            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${
+              toggleBlockMutation.isPending || removeSellerMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <svg
               className="w-5 h-5 mr-3 text-gray-600"
@@ -103,12 +307,17 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 fill="currentColor"
               />
             </svg>
-            <span className="text-gray-800 font-medium">Block User</span>
+            <span className="text-gray-800 font-medium">
+              {toggleBlockMutation.isPending ? 'Processing...' : 
+               userData.is_active === 0 ? 'Unblock Seller' : 'Block Seller'}
+            </span>
           </div>
 
           <div
-            onClick={() => handleDropdownAction("Delete User")}
-            className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+            onClick={() => !toggleBlockMutation.isPending && !removeSellerMutation.isPending && handleDropdownAction("Delete Seller")}
+            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${
+              toggleBlockMutation.isPending || removeSellerMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <svg
               className="w-5 h-5 mr-3 text-gray-600"
@@ -120,7 +329,9 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 fill="currentColor"
               />
             </svg>
-            <span className="text-gray-800 font-medium">Delete User</span>
+            <span className="text-gray-800 font-medium">
+              {removeSellerMutation.isPending ? 'Processing...' : 'Delete Seller'}
+            </span>
           </div>
         </div>
       )}
@@ -137,7 +348,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 Shopping Wallet Balance
               </span>
               <span className="text-4xl font-semibold">
-                {userData.walletBalance}
+                {userData.walletBalance || 'N0'}
               </span>
               <div className="flex flex-row gap-5 ">
                 <div>
@@ -154,7 +365,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             </div>
             <div className="bg-[#731313] text-white rounded-bl-2xl p-5 flex flex-col gap-5 w-[350px]">
               <span className="text-xl font-normal">Escrow Wallet Balance</span>
-              <span className="text-4xl font-semibold">{userData.escrowBalance ?? 'N/A'}</span>
+              <span className="text-4xl font-semibold">{userData.escrowBalance || 'N0'}</span>
             </div>
           </div>
           <div
@@ -165,12 +376,12 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
               <div>
                 <img
                   className="w-20 h-20 ml-5 mt-10 rounded-full object-cover"
-                  src={userData.profileImage || images.admin}
+                  src={userData.profileImage || userData.profile_picture || images.admin}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = images.admin; }}
                   alt="Profile"
                 />
               </div>
-              {userData.isVerified && (
+              {(userData.isVerified || userData.is_verified === 1) && (
                 <div className="flex flex-row rounded-full text-[#E53E3E] items-center p-2 gap-3 mt-2 ml-2.5 bg-white ">
                   <div>Verified</div>
                   <div>
@@ -182,23 +393,23 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             <div className=" flex flex-row p-5 gap-14">
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Name</span>
-                <span className="text-white">{userData.userName}</span>
+                <span className="text-white">{userData.userName || userData.full_name}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">Email</span>
                 <span className="text-white">{userData.email}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Phone Number
                 </span>
-                <span className="text-white">{userData.phoneNumber}</span>
+                <span className="text-white">{userData.phoneNumber || userData.phone}</span>
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Location</span>
                 <span className="text-white">{userData.location ?? 'N/A'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">Last Login</span>
-                <span className="text-white">{userData.lastLogin ?? 'N/A'}</span>
+                <span className="text-white">{userData.last_login || 'N/A'}</span>
                 <span className="text-[#FFFFFF80] text-[16px]">
                   Account Creation
                 </span>
-                <span className="text-white">{userData.createdAt ?? 'N/A'}</span>
+                <span className="text-white">{userData.created_at || 'N/A'}</span>
               </div>
               <div className="flex flex-col gap-5">
                 <span className="text-[#FFFFFF80] text-[16px]">Username</span>
@@ -221,6 +432,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                       className="w-10 h-10 cursor-pointer"
                       src={images.edit}
                       alt=""
+                      onClick={() => setShowEditModal(true)}
                     />
                   </div>
                   <div>
@@ -302,6 +514,31 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
       {/* Add User Modal */}
       {/* <AddUserModal isOpen={showModal} onClose={() => setShowModal(false)} /> */}
+
+      {/* Edit Store Modal */}
+      <AddStoreModal 
+        isOpen={showEditModal} 
+        onClose={() => setShowEditModal(false)}
+        initialTab="Level 1"
+        editMode={true}
+        initialStoreData={{
+          id: String(userData.id),
+          storeName: userData.storeName || userData.full_name,
+          email: userData.storeEmail || userData.email,
+          phoneNumber: userData.storePhone || userData.phoneNumber || userData.phone,
+          category: userData.categories?.[0]?.id,
+          showPhoneOnProfile: true, // Default value
+          profileImage: userData.profileImage || userData.profile_picture,
+          bannerImage: userData.bannerImage || userData.banner_image,
+          socialLinks: userData.socialLinks || userData.social_links || [],
+          location: userData.storeLocation || userData.location,
+          storeStatus: userData.storeStatus || userData.status,
+          businessDetails: userData.businessDetails || userData.business_details,
+          addresses: userData.addresses,
+          deliveryPricing: userData.deliveryPricing,
+          isVerified: userData.isVerified || userData.is_verified === 1,
+        }}
+      />
     </>
   );
 };

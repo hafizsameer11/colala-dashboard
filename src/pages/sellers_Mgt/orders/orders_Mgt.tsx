@@ -170,14 +170,18 @@ const OrdersMgt = () => {
             </div>
           </div>
           <div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              orders={orders}
+              dataType="orders"
+            />
           </div>
           <div className="relative">
             <input
               type="text"
               placeholder="Search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => setSearch((e.target as any).value)}
               className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

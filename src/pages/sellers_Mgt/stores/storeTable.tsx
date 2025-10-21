@@ -1,13 +1,128 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../constants/images";
+import { useToast } from "../../../contexts/ToastContext";
+import { apiCall } from "../../../utils/customApiCall";
+import Cookies from "js-cookie";
+
+// Seller-specific API functions
+const toggleSellerBlock = async (sellerId: string | number, action: 'block' | 'unblock') => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(
+      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/toggle-block`,
+      'POST',
+      { action },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Toggle seller block API call error:', error);
+    throw error;
+  }
+};
+
+const removeSeller = async (sellerId: string | number) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(
+      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/remove`,
+      'DELETE',
+      undefined,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Remove seller API call error:', error);
+    throw error;
+  }
+};
 
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
+  store: Store;
+  onStoreDeleted?: (storeId: string) => void;
 }
 
-const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
+const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onStoreDeleted }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Seller block/unblock mutation
+  const toggleBlockMutation = useMutation({
+    mutationFn: ({ sellerId, action }: { sellerId: string | number; action: 'block' | 'unblock' }) => 
+      toggleSellerBlock(sellerId, action),
+    onSuccess: (_, variables) => {
+      const actionMessages = {
+        block: 'Seller blocked successfully',
+        unblock: 'Seller unblocked successfully'
+      };
+      showToast(actionMessages[variables.action], 'success');
+      
+      // Invalidate all seller-related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+      queryClient.invalidateQueries({ queryKey: ['sellers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['allSellers'] });
+    },
+    onError: (error) => {
+      console.error('Toggle block error:', error);
+      showToast('Failed to update seller status', 'error');
+    },
+  });
+
+  // Remove seller mutation
+  const removeSellerMutation = useMutation({
+    mutationFn: (sellerId: string | number) => removeSeller(sellerId),
+    onSuccess: () => {
+      showToast('Seller removed successfully', 'success');
+      
+      // Invalidate all seller-related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+      queryClient.invalidateQueries({ queryKey: ['sellers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['allSellers'] });
+      
+      // Notify parent component about deleted store
+      onStoreDeleted?.(store.id);
+    },
+    onError: (error) => {
+      console.error('Remove seller error:', error);
+      showToast('Failed to remove seller', 'error');
+    },
+  });
+
+  const handleDropdownAction = (action: string) => {
+    setIsDotsDropdownOpen(false);
+    
+    if (action === 'Block user') {
+      // Check current status to determine block/unblock action
+      const isCurrentlyBlocked = !store.isActive;
+      const blockAction = isCurrentlyBlocked ? 'unblock' : 'block';
+      
+      toggleBlockMutation.mutate({
+        sellerId: store.id,
+        action: blockAction
+      });
+    } else if (action === 'Ban user') {
+      if (window.confirm('Are you sure you want to remove this seller? This action cannot be undone.')) {
+        removeSellerMutation.mutate(store.id);
+      }
+    }
+    
+    onActionSelect?.(action);
+  };
+
   const DotsActions = ["Block user", "Ban user"];
   const actionIcons: Record<string, string> = {
     "Block user": "/assets/layout/block.svg",
@@ -27,20 +142,28 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
           {DotsActions.map((action) => (
             <button
               key={action}
-              onClick={() => {
-                setIsDotsDropdownOpen(false);
-                onActionSelect?.(action);
-              }}
+              onClick={() => handleDropdownAction(action)}
+              disabled={toggleBlockMutation.isPending || removeSellerMutation.isPending}
               className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
                 action === "Ban user" ? "text-[#FF0000]" : "text-black"
-              } cursor-pointer font-medium`}
+              } font-medium ${
+                toggleBlockMutation.isPending || removeSellerMutation.isPending 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'cursor-pointer'
+              }`}
             >
               <img
                 src={actionIcons[action]}
                 alt={`${action} icon`}
                 className="w-4 h-4"
               />
-              <span>{action}</span>
+              <span>
+                {action === 'Block user' && toggleBlockMutation.isPending ? 'Processing...' :
+                 action === 'Ban user' && removeSellerMutation.isPending ? 'Processing...' :
+                 action === 'Block user' && !store.isActive ? 'Unblock Seller' :
+                 action === 'Block user' ? 'Block Seller' :
+                 action}
+              </span>
             </button>
           ))}
         </div>
@@ -65,6 +188,22 @@ interface StoreApi {
   last_login: string;
 }
 
+interface Store {
+  id: string;
+  storeName: string;
+  email: string;
+  phoneNumber: string;
+  level: number;
+  isActive: boolean;
+  storeCount: number;
+  totalOrders: number;
+  totalRevenue: number;
+  createdAt: string;
+  lastLogin: string;
+  profileImage: string | null;
+  full_name?: string;
+}
+
 interface PaginationApi {
   current_page: number;
   last_page: number;
@@ -85,7 +224,7 @@ interface StoreTableProps {
   currentPage?: number;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
-  error?: any;
+  error?: string | null;
 }
 
 const StoreTable: React.FC<StoreTableProps> = ({
@@ -104,6 +243,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Normalize API data to UI shape
   const stores = useMemo(() => {
@@ -120,6 +260,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
       createdAt: u.created_at,
       lastLogin: u.last_login,
       profileImage: u.profile_picture,
+      full_name: u.full_name,
     }));
   }, [users]);
 
@@ -173,6 +314,10 @@ const StoreTable: React.FC<StoreTableProps> = ({
     navigate(`/store-details/${store.id}`, { state: store });
   };
 
+  const handleTransactions = (store: Store) => {
+    navigate(`/store-details/${store.id}?tab=transactions`, { state: store });
+  };
+
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
@@ -198,7 +343,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
                 />
               </th>
               <th className="p-3 text-left font-medium text-gray-600">Store Name</th>
-              <th className="p-3 text-left font-medium text-gray-600">Owner</th>
+            
               <th className="p-3 text-left font-medium text-gray-600">Email</th>
               <th className="p-3 text-left font-medium text-gray-600">Phone No</th>
               <th className="p-3 text-center font-medium text-gray-600">Level</th>
@@ -238,7 +383,6 @@ const StoreTable: React.FC<StoreTableProps> = ({
                     />
                     <span className="font-medium text-gray-900">{store.storeName}</span>
                   </td>
-                  <td className="p-3 text-left text-gray-700">{(store as any).full_name || '-'}</td>
                   <td className="p-3 text-left text-gray-700">{store.email}</td>
                   <td className="p-3 text-left text-gray-700">{store.phoneNumber}</td>
                   <td className="p-3 text-center">
@@ -246,27 +390,43 @@ const StoreTable: React.FC<StoreTableProps> = ({
                       {store.level}
                     </span>
                   </td>
-                  <td className="p-3 text-center font-semibold text-gray-700">{(store as any).storeCount || 0}</td>
-                  <td className="p-3 text-center font-semibold text-gray-700">{(store as any).totalOrders || 0}</td>
-                  <td className="p-3 text-center font-semibold text-gray-700">₦{((store as any).totalRevenue || 0).toLocaleString?.() || (store as any).totalRevenue || 0}</td>
+                  <td className="p-3 text-center font-semibold text-gray-700">{store.storeCount || 0}</td>
+                  <td className="p-3 text-center font-semibold text-gray-700">{store.totalOrders || 0}</td>
+                  <td className="p-3 text-center font-semibold text-gray-700">₦{(store.totalRevenue || 0).toLocaleString()}</td>
                   <td className="p-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleCustomerDetails(store)}
-                        className="bg-[#E53E3E] hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                        className="bg-[#E53E3E] hover:bg-red-600 text-white px-2 py-1.5 rounded-md text-xs font-medium transition-colors"
                       >
                         Store Details
                       </button>
-                      <button className="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors">
+                      <button 
+                        onClick={() => handleTransactions(store)}
+                        className="bg-black hover:bg-gray-800 text-white px-2 py-1.5 rounded-md text-sm font-medium transition-colors"
+                      >
                         Transactions
                       </button>
                     </div>
                   </td>
                   <td className="p-3 text-right">
                     <DotsDropdown
+                      store={store}
                       onActionSelect={(action) =>
                         console.log(`Action ${action} for store ${store.id}`)
                       }
+                      onStoreDeleted={(storeId) => {
+                        // Invalidate all seller-related queries to refresh the data
+                        queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+                        queryClient.invalidateQueries({ queryKey: ['sellers'] });
+                        queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+                        queryClient.invalidateQueries({ queryKey: ['sellerStats'] });
+                        
+                        // Also remove from selected rows if it was selected
+                        setSelectedRows(prev => prev.filter(id => id !== storeId));
+                        
+                        console.log(`Store ${storeId} deleted and data refreshed`);
+                      }}
                     />
                   </td>
                 </tr>

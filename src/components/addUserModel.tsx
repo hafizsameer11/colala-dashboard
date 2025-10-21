@@ -23,7 +23,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: createUser,
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Show success toast
       setToastMessage("User created successfully!");
       setToastType("success");
@@ -52,17 +52,26 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
         profile_picture: null,
       });
       
+      // Reset addresses
+      setUserAddresses([]);
+      setAddressData({
+        phoneNumber: "",
+        state: "",
+        localGovernment: "",
+        fullAddress: "",
+      });
+      
       // Close modal after a short delay
       setTimeout(() => {
         onClose();
       }, 1500);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error creating user:', error);
       
       // Show error toast
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
+      const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+                          (error as { message?: string })?.message || 
                           "Failed to create user. Please try again.";
       setToastMessage(errorMessage);
       setToastType("error");
@@ -97,8 +106,18 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     fullAddress: "",
   });
 
+  // User addresses state - starts empty
+  const [userAddresses, setUserAddresses] = useState<Array<{
+    id: string;
+    phoneNumber: string;
+    state: string;
+    localGovernment: string;
+    fullAddress: string;
+    isDefault: boolean;
+  }>>([]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+    const { name, type } = e.target;
     
     if (type === 'file') {
       const file = (e.target as HTMLInputElement).files?.[0] || null;
@@ -108,6 +127,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
         [name]: file,
       }));
     } else {
+      const value = (e.target as HTMLInputElement | HTMLSelectElement).value;
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -120,7 +140,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    const value = (e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value;
     setAddressData((prev) => ({
       ...prev,
       [name]: value,
@@ -129,9 +150,85 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
 
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Address submitted:", addressData);
-    // Add your address submission logic here
-    setShowAddAddressForm(false); // Hide form after submission
+    
+    // Validate required fields
+    if (!addressData.phoneNumber || !addressData.state || !addressData.localGovernment || !addressData.fullAddress) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    // Create new address object
+    const newAddress = {
+      id: Date.now().toString(), // Simple ID generation
+      phoneNumber: addressData.phoneNumber,
+      state: addressData.state,
+      localGovernment: addressData.localGovernment,
+      fullAddress: addressData.fullAddress,
+      isDefault: userAddresses.length === 0, // First address is default
+    };
+    
+    // Add to addresses array
+    setUserAddresses(prev => [...prev, newAddress]);
+    
+    // Reset form data
+    setAddressData({
+      phoneNumber: "",
+      state: "",
+      localGovernment: "",
+      fullAddress: "",
+    });
+    
+    // Hide form after submission
+    setShowAddAddressForm(false);
+    
+    // Show success toast
+    setToastMessage("Address added successfully!");
+    setToastType("success");
+    setShowToast(true);
+    
+    // Auto hide toast after 3 seconds
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  // Address management functions
+  const handleDeleteAddress = (addressId: string) => {
+    setUserAddresses(prev => prev.filter(address => address.id !== addressId));
+    
+    // If we deleted the default address, make the first remaining address default
+    if (userAddresses.length > 1) {
+      setUserAddresses(prev => {
+        const updated = prev.filter(address => address.id !== addressId);
+        if (updated.length > 0) {
+          updated[0].isDefault = true;
+        }
+        return updated;
+      });
+    }
+    
+    // Show success toast
+    setToastMessage("Address deleted successfully!");
+    setToastType("success");
+    setShowToast(true);
+    
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  const handleEditAddress = (addressId: string) => {
+    const addressToEdit = userAddresses.find(addr => addr.id === addressId);
+    if (addressToEdit) {
+      setAddressData({
+        phoneNumber: addressToEdit.phoneNumber,
+        state: addressToEdit.state,
+        localGovernment: addressToEdit.localGovernment,
+        fullAddress: addressToEdit.fullAddress,
+      });
+      setShowAddAddressForm(true);
+      // We'll handle the update in the submit function
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -147,8 +244,25 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
     console.log('Form data being submitted:', formData);
     console.log('Profile picture file:', formData.profile_picture);
     
-    // Create user
-    createUserMutation.mutate(formData);
+    // Create user - convert null to undefined for profile_picture
+    const userData = {
+      ...formData,
+        profile_picture: formData.profile_picture || undefined as File | undefined,
+    };
+    createUserMutation.mutate(userData);
+  };
+
+  // Reset addresses when modal is closed
+  const handleClose = () => {
+    setUserAddresses([]);
+    setAddressData({
+      phoneNumber: "",
+      state: "",
+      localGovernment: "",
+      fullAddress: "",
+    });
+    setShowAddAddressForm(false);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -159,7 +273,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="border-b border-[#787878] p-3 sticky top-0 bg-white z-10">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute flex items-center right-3 cursor-pointer"
           >
             <img src={images.close} alt="Close" />
@@ -462,7 +576,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                               setFormData(prev => ({ ...prev, profile_picture: null }));
                               // Reset file input
                               const fileInput = document.getElementById('profile_picture_placeholder') as HTMLInputElement;
-                              if (fileInput) fileInput.value = '';
+                              if (fileInput) {
+                                (fileInput as HTMLInputElement).value = '';
+                              }
                             }}
                             className="text-xs text-red-600 hover:text-red-800 underline"
                           >
@@ -498,134 +614,98 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                 {!showAddAddressForm ? (
                   // Show existing addresses
                   <>
-                    <div className="bg-white border border-[#CDCDCD] rounded-2xl p-4">
-                      {/* Address Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            Address 1
-                          </h3>
-                          <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
-                            Default Address
-                          </span>
+                    {userAddresses.length === 0 ? (
+                      // Show empty state when no addresses
+                      <div className="text-center py-12">
+                        <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
-                            Edit
-                          </button>
-                          <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
-                            Delete
-                          </button>
-                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No addresses yet</h3>
+                        <p className="text-gray-500 mb-6">Add your first address to get started</p>
                       </div>
-
-                      {/* Address Details */}
-                      <div className="space-y-3">
-                        {/* Phone Number */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Phone number
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            070312345678
-                          </p>
-                        </div>
-
-                        {/* State and Local Government */}
-                        <div className="flex flex-row gap-10">
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              State
-                            </label>
-                            <p className="text-gray-800 font-medium">Lagos</p>
+                    ) : (
+                      // Show existing addresses
+                      userAddresses.map((address, index) => (
+                        <div key={address.id} className="bg-white border border-[#CDCDCD] rounded-2xl p-4 mb-5">
+                          {/* Address Header */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold text-gray-800">
+                                Address {index + 1}
+                              </h3>
+                              {address.isDefault && (
+                                <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
+                                  Default Address
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button 
+                                onClick={() => handleEditAddress(address.id)}
+                                className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteAddress(address.id)}
+                                className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              Local Government
-                            </label>
-                            <p className="text-gray-800 font-medium">Ikeja</p>
-                          </div>
-                        </div>
 
-                        {/* Full Address */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Full Address
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            No 2, acbssseddf street, Ikeja
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Address Details */}
+                          <div className="space-y-3">
+                            {/* Phone Number */}
+                            <div>
+                              <label className="text-gray-500 text-sm block mb-1">
+                                Phone number
+                              </label>
+                              <p className="text-gray-800 font-medium">
+                                {address.phoneNumber}
+                              </p>
+                            </div>
 
-                    <div className="bg-white border border-[#CDCDCD] rounded-2xl p-4 mt-5">
-                      {/* Address Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            Address 1
-                          </h3>
-                          <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
-                            Default Address
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
-                            Edit
-                          </button>
-                          <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
-                            Delete
-                          </button>
-                        </div>
-                      </div>
+                            {/* State and Local Government */}
+                            <div className="flex flex-row gap-10">
+                              <div>
+                                <label className="text-gray-500 text-sm block mb-1">
+                                  State
+                                </label>
+                                <p className="text-gray-800 font-medium">{address.state}</p>
+                              </div>
+                              <div>
+                                <label className="text-gray-500 text-sm block mb-1">
+                                  Local Government
+                                </label>
+                                <p className="text-gray-800 font-medium">{address.localGovernment}</p>
+                              </div>
+                            </div>
 
-                      {/* Address Details */}
-                      <div className="space-y-3">
-                        {/* Phone Number */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Phone number
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            070312345678
-                          </p>
-                        </div>
-
-                        {/* State and Local Government */}
-                        <div className="flex flex-row gap-10">
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              State
-                            </label>
-                            <p className="text-gray-800 font-medium">Lagos</p>
-                          </div>
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              Local Government
-                            </label>
-                            <p className="text-gray-800 font-medium">Ikeja</p>
+                            {/* Full Address */}
+                            <div>
+                              <label className="text-gray-500 text-sm block mb-1">
+                                Full Address
+                              </label>
+                              <p className="text-gray-800 font-medium">
+                                {address.fullAddress}
+                              </p>
+                            </div>
                           </div>
                         </div>
-
-                        {/* Full Address */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Full Address
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            No 2, acbssseddf street, Ikeja
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      ))
+                    )}
 
                     <div className="mt-6">
                       <button
                         onClick={() => setShowAddAddressForm(true)}
                         className="w-full bg-[#E53E3E] text-white py-3 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors font-normal cursor-pointer"
                       >
-                        Add New Address
+                        {userAddresses.length === 0 ? 'Add First Address' : 'Add New Address'}
                       </button>
                     </div>
                   </>
@@ -761,7 +841,16 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
                       <div className="flex gap-3 pt-4">
                         <button
                           type="button"
-                          onClick={() => setShowAddAddressForm(false)}
+                          onClick={() => {
+                            setShowAddAddressForm(false);
+                            // Reset form data when canceling
+                            setAddressData({
+                              phoneNumber: "",
+                              state: "",
+                              localGovernment: "",
+                              fullAddress: "",
+                            });
+                          }}
                           className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-300 focus:outline-none transition-colors font-normal cursor-pointer"
                         >
                           Cancel

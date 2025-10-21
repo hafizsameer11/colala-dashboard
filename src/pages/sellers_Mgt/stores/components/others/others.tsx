@@ -2,7 +2,7 @@ import images from "../../../../../constants/images";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSellerCoupons, createSellerCoupon, getSellerLoyaltySettings, updateSellerLoyaltySettings, getSellerLoyaltyCustomers } from "../../../../../utils/queries/users";
+import { getSellerCoupons, createSellerCoupon, updateSellerCoupon, deleteSellerCoupon, getSellerLoyaltySettings, updateSellerLoyaltySettings, getSellerLoyaltyCustomers } from "../../../../../utils/queries/users";
 import NewCoupon from "../../../Modals/newCoupon";
 import PointsSettings from "../../../Modals/pointsSettings";
 import NewUser from "../../../Modals/newUser";
@@ -15,8 +15,16 @@ const Others = () => {
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [showNewUserModal, setShowNewUserModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [editMode, setEditMode] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Helper function to construct proper image URL
+  const getImageUrl = (profilePicture: string | null) => {
+    if (!profilePicture) return images.sasha;
+    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+  };
 
   // Fetch coupons data
   const { data: couponsData, isLoading: couponsLoading, error: couponsError } = useQuery({
@@ -61,6 +69,32 @@ const Others = () => {
     },
   });
 
+  // Update coupon mutation
+  const updateCouponMutation = useMutation({
+    mutationFn: ({ couponId, couponData }: { couponId: string | number; couponData: any }) => 
+      updateSellerCoupon(storeId!, couponId, couponData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerCoupons', storeId] });
+      setShowCouponModal(false);
+    },
+    onError: (error) => {
+      console.error('Failed to update coupon:', error);
+      alert('Failed to update coupon. Please try again.');
+    },
+  });
+
+  // Delete coupon mutation
+  const deleteCouponMutation = useMutation({
+    mutationFn: (couponId: string | number) => deleteSellerCoupon(storeId!, couponId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerCoupons', storeId] });
+    },
+    onError: (error) => {
+      console.error('Failed to delete coupon:', error);
+      alert('Failed to delete coupon. Please try again.');
+    },
+  });
+
   // Update loyalty settings mutation
   const updateLoyaltySettingsMutation = useMutation({
     mutationFn: (settingsData: any) => updateSellerLoyaltySettings(storeId!, settingsData),
@@ -81,11 +115,48 @@ const Others = () => {
   const loyaltyCustomers = loyaltyCustomersData?.data?.customers || [];
   const totalPointsBalance = loyaltyCustomersData?.data?.total_points_balance || 0;
 
+  // Debug logging
+  console.log('Loyalty Settings Data:', loyaltySettings);
+  console.log('Loyalty Customers Data:', loyaltyCustomers);
+  console.log('Total Points Balance:', totalPointsBalance);
+  
+  // Log individual customer data for debugging
+  if (loyaltyCustomers.length > 0) {
+    console.log('Sample customer data:', loyaltyCustomers[0]);
+    console.log('Customer profile_picture:', loyaltyCustomers[0]?.profile_picture);
+    console.log('Constructed image URL:', getImageUrl(loyaltyCustomers[0]?.profile_picture));
+  }
+
   const handleCreateCoupon = (couponData: any) => {
     createCouponMutation.mutate(couponData);
   };
 
+  const handleUpdateCoupon = (couponData: any) => {
+    if (editingCoupon) {
+      updateCouponMutation.mutate({ couponId: editingCoupon.id, couponData });
+    }
+  };
+
+  const handleDeleteCoupon = (couponId: string | number) => {
+    if (window.confirm('Are you sure you want to delete this coupon?')) {
+      deleteCouponMutation.mutate(couponId);
+    }
+  };
+
+  const handleEditCoupon = (coupon: any) => {
+    setEditingCoupon(coupon);
+    setEditMode(true);
+    setShowCouponModal(true);
+  };
+
+  const handleCloseCouponModal = () => {
+    setShowCouponModal(false);
+    setEditMode(false);
+    setEditingCoupon(null);
+  };
+
   const handleUpdateLoyaltySettings = (settingsData: any) => {
+    console.log('Others - handleUpdateLoyaltySettings called with:', settingsData);
     updateLoyaltySettingsMutation.mutate(settingsData);
   };
 
@@ -101,9 +172,8 @@ const Others = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-8 text-black"
-            }`}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-8 bg-[#E53E3E] text-white" : "px-8 text-black"
+              }`}
           >
             {tab}
           </button>
@@ -302,16 +372,26 @@ const Others = () => {
                             </div>
                           )}
                           <div className="flex flex-row gap-4 mt-3">
-                            <div className="border border-[#B8B8B8] rounded-xl p-3 cursor-pointer hover:bg-gray-50">
+                            <button
+                              onClick={() => handleEditCoupon(coupon)}
+                              disabled={updateCouponMutation.isPending}
+                              className="border border-[#B8B8B8] rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Edit Coupon"
+                            >
                               <img src={images.edit1} alt="Edit" />
-                            </div>
-                            <div className="border border-[#B8B8B8] rounded-xl p-3 cursor-pointer hover:bg-gray-50">
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCoupon(coupon.id)}
+                              disabled={deleteCouponMutation.isPending}
+                              className="border border-[#B8B8B8] rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Delete Coupon"
+                            >
                               <img src={images.delete1} alt="Delete" />
-                            </div>
+                            </button>
                           </div>
                         </div>
                       ))}
-                      
+
                       {/* Pagination */}
                       {couponsPagination && couponsPagination.last_page > 1 && (
                         <div className="flex justify-center items-center gap-2 mt-6">
@@ -357,134 +437,46 @@ const Others = () => {
 
                   <div className="text-xl font-medium">Customers Points</div>
 
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Adewale Faizah
-                      </div>
+                  {loyaltyCustomersLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg">Loading customers...</div>
                     </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      200
+                  ) : loyaltyCustomersError ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg text-red-500">Error loading customers</div>
                     </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
+                  ) : loyaltyCustomers.length === 0 ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-lg text-gray-500">No customers found</div>
+                    </div>
+                  ) : (
+                    loyaltyCustomers.map((customer: any, index: number) => (
+                      <div
+                        key={customer.user_id || index}
+                        className="flex flex-row justify-between p-2 rounded-2xl"
+                        style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
+                      >
+                        <div className="flex flex-row gap-2 items-center">
+                          <div>
+                            <img 
+                              className="w-12 h-12 rounded-full object-cover" 
+                              src={getImageUrl(customer.profile_picture)}
+                              alt={customer.name || "Customer"}
+                              onError={(e) => {
+                                e.currentTarget.src = images.sasha;
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center font-medium">
+                            {customer.name || "Unknown Customer"}
+                          </div>
+                        </div>
+                        <div className="flex items-center font-bold text-xl text-[#E53E3E]">
+                          {customer.points || 0}
+                        </div>
                       </div>
-                      <div className="flex items-center font-medium">
-                        Adewale Faizah
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      200
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Liam Chen
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      150
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Sophia Martinez
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      220
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Omar Patel
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      180
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Isabella Johnson
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      170
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Mia Robinson
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      210
-                    </div>
-                  </div>
-                  <div
-                    className="flex flex-row justify-between p-2 rounded-2xl"
-                    style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    <div className="flex flex-row gap-2 items-center">
-                      <div>
-                        <img className="w-12 h-12" src={images.sasha} alt="" />
-                      </div>
-                      <div className="flex items-center font-medium">
-                        Noah Thompson
-                      </div>
-                    </div>
-                    <div className="flex items-center font-bold text-xl text-[#E53E3E]">
-                      190
-                    </div>
-                  </div>
+                    ))
+                  )}
                 </>
               )}
             </div>
@@ -583,9 +575,11 @@ const Others = () => {
 
         <NewCoupon
           isOpen={showCouponModal}
-          onClose={() => setShowCouponModal(false)}
-          onCreateCoupon={handleCreateCoupon}
-          isLoading={createCouponMutation.isPending}
+          onClose={handleCloseCouponModal}
+          onCreateCoupon={editMode ? handleUpdateCoupon : handleCreateCoupon}
+          isLoading={editMode ? updateCouponMutation.isPending : createCouponMutation.isPending}
+          editMode={editMode}
+          initialCouponData={editingCoupon}
         />
 
         <PointsSettings

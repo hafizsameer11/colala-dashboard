@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { bulkActionUsers } from "../../../../../utils/queries/users";
+import { useToast } from "../../../../../contexts/ToastContext";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import EditUserModal from "../../../../../components/editUserModel";
@@ -45,6 +48,41 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Bulk action mutation
+  const bulkActionMutation = useMutation({
+    mutationFn: ({ userIds, action }: { userIds: string[], action: 'activate' | 'deactivate' | 'delete' }) => 
+      bulkActionUsers(userIds, action),
+    onSuccess: (_, variables) => {
+      const actionMessages = {
+        activate: 'User activated successfully',
+        deactivate: 'User deactivated successfully', 
+        delete: 'User deleted successfully'
+      };
+      showToast(actionMessages[variables.action], 'success');
+      
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['usersList'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['buyerUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['userStats'] });
+      
+      // If user was deleted, redirect or handle accordingly
+      if (variables.action === 'delete') {
+        // You might want to redirect to users list or close the modal
+        setTimeout(() => {
+          window.location.href = '/customer-mgt';
+        }, 1500);
+      }
+    },
+    onError: (error) => {
+      console.error('Bulk action error:', error);
+      showToast('Failed to perform action', 'error');
+    },
+  });
 
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
@@ -72,7 +110,26 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const handleDropdownAction = (action: string) => {
     console.log(`${action} action triggered for user:`, userData.userName);
     setIsDropdownOpen(false);
-    // Add your action logic here
+    
+    if (!userData.id) {
+      showToast('User ID not found', 'error');
+      return;
+    }
+    
+    const actionMap: Record<string, 'activate' | 'deactivate' | 'delete'> = {
+      'Block User': 'deactivate',
+      'Delete User': 'delete'
+    };
+    
+    const mappedAction = actionMap[action];
+    if (mappedAction) {
+      bulkActionMutation.mutate({
+        userIds: [String(userData.id)],
+        action: mappedAction
+      });
+    } else {
+      showToast('Unknown action', 'error');
+    }
   };
 
   const handleEditUser = () => {
@@ -94,8 +151,10 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
           style={{ boxShadow: "5px 5px 15px 0px rgba(0, 0, 0, 0.25)" }}
         >
           <div
-            onClick={() => handleDropdownAction("Block User")}
-            className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+            onClick={() => !bulkActionMutation.isPending && handleDropdownAction("Block User")}
+            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${
+              bulkActionMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <svg
               className="w-5 h-5 mr-3 text-gray-600"
@@ -107,12 +166,16 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 fill="currentColor"
               />
             </svg>
-            <span className="text-gray-800 font-medium">Block User</span>
+            <span className="text-gray-800 font-medium">
+              {bulkActionMutation.isPending ? 'Processing...' : 'Block User'}
+            </span>
           </div>
 
           <div
-            onClick={() => handleDropdownAction("Delete User")}
-            className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
+            onClick={() => !bulkActionMutation.isPending && handleDropdownAction("Delete User")}
+            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${
+              bulkActionMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <svg
               className="w-5 h-5 mr-3 text-gray-600"
@@ -124,7 +187,9 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                 fill="currentColor"
               />
             </svg>
-            <span className="text-gray-800 font-medium">Delete User</span>
+            <span className="text-gray-800 font-medium">
+              {bulkActionMutation.isPending ? 'Processing...' : 'Delete User'}
+            </span>
           </div>
         </div>
       )}

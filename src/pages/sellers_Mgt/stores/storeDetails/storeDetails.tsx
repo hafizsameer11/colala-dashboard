@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import React, { useMemo, useState, useEffect } from "react";
+import { useParams, useLocation, useSearchParams } from "react-router-dom";
 import PageHeader from "../../../../components/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerDetails } from "../../../../utils/queries/users";
@@ -15,7 +15,18 @@ import Others from "../components/others/others";
 const StoreDetails: React.FC = () => {
   const { storeId } = useParams<{ storeId: string }>();
   const { state } = useLocation();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("Activity");
+
+  // Read tab parameter from URL and set active tab
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      // Capitalize first letter to match tab names
+      const capitalizedTab = tabFromUrl.charAt(0).toUpperCase() + tabFromUrl.slice(1);
+      setActiveTab(capitalizedTab);
+    }
+  }, [searchParams]);
 
   const { data: sellerDetails, isLoading, error } = useQuery({
     queryKey: ['sellerDetails', storeId],

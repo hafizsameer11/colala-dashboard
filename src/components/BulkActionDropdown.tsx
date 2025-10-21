@@ -3,10 +3,55 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import Papa from 'papaparse';
 
+interface User {
+  id: string | number;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  wallet_balance?: string;
+  created_at?: string;
+  is_active?: boolean;
+}
+
+interface Order {
+  id: string | number;
+  order_no?: string | number;
+  store_name?: string;
+  buyer_name?: string;
+  product_name?: string;
+  price?: string;
+  order_date?: string;
+  status?: string;
+}
+
+interface Chat {
+  id: string | number;
+  store_name?: string;
+  user_name?: string;
+  last_message?: string;
+  chat_date?: string;
+  is_read?: boolean;
+  is_dispute?: boolean;
+  unread_count?: number;
+}
+
+interface Transaction {
+  id: string | number;
+  reference?: string;
+  amount?: string;
+  type?: string;
+  status?: string;
+  date?: string;
+  userName?: string;
+  userEmail?: string;
+  statusColor?: string;
+}
+
 interface BulkActionDropdownProps {
   onActionSelect?: (action: string) => void;
-  selectedOrders?: any[];
-  orders?: any[];
+  selectedOrders?: User[] | Order[] | Chat[] | Transaction[];
+  orders?: User[] | Order[] | Chat[] | Transaction[];
   dataType?: 'orders' | 'users' | 'chats' | 'transactions';
 }
 
@@ -19,11 +64,13 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
   const [isBulkDropdownOpen, setIsBulkDropdownOpen] = useState(false);
   const [selectedBulkAction, setSelectedBulkAction] = useState("Bulk Action");
 
-  const bulkActions = ["Export as CSV", "Export as PDF", "Delete"];
+  // Only export actions
+  const bulkActions = ["Export as CSV", "Export as PDF"];
 
   const handleBulkDropdownToggle = () => {
     setIsBulkDropdownOpen(!isBulkDropdownOpen);
   };
+
 
   // Export to CSV
   const exportToCSV = () => {
@@ -34,9 +81,10 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       return;
     }
 
-    let csvData;
+    let csvData: Record<string, string | number>[];
+    
     if (dataType === 'users') {
-      csvData = dataToExport.map((user: any) => ({
+      csvData = (dataToExport as User[]).map((user) => ({
         'User ID': user.id,
         'Full Name': user.full_name || 'N/A',
         'Email': user.email || 'N/A',
@@ -47,7 +95,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         'Status': user.is_active ? 'Active' : 'Inactive'
       }));
     } else if (dataType === 'chats') {
-      csvData = dataToExport.map((chat: any) => ({
+      csvData = (dataToExport as Chat[]).map((chat) => ({
         'Chat ID': chat.id,
         'Store Name': chat.store_name || 'N/A',
         'User Name': chat.user_name || 'N/A',
@@ -58,23 +106,24 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         'Unread Count': chat.unread_count || 0
       }));
     } else if (dataType === 'transactions') {
-      csvData = dataToExport.map((transaction: any) => ({
+      csvData = (dataToExport as Transaction[]).map((transaction) => ({
         'Transaction ID': transaction.id,
-        'TX ID': transaction.tx_id || 'N/A',
+        'Reference': transaction.reference || 'N/A',
         'Amount': transaction.amount || 'N/A',
         'Type': transaction.type || 'N/A',
         'Status': transaction.status || 'N/A',
-        'Date': transaction.tx_date || 'N/A',
-        'Created At': transaction.created_at || 'N/A'
+        'Date': transaction.date || 'N/A',
+        'User Name': transaction.userName || 'N/A',
+        'User Email': transaction.userEmail || 'N/A'
       }));
     } else {
-      csvData = dataToExport.map((order: any) => ({
+      csvData = (dataToExport as Order[]).map((order) => ({
         'Order ID': order.id,
-        'Store Name': order.store_name || order.storeName || 'N/A',
-        'Buyer Name': order.buyer_name || order.buyerName || 'N/A',
-        'Product Name': order.product_name || order.productName || 'N/A',
+        'Store Name': order.store_name || 'N/A',
+        'Buyer Name': order.buyer_name || 'N/A',
+        'Product Name': order.product_name || 'N/A',
         'Price': order.price || 'N/A',
-        'Order Date': order.order_date || order.orderDate || 'N/A',
+        'Order Date': order.order_date || 'N/A',
         'Status': order.status || 'N/A'
       }));
     }
@@ -112,8 +161,8 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
     
     if (dataType === 'users') {
       headers = ['User ID', 'Full Name', 'Email', 'Phone', 'Role', 'Wallet Balance', 'Status'];
-      tableData = dataToExport.map((user: any) => [
-        user.id,
+      tableData = (dataToExport as User[]).map((user) => [
+        String(user.id),
         user.full_name || 'N/A',
         user.email || 'N/A',
         user.phone || 'N/A',
@@ -123,8 +172,8 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       ]);
     } else if (dataType === 'chats') {
       headers = ['Chat ID', 'Store Name', 'User Name', 'Last Message', 'Chat Date', 'Is Read', 'Is Dispute'];
-      tableData = dataToExport.map((chat: any) => [
-        chat.id,
+      tableData = (dataToExport as Chat[]).map((chat) => [
+        String(chat.id),
         chat.store_name || 'N/A',
         chat.user_name || 'N/A',
         chat.last_message || 'N/A',
@@ -133,30 +182,32 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         chat.is_dispute ? 'Yes' : 'No'
       ]);
     } else if (dataType === 'transactions') {
-      headers = ['Transaction ID', 'TX ID', 'Amount', 'Type', 'Status', 'Date'];
-      tableData = dataToExport.map((transaction: any) => [
-        transaction.id,
-        transaction.tx_id || 'N/A',
+      headers = ['Transaction ID', 'Reference', 'Amount', 'Type', 'Status', 'Date', 'User Name', 'User Email'];
+      tableData = (dataToExport as Transaction[]).map((transaction) => [
+        String(transaction.id),
+        transaction.reference || 'N/A',
         transaction.amount || 'N/A',
         transaction.type || 'N/A',
         transaction.status || 'N/A',
-        transaction.tx_date || 'N/A'
+        transaction.date || 'N/A',
+        transaction.userName || 'N/A',
+        transaction.userEmail || 'N/A'
       ]);
     } else {
       headers = ['Order ID', 'Store Name', 'Buyer Name', 'Product Name', 'Price', 'Order Date', 'Status'];
-      tableData = dataToExport.map((order: any) => [
-        order.id,
-        order.store_name || order.storeName || 'N/A',
-        order.buyer_name || order.buyerName || 'N/A',
-        order.product_name || order.productName || 'N/A',
+      tableData = (dataToExport as Order[]).map((order) => [
+        String(order.id),
+        order.store_name || 'N/A',
+        order.buyer_name || 'N/A',
+        order.product_name || 'N/A',
         order.price || 'N/A',
-        order.order_date || order.orderDate || 'N/A',
+        order.order_date || 'N/A',
         order.status || 'N/A'
       ]);
     }
 
     // Add table
-    (doc as any).autoTable({
+    (doc as jsPDF & { autoTable: (options: { head: string[][], body: string[][], startY: number, styles: { fontSize: number }, headStyles: { fillColor: number[] } }) => void }).autoTable({
       head: [headers],
       body: tableData,
       startY: 30,
@@ -177,7 +228,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       onActionSelect(action);
     }
 
-    // Handle specific actions
+    // Handle export actions only
     switch (action) {
       case 'Export as CSV':
         exportToCSV();
@@ -185,20 +236,12 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       case 'Export as PDF':
         exportToPDF();
         break;
-      case 'Delete':
-        if (selectedOrders.length === 0) {
-          alert(`Please select ${dataType} to delete`);
-          return;
-        }
-        if (confirm(`Are you sure you want to delete ${selectedOrders.length} ${dataType}?`)) {
-          console.log(`Deleting ${dataType}:`, selectedOrders);
-          // Add delete logic here
-        }
-        break;
       default:
-        console.log("Selected bulk action:", action);
+        console.log("Selected action:", action);
     }
   };
+
+
 
   return (
     <div className="relative inline-block text-left">
@@ -215,9 +258,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
             <button
               key={action}
               onClick={() => handleBulkOptionSelect(action)}
-              className={`block w-full text-left px-4 py-2 text-sm ${
-                action === "Delete" ? "text-[#FF0000]" : "text-black"
-              } cursor-pointer `}
+              className="block w-full text-left px-4 py-2 text-sm text-black cursor-pointer"
             >
               {action}
             </button>

@@ -37,7 +37,7 @@ const Transactions = () => {
   const tabs: Array<"All" | "pending" | "success" | "completed" | "failed"> = [
     "All",
     "pending",
-    "success", 
+    "success",
     "completed",
     "failed",
   ];
@@ -54,11 +54,23 @@ const Transactions = () => {
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
 
+  // selected transactions for bulk actions
+  const [selectedTransactions, setSelectedTransactions] = useState<Array<{
+    id: string;
+    reference: string;
+    amount: string;
+    type: string;
+    date: string;
+    status: string;
+    userName: string;
+    userEmail: string;
+    statusColor: string;
+  }>>([]);
+
   // API data fetching
   const { data: transactionsData, isLoading, error } = useQuery({
     queryKey: ['adminTransactions', activeTab, typeFilter, currentPage],
     queryFn: () => getAdminTransactions(currentPage, activeTab === "All" ? undefined : activeTab, typeFilter === "All" ? undefined : typeFilter.toLowerCase()),
-    keepPreviousData: true,
   });
 
   // Extract data
@@ -78,9 +90,8 @@ const Transactions = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
-            }`}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+              }`}
           >
             {tab}
           </button>
@@ -90,7 +101,21 @@ const Transactions = () => {
   );
 
   const handleBulkActionSelect = (action: string) => {
-    console.log("Bulk action selected in Orders:", action);
+    console.log("Bulk action selected in Transactions:", action);
+  };
+
+  const handleSelectedTransactionsChange = (transactions: Array<{
+    id: string;
+    reference: string;
+    amount: string;
+    type: string;
+    date: string;
+    status: string;
+    userName: string;
+    userEmail: string;
+    statusColor: string;
+  }>) => {
+    setSelectedTransactions(transactions);
   };
 
   // Make the deposit dropdown functional: set the type filter
@@ -153,7 +178,12 @@ const Transactions = () => {
               <DepositDropdown onActionSelect={handleDepositActionSelect} />
             </div>
             <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                selectedOrders={selectedTransactions}
+                orders={transactions}
+                dataType="transactions"
+              />
             </div>
           </div>
           <div>
@@ -162,7 +192,9 @@ const Transactions = () => {
                 type="text"
                 placeholder="Search"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                }}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -192,6 +224,7 @@ const Transactions = () => {
             pagination={pagination}
             currentPage={currentPage}
             onPageChange={handlePageChange}
+            onSelectedTransactionsChange={handleSelectedTransactionsChange}
             isLoading={isLoading}
             error={error}
           />

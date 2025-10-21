@@ -33,6 +33,7 @@ import Notifications from "./pages/general/notifications/notifications";
 import Settings from "./pages/general/settings/Settings";
 import Login from "./pages/auth/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Disputes from "./pages/general/disputes/disputes";
 import { QueryProvider } from "./providers/QueryProvider";
@@ -92,8 +93,9 @@ function App() {
   return (
     <QueryProvider>
       <AuthProvider>
-        <Router>
-          <Routes>
+        <ToastProvider>
+          <Router>
+            <Routes>
             {/* Root route - redirects based on auth status */}
             <Route path="/" element={<InitialRoute />} />
 
@@ -117,7 +119,8 @@ function App() {
             {/* Catch all route - redirect to root */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Router>
+          </Router>
+        </ToastProvider>
       </AuthProvider>
     </QueryProvider>
   );

@@ -28,13 +28,13 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatId, userId
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Chat</h2>
             <div className="flex flex-row items-center gap-3">
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={onClose}
                 className="p-2 rounded-md  cursor-pointer"
@@ -84,9 +84,9 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatId, userId
                   <button className="px-5 py-2 cursor-pointer text-white bg-[#F29F9F] rounded-lg mr-2">
                     Join Chat
                   </button>
-                  <button className="px-3 py-2 cursor-pointer text-white bg-black rounded-lg">
+                  {/* <button className="px-3 py-2 cursor-pointer text-white bg-black rounded-lg">
                     Switch to Store
-                  </button>
+                  </button> */}
                 </div>
               </div>
               

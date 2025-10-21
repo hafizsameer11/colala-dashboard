@@ -15,6 +15,11 @@ interface OverviewProps {
   images?: unknown[];
   variants?: Array<{ color?: string }>;
   productId?: string | number;
+  userId?: string;
+  onEditProduct?: () => void;
+  onDeleteProduct?: () => void;
+  onViewAnalytics?: () => void;
+  onUpdateStatus?: () => void;
 }
 
 // ColorPicker component
@@ -63,7 +68,16 @@ const SizePicker: React.FC = () => {
   );
 };
 
-const Overview: React.FC<OverviewProps> = ({ productInfo, variants, productId }) => {
+const Overview: React.FC<OverviewProps> = ({ 
+  productInfo, 
+  variants, 
+  productId, 
+  userId, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onEditProduct,
+  onDeleteProduct,
+  onViewAnalytics,
+  onUpdateStatus
+}) => {
   const [isBoostModalOpen, setIsBoostModalOpen] = useState(false);
 
   return (
@@ -190,7 +204,9 @@ const Overview: React.FC<OverviewProps> = ({ productInfo, variants, productId })
             {/* Delete Button */}
             <button
               type="button"
+              onClick={onDeleteProduct}
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+              title="Delete Product"
             >
               <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -200,7 +216,9 @@ const Overview: React.FC<OverviewProps> = ({ productInfo, variants, productId })
             {/* Analytics Button */}
             <button
               type="button"
+              onClick={onViewAnalytics}
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+              title="View Analytics"
             >
               <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -210,7 +228,9 @@ const Overview: React.FC<OverviewProps> = ({ productInfo, variants, productId })
             {/* Status Button */}
             <button
               type="button"
+              onClick={onUpdateStatus}
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+              title="Update Status"
             >
               <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -220,6 +240,7 @@ const Overview: React.FC<OverviewProps> = ({ productInfo, variants, productId })
             {/* Edit Product Button */}
             <button
               type="button"
+              onClick={onEditProduct}
               className="flex-1 bg-[#E53E3E] text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-red-600 transition-colors"
             >
               Edit Product

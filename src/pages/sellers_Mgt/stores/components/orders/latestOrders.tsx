@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../../../Modals/orderDetails";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 interface OrderUi {
   id: string;
@@ -15,10 +15,22 @@ interface LatestOrdersProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   activeTab?: string;
-  orders?: any[];
+  orders?: Array<{
+    id: string | number;
+    store_name?: string;
+    items?: Array<{ product_name?: string }>;
+    total?: string;
+    created_at?: string;
+    status?: string;
+  }>;
   isLoading?: boolean;
-  error?: any;
-  pagination?: any;
+  error?: string | null;
+  pagination?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
   onPageChange?: (page: number) => void;
 }
 
@@ -58,7 +70,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const normalized: OrderUi[] = useMemo(() => {
-    return (orders || []).map((o: any) => ({
+    return (orders || []).map((o) => ({
       id: String(o.id),
       storeName: o.store_name || 'N/A',
       productName: (o.items && o.items[0]?.product_name) || 'N/A',
@@ -70,6 +82,13 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const { storeId } = useParams<{ storeId: string }>();
+  const navigate = useNavigate();
+
+  const handleViewChat = () => {
+    if (storeId) {
+      navigate(`/store-details/${storeId}?tab=chats`);
+    }
+  };
 
   // Filter orders based on active tab
   const filteredOrders = useMemo(() => {
@@ -169,7 +188,10 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                   >
                     Details
                   </button>
-                  <button className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer">
+                  <button 
+                    onClick={handleViewChat}
+                    className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer"
+                  >
                     View Chat
                   </button>
                 </td>
@@ -204,7 +226,6 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
         <OrderDetails 
           isOpen={showModal} 
           onClose={() => setShowModal(false)} 
-          userId={storeId} 
           orderId={selectedOrderId}
         />
       )}

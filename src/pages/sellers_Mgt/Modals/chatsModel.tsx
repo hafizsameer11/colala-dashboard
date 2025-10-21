@@ -1,6 +1,7 @@
 import images from "../../../constants/images";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerChatDetails } from "../../../utils/queries/users";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 // Utility function to format date safely
 const formatMessageTime = (dateString: string): string => {
@@ -40,10 +41,42 @@ const formatMessageTime = (dateString: string): string => {
     }
     
     return 'Invalid time';
-  } catch (error) {
+  } catch {
     return 'Invalid time';
   }
 };
+
+interface Message {
+  id: number;
+  message: string;
+  image?: {
+    path: string;
+    url: string;
+  } | null;
+  sender_type: 'buyer' | 'store';
+  sender_name: string;
+  sender_avatar: string;
+  is_read: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface OrderItem {
+  product?: {
+    name?: string;
+    images?: Array<{ url: string }>;
+  };
+  total?: string;
+  quantity?: number;
+}
+
+interface OrderInfo {
+  order_no?: string;
+  pricing?: {
+    subtotal_with_shipping?: string;
+  };
+  items?: OrderItem[];
+}
 
 interface ChatsModelProps {
   isOpen: boolean;
@@ -53,7 +86,14 @@ interface ChatsModelProps {
 }
 
 const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, userId, chatId }) => {
-  if (!isOpen) return null;
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setNewMessage((e.target as any).value);
+  };
 
   const { data: chatDetails, isLoading, error } = useQuery({
     queryKey: ['sellerChatDetails', userId, chatId],
@@ -64,8 +104,15 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, userId, chatId
 
   const chatData = chatDetails?.data;
   const customerInfo = chatData?.customer_info;
-  const orderInfo = chatData?.order_info;
-  const messages = chatData?.messages || [];
+  const orderInfo: OrderInfo | undefined = chatData?.order_info;
+  const messages = useMemo(() => chatData?.messages || [], [chatData?.messages]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-100 bg-[#00000080] bg-opacity-50 flex justify-end">
@@ -75,13 +122,13 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, userId, chatId
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Chat</h2>
             <div className="flex flex-row items-center gap-3">
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={onClose}
                 className="p-2 rounded-md  cursor-pointer"
@@ -136,7 +183,7 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, userId, chatId
                       <span className="font-semibold">Order #{orderInfo.order_no}</span>
                       <span className="text-[#E53E3E] font-semibold">N{orderInfo.pricing?.subtotal_with_shipping || '0.00'}</span>
                     </div>
-                    {orderInfo.items?.map((item: any, index: number) => (
+                    {orderInfo.items?.map((item: OrderItem, index: number) => (
                       <div key={index} className="flex flex-row mt-3">
                         <div>
                           <img 
@@ -160,36 +207,61 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, userId, chatId
                 </div>
               )}
               {/* Messages */}
-              {messages.map((message: any) => (
-                <div key={message.id} className="flex flex-row justify-between">
-                  {message.sender_type === 'buyer' ? (
-                    <div></div>
-                  ) : null}
-                  <div className={`flex flex-col px-4 py-3 mt-3 ${
-                    message.sender_type === 'buyer' 
-                      ? 'bg-[#E53E3E] text-white rounded-t-3xl rounded-bl-3xl rounded-br-lg' 
-                      : 'bg-[#FFD8D8] text-black rounded-t-3xl rounded-bl-lg rounded-br-3xl'
-                  }`}>
-                    <span className={message.sender_type === 'buyer' ? 'text-white' : 'text-black'}>
-                      {message.message}
-                    </span>
-                    <span className={`text-[12px] flex justify-end-safe mr-4 ${
-                      message.sender_type === 'buyer' ? 'text-[#FFFFFF80]' : 'text-[#00000080]'
+              <div className="flex flex-col space-y-2 mb-4">
+                {messages.map((message: Message) => (
+                  <div key={message.id} className={`flex ${message.sender_type === 'buyer' ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`flex flex-col max-w-xs ${
+                      message.sender_type === 'buyer' ? 'items-start' : 'items-end'
                     }`}>
-                      {formatMessageTime(message.created_at)}
-                    </span>
+                      {/* Message Content */}
+                      <div className={`px-4 py-3 mt-3 ${
+                        message.sender_type === 'buyer' 
+                          ? 'bg-[#E53E3E] text-white rounded-t-3xl rounded-bl-3xl rounded-br-lg' 
+                          : 'bg-[#FFD8D8] text-black rounded-t-3xl rounded-bl-lg rounded-br-3xl'
+                      }`}>
+                        {/* Message Text */}
+                        {message.message && (
+                          <span className={message.sender_type === 'buyer' ? 'text-white' : 'text-black'}>
+                            {message.message}
+                          </span>
+                        )}
+                        
+                        {/* Message Image */}
+                        {message.image && message.image.url && (
+                          <div className="mt-2">
+                            <img 
+                              src={message.image.url} 
+                              alt="Chat image" 
+                              className="max-w-full h-auto rounded-lg cursor-pointer"
+                              onClick={() => window.open(message.image!.url, '_blank')}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Timestamp */}
+                      <span className={`text-[12px] mt-1 px-2 ${
+                        message.sender_type === 'buyer' ? 'text-[#00000080]' : 'text-[#00000080]'
+                      }`}>
+                        {formatMessageTime(message.created_at)}
+                      </span>
+                    </div>
                   </div>
-                  {message.sender_type === 'store' ? (
-                    <div></div>
-                  ) : null}
-                </div>
-              ))}
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
               
               {messages.length === 0 && (
                 <div className="flex justify-center items-center h-32 text-gray-500">
                   No messages yet
                 </div>
               )}
+
+              {/* Message Input Area */}
+             
             </>
           )}
         </div>

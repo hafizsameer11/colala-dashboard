@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
       {/* Sidebar Header */}
       <div className="flex items-center justify-between px-4">
         <Link to="/dashboard">
-          <img src={images.logo} alt="logo" className="w-80 h-auto" />
+          <img src={images.logo} alt="logo" className="w-60 h-auto" />
         </Link>
 
         {/* Toggle Menu Icon */}

@@ -97,7 +97,7 @@ const API_ENDPOINTS = {
     Details: (id: number | string) => `${API_DOMAIN}/admin/buyer-orders/${id}/details`, // GET
     UpdateStatus: (id: number | string) => `${API_DOMAIN}/admin/orders/${id}/status`, // PUT
     Tracking: (id: number | string) => `${API_DOMAIN}/admin/orders/${id}/tracking`, // GET
-    BulkAction: API_DOMAIN + "/admin/orders/bulk-action", // POST
+    BulkAction: API_DOMAIN + "/admin/buyer-orders/bulk-action", // POST
     Statistics: API_DOMAIN + "/admin/orders/statistics", // GET
   },
 
@@ -143,6 +143,10 @@ const API_ENDPOINTS = {
     Create: API_DOMAIN + "/seller/products/create", // POST
     List: (userId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}`, // GET
     Details: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}/details`, // GET
+    Update: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}`, // PUT
+    Delete: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}`, // DELETE
+    BulkUploadTemplate: API_DOMAIN + "/seller/products/bulk-upload/template", // GET
+    BulkUploadFile: API_DOMAIN + "/seller/products/bulk-upload/file", // POST
   },
 
   // SELLER SERVICES
@@ -171,6 +175,8 @@ const API_ENDPOINTS = {
   SELLER_COUPONS: {
     List: (userId: number | string) => `${API_DOMAIN}/admin/seller-coupons/${userId}`, // GET
     Create: (userId: number | string) => `${API_DOMAIN}/admin/seller-coupons/${userId}`, // POST
+    Update: (userId: number | string, couponId: number | string) => `${API_DOMAIN}/admin/seller-coupons/${userId}/${couponId}`, // PUT
+    Delete: (userId: number | string, couponId: number | string) => `${API_DOMAIN}/admin/seller-coupons/${userId}/${couponId}`, // DELETE
   },
 
   // SELLER LOYALTY
@@ -196,6 +202,7 @@ const API_ENDPOINTS = {
   // ADMIN SUBSCRIPTIONS
   ADMIN_SUBSCRIPTIONS: {
     List: API_DOMAIN + "/admin/subscriptions", // GET
+    Details: (subscriptionId: number | string) => `${API_DOMAIN}/admin/subscriptions/${subscriptionId}/details`, // GET
     Plans: API_DOMAIN + "/admin/subscription-plans", // GET
     CreatePlan: API_DOMAIN + "/admin/subscription-plans", // POST
     UpdatePlan: (planId: number | string) => `${API_DOMAIN}/admin/subscription-plans/${planId}`, // PUT
@@ -245,6 +252,7 @@ const API_ENDPOINTS = {
     List: (userId: number | string) => `${API_DOMAIN}/admin/seller-details/${userId}/social-feed`, // GET
     Details: (userId: number | string, postId: number | string) => `${API_DOMAIN}/admin/seller-social-feed/${userId}/${postId}/details`, // GET
     Delete: (userId: number | string, postId: number | string) => `${API_DOMAIN}/admin/seller-social-feed/${userId}/${postId}`, // DELETE
+    DeleteComment: (userId: number | string, postId: number | string, commentId: number | string) => `${API_DOMAIN}/admin/seller-social-feed/${userId}/${postId}/${commentId}`, // DELETE
   },
 
   // SELLER CREATION (3-Level Onboarding)

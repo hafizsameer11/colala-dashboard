@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getSubscriptionDetails } from "../../../utils/queries/users";
 import PlansModal from "../Modals/planModal";
 
 interface ApiSubscription {
@@ -30,6 +32,34 @@ interface Subscription {
   daysLeft: number;
   subscriptionDate: string;
   statusColor: string;
+}
+
+interface SubscriptionDetails {
+  subscription_info: {
+    id: number;
+    status: string;
+    start_date: string;
+    end_date: string;
+    payment_method: string;
+    payment_status: string;
+    transaction_ref: string;
+    created_at: string;
+  };
+  store_info: {
+    store_id: number;
+    store_name: string;
+    owner_name: string;
+    owner_email: string;
+  };
+  plan_info: {
+    plan_id: number;
+    plan_name: string;
+    price: number;
+    currency: string;
+    duration_days: number;
+    features: any;
+  };
+  days_remaining: number;
 }
 
 interface SubscriptionTableProps {
@@ -65,9 +95,40 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [selectedSubscription, setSelectedSubscription] =
     useState<Subscription | null>(null);
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<number | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<
     "Basic" | "Standard" | "Ultra"
   >("Basic");
+
+  // Fetch subscription details when a subscription is selected
+  const { data: subscriptionDetails, isLoading: detailsLoading, error: detailsError } = useQuery({
+    queryKey: ['subscriptionDetails', selectedSubscriptionId],
+    queryFn: () => {
+      if (!selectedSubscriptionId) return Promise.reject(new Error('No subscription ID'));
+      return getSubscriptionDetails(selectedSubscriptionId);
+    },
+    enabled: !!selectedSubscriptionId,
+  });
+
+  // Debug logging for subscription details
+  console.log('SubscriptionTable - Selected Subscription ID:', selectedSubscriptionId);
+  console.log('SubscriptionTable - Subscription Details:', subscriptionDetails);
+  console.log('SubscriptionTable - Details Loading:', detailsLoading);
+  console.log('SubscriptionTable - Details Error:', detailsError);
+
+  // Update initial tab when subscription details are loaded
+  useEffect(() => {
+    if (subscriptionDetails?.data?.plan_info?.plan_name) {
+      const planName = subscriptionDetails.data.plan_info.plan_name.toLowerCase();
+      if (planName.includes("basic")) {
+        setModalInitialTab("Basic");
+      } else if (planName.includes("standard")) {
+        setModalInitialTab("Standard");
+      } else if (planName.includes("ultra") || planName.includes("premium")) {
+        setModalInitialTab("Ultra");
+      }
+    }
+  }, [subscriptionDetails]);
 
   // Normalize API data to UI format
   const normalizedSubscriptions: Subscription[] = useMemo(() => {
@@ -121,6 +182,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
 
   const handleShowDetails = (subscription: Subscription) => {
     setSelectedSubscription(subscription);
+    setSelectedSubscriptionId(parseInt(subscription.id));
     setModalInitialTab(getPlanTabName(subscription.plan));
     setShowModal(true);
   };
@@ -130,14 +192,14 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
     const q = searchTerm.trim().toLowerCase();
     return subscriptions.filter((s) => {
       const tabOk =
-        activeTab === "All" ? true : getPlanTabName(s.plan) === activeTab;
+        activeTab === "All" ? true : s.status === activeTab;
       if (!q) return tabOk;
 
       const haystack = [
-        s.storeName,
-        s.plan,
-        String(s.daysLeft),
-        s.subscriptionDate,
+        s.store_name,
+        s.plan_name,
+        String(s.days_left),
+        s.created_at,
         s.price,
         s.status,
       ]
@@ -151,7 +213,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
 
   // --- SELECTION (acts on visible rows only)
   const handleSelectAll = () => {
-    const visibleIds = filtered.map((s) => s.id);
+    const visibleIds = filtered.map((s) => s.id.toString());
     if (selectAll) {
       const remaining = selectedRows.filter((id) => !visibleIds.includes(id));
       setSelectedRows(remaining);
@@ -176,7 +238,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   };
 
   useEffect(() => {
-    const vis = new Set(filtered.map((s) => s.id));
+    const vis = new Set(filtered.map((s) => s.id.toString()));
     const visibleSelected = selectedRows.filter((id) => vis.has(id));
     setSelectAll(
       filtered.length > 0 && visibleSelected.length === filtered.length
@@ -333,8 +395,14 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
       {showModal && selectedSubscription && (
         <PlansModal
           isOpen={showModal}
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedSubscriptionId(null);
+          }}
           initialTab={modalInitialTab}
+          subscriptionDetails={subscriptionDetails?.data}
+          isLoading={detailsLoading}
+          error={detailsError}
         />
       )}
     </>

@@ -1,50 +1,175 @@
 import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { bulkActionBuyerOrders } from "../utils/queries/users";
+import { useToast } from "../contexts/ToastContext";
 import images from "../constants/images";
 
+interface OrderData {
+  order_no?: string | number;
+  status?: string;
+  tracking?: Array<{
+    status: string;
+    created_at: string;
+  }>;
+  created_at?: string;
+}
+
 interface OrderOverviewProps {
-  orderData?: any;
+  orderData?: OrderData;
 }
 
 // StatusDropdown component
-const StatusDropdown: React.FC = () => {
+interface StatusDropdownProps {
+  orderData?: OrderData;
+  onStatusChange?: () => void;
+}
+
+const StatusDropdown: React.FC<StatusDropdownProps> = ({ orderData, onStatusChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("Change Status");
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Status mapping from UI to backend values
+  const statusMapping: Record<string, string> = {
+    "Order Placed": "placed",
+    "Out for delivery": "out_for_delivery", 
+    "Delivered": "delivered",
+    "Funds in Escrow Wallet": "escrow",
+    "Order Completed": "completed",
+  };
 
   const statusOptions = [
     "Order Placed",
-    "Out for delivery",
+    "Out for delivery", 
     "Delivered",
     "Funds in Escrow Wallet",
     "Order Completed",
   ];
 
+  // Quick action handlers
+  const handleMarkCompleted = () => {
+    if (!orderData?.order_no) {
+      showToast('Order ID not found', 'error');
+      return;
+    }
+    
+    bulkActionMutation.mutate({
+      orderIds: [String(orderData.order_no)],
+      action: 'mark_completed'
+    });
+  };
+
+  const handleMarkDisputed = () => {
+    if (!orderData?.order_no) {
+      showToast('Order ID not found', 'error');
+      return;
+    }
+    
+    bulkActionMutation.mutate({
+      orderIds: [String(orderData.order_no)],
+      action: 'mark_disputed'
+    });
+  };
+
+  const handleDeleteOrder = () => {
+    if (!orderData?.order_no) {
+      showToast('Order ID not found', 'error');
+      return;
+    }
+    
+    if (window.confirm('Are you sure you want to delete this order?')) {
+      bulkActionMutation.mutate({
+        orderIds: [String(orderData.order_no)],
+        action: 'delete'
+      });
+    }
+  };
+
+  // Bulk action mutation
+  const bulkActionMutation = useMutation({
+    mutationFn: ({ orderIds, action, status }: { 
+      orderIds: string[], 
+      action: 'update_status' | 'mark_completed' | 'mark_disputed' | 'delete',
+      status?: string 
+    }) => bulkActionBuyerOrders(orderIds, action, status),
+    onSuccess: (_, variables) => {
+      const actionMessages = {
+        update_status: 'Order status updated successfully',
+        mark_completed: 'Order marked as completed',
+        mark_disputed: 'Order marked as disputed',
+        delete: 'Order deleted successfully'
+      };
+      showToast(actionMessages[variables.action], 'success');
+      
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['buyerOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['orderDetails'] });
+      
+      // Call parent callback if provided
+      onStatusChange?.();
+    },
+    onError: (error) => {
+      console.error('Bulk action error:', error);
+      showToast('Failed to update order status', 'error');
+    },
+  });
+
   const handleStatusSelect = (status: string) => {
+    if (!orderData?.order_no) {
+      showToast('Order ID not found', 'error');
+      return;
+    }
+
+    const backendStatus = statusMapping[status];
+    if (!backendStatus) {
+      showToast('Invalid status selected', 'error');
+      return;
+    }
+
     setSelectedStatus(status);
     setIsOpen(false);
+
+    // Call the API to update the order status
+    bulkActionMutation.mutate({
+      orderIds: [String(orderData.order_no)],
+      action: 'update_status',
+      status: backendStatus
+    });
   };
 
   return (
     <div className="relative w-full">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white border border-[#989898] rounded-lg px-4 py-4 text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:border-blue-500 cursor-pointer"
+        onClick={() => !bulkActionMutation.isPending && setIsOpen(!isOpen)}
+        disabled={bulkActionMutation.isPending}
+        className={`w-full bg-white border border-[#989898] rounded-lg px-4 py-4 text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:border-blue-500 cursor-pointer ${
+          bulkActionMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
       >
-        <span className="text-[#00000080]">{selectedStatus}</span>
-        <svg
-          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <span className="text-[#00000080]">
+          {bulkActionMutation.isPending ? 'Updating...' : selectedStatus}
+        </span>
+        {bulkActionMutation.isPending ? (
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
+        ) : (
+          <svg
+            className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        )}
       </button>
 
       {isOpen && (
@@ -60,6 +185,31 @@ const StatusDropdown: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Quick Action Buttons */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          onClick={handleMarkCompleted}
+          disabled={bulkActionMutation.isPending}
+          className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
+        >
+          Mark Completed
+        </button>
+        <button
+          onClick={handleMarkDisputed}
+          disabled={bulkActionMutation.isPending}
+          className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
+        >
+          Mark Disputed
+        </button>
+        <button
+          onClick={handleDeleteOrder}
+          disabled={bulkActionMutation.isPending}
+          className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
+        >
+          Delete Order
+        </button>
+      </div>
     </div>
   );
 };
@@ -138,10 +288,10 @@ const OrderOverview: React.FC<OrderOverviewProps> = ({ orderData }) => {
     });
 
     return stepsToShow.map(step => {
-      const trackingEvent = orderData?.tracking?.find((event: any) => event.status === step.key);
+      const trackingEvent = orderData?.tracking?.find(event => event.status === step.key);
       return {
         title: step.title,
-        orderId: orderData?.order_no || "N/A",
+        orderId: String(orderData?.order_no || "N/A"),
         date: trackingEvent?.created_at || orderData?.created_at || "N/A",
         isCompleted: step.order <= currentOrder || (step.key === "escrow" && (currentStatus === "delivered" || currentStatus === "completed"))
       };
@@ -157,7 +307,7 @@ const OrderOverview: React.FC<OrderOverviewProps> = ({ orderData }) => {
           <span className="font-semibold text-xl">Change Order Status</span>
         </div>
         <div className="mt-4">
-          <StatusDropdown />
+          <StatusDropdown orderData={orderData} />
         </div>
 
         {/* Timeline */}

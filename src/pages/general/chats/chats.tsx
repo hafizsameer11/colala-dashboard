@@ -121,7 +121,13 @@ const Chats = () => {
               <div><img className="w-3 h-3 mt-1" src={images.dropdown} alt="" /></div>
             </div>
 
-            <div><BulkActionDropdown onActionSelect={handleBulkActionSelect} /></div>
+            <div>
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={chatsData?.data?.chats || []}
+                dataType="chats"
+              />
+            </div>
           </div>
 
           {/* Debounced search */}

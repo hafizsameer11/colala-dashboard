@@ -1,13 +1,43 @@
 import React, { useState, useRef, useEffect } from "react";
 import images from "../../../constants/images";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSellerSocialFeedDetails, deleteSellerSocialFeedPost } from "../../../utils/queries/users";
+import { getSellerSocialFeedDetails, deleteSellerSocialFeedPost, deleteSellerSocialFeedComment } from "../../../utils/queries/users";
+import { useToast } from "../../../contexts/ToastContext";
 interface Reply {
   id: string;
   text: string;
   author: string;
   replyTo: string;
   timestamp: string;
+}
+
+interface MediaItem {
+  id: number;
+  path: string;
+  url: string;
+  type: string;
+}
+
+interface Comment {
+  id: number;
+  body: string;
+  text?: string;
+  message?: string;
+  created_at: string;
+  user_name?: string;
+  user_avatar?: string;
+  user?: {
+    id: number;
+    name: string;
+    profile_picture?: string;
+  };
+}
+
+interface Like {
+  id: number;
+  user_name: string;
+  user_avatar?: string;
+  created_at: string;
 }
 
 interface SocialFeedModelProps {
@@ -56,9 +86,9 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   const likesButtonRef = useRef<HTMLDivElement>(null);
   const sharesButtonRef = useRef<HTMLDivElement>(null);
   const commentsButtonRef = useRef<HTMLDivElement>(null);
-  const mediaRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: postDetails, isLoading, error } = useQuery({
     queryKey: ['sellerSocialFeedDetails', userId, postId],
@@ -70,22 +100,37 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   const deletePostMutation = useMutation({
     mutationFn: () => deleteSellerSocialFeedPost(userId!, postId!),
     onSuccess: () => {
+      showToast('Post deleted successfully', 'success');
       // Invalidate and refetch social feed list
       queryClient.invalidateQueries({ queryKey: ['sellerSocialFeed', userId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerSocialFeedDetails', userId, postId] });
       // Close the modal
       onClose();
     },
     onError: (error) => {
       console.error('Failed to delete post:', error);
-      alert('Failed to delete post. Please try again.');
+      showToast('Failed to delete post', 'error');
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: ({ commentId }: { commentId: string }) => deleteSellerSocialFeedComment(userId!, postId!, commentId),
+    onSuccess: () => {
+      showToast('Comment deleted successfully', 'success');
+      // Invalidate and refetch post details to update comments
+      queryClient.invalidateQueries({ queryKey: ['sellerSocialFeedDetails', userId, postId] });
+    },
+    onError: (error) => {
+      console.error('Failed to delete comment:', error);
+      showToast('Failed to delete comment', 'error');
     },
   });
 
   const postInfo = postDetails?.data?.post_info;
   const authorInfo = postDetails?.data?.author_info;
-  const media = postDetails?.data?.media || [];
-  const likes = postDetails?.data?.likes || [];
-  const comments = postDetails?.data?.comments || [];
+  const media: MediaItem[] = postDetails?.data?.media || [];
+  const likes: Like[] = postDetails?.data?.likes || [];
+  const comments: Comment[] = postDetails?.data?.comments || [];
 
   const handleDeletePost = () => {
     setShowDeleteConfirm(true);
@@ -98,6 +143,12 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
 
   const cancelDelete = () => {
     setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (window.confirm('Are you sure you want to delete this comment?')) {
+      deleteCommentMutation.mutate({ commentId });
+    }
   };
 
   // Interactive popup handlers
@@ -228,13 +279,13 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
               >
                 {deletePostMutation.isPending ? 'Deleting...' : 'Delete Post'}
               </button>
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={onClose}
                 className="p-2 rounded-md  cursor-pointer"
@@ -265,8 +316,14 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
               </div>
             </div>
             <div className="mt-5">
-              <button className="font-bold text-[#FF0000] text-lg cursor-pointer">
-                Delete Post
+              <button 
+                onClick={handleDeletePost}
+                disabled={deletePostMutation.isPending}
+                className={`font-bold text-[#FF0000] text-lg cursor-pointer ${
+                  deletePostMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {deletePostMutation.isPending ? 'Deleting...' : 'Delete Post'}
               </button>
             </div>
           </div>
@@ -274,7 +331,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
           <div className="mt-4">
             {media.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
-                {media.map((m: any, index: number) => (
+                {media.map((m: MediaItem, index: number) => (
                   <div 
                     key={index} 
                     className="cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-transparent hover:border-blue-300 rounded-lg overflow-hidden"
@@ -339,7 +396,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
             {comments.length === 0 ? (
               <div className="text-center text-gray-500">No comments yet</div>
             ) : (
-              comments.map((c: any) => {
+              comments.map((c: Comment) => {
                 const commenterName = c.user?.name || c.user_name || 'Unknown';
                 const commenterAvatar = c.user?.profile_picture || c.user_avatar || images.adam;
                 const commentText = c.body || c.text || c.message || '';
@@ -380,7 +437,11 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
                               type="text"
                               placeholder="Write a reply..."
                               value={replyTexts[commentId] || ""}
-                              onChange={(e) => handleReplyTextChange(commentId, e.target.value)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const target = e.target;
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                handleReplyTextChange(commentId, (target as any).value);
+                              }}
                               onKeyPress={(e) => {
                                 if (e.key === "Enter") {
                                   handleReplySubmit(commentId);
@@ -435,7 +496,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
           <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
-                <img src={images.warning} alt="Warning" className="w-6 h-6" />
+                <img src={images.error} alt="Warning" className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Delete Post</h3>
@@ -474,7 +535,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
             {likes.length === 0 ? (
               <div className="p-3 text-gray-500 text-sm">No likes yet</div>
             ) : (
-              likes.map((like: any) => (
+              likes.map((like: Like) => (
                 <div key={like.id} className="flex items-center p-3 hover:bg-gray-50">
                   <img 
                     src={like.user_avatar || images.adam} 
@@ -514,19 +575,30 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
             {comments.length === 0 ? (
               <div className="p-3 text-gray-500 text-sm">No comments yet</div>
             ) : (
-              comments.map((comment: any) => (
+              comments.map((comment: Comment) => (
                 <div key={comment.id} className="p-3 hover:bg-gray-50 border-b border-gray-100">
-                  <div className="flex items-start">
-                    <img 
-                      src={comment.user?.profile_picture || images.adam} 
-                      alt={comment.user?.name}
-                      className="w-6 h-6 rounded-full mr-2 mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{comment.user?.name}</div>
-                      <div className="text-sm text-gray-700 mt-1">{comment.body}</div>
-                      <div className="text-xs text-gray-500 mt-1">{comment.created_at}</div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start flex-1">
+                      <img 
+                        src={comment.user?.profile_picture || images.adam} 
+                        alt={comment.user?.name}
+                        className="w-6 h-6 rounded-full mr-2 mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{comment.user?.name}</div>
+                        <div className="text-sm text-gray-700 mt-1">{comment.body}</div>
+                        <div className="text-xs text-gray-500 mt-1">{comment.created_at}</div>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => handleDeleteComment(String(comment.id))}
+                      disabled={deleteCommentMutation.isPending}
+                      className={`ml-2 text-red-500 hover:text-red-700 text-sm font-medium ${
+                        deleteCommentMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      }`}
+                    >
+                      {deleteCommentMutation.isPending ? 'Deleting...' : 'Delete'}
+                    </button>
                   </div>
                 </div>
               ))
@@ -552,7 +624,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
             />
             {media.length > 1 && (
               <div className="flex justify-center mt-4 gap-2">
-                {media.map((_, index) => (
+                {media.map((_: MediaItem, index: number) => (
                   <button
                     key={index}
                     onClick={() => setSelectedMediaIndex(index)}

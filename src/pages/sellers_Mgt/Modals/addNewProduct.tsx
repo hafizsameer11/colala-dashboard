@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createProduct, getCategories, getBrands } from "../../../utils/queries/users";
+import { createProduct, updateSellerProduct, getCategories, getBrands, getCSVTemplate, uploadBulkProductsCSV } from "../../../utils/queries/users";
 import images from "../../../constants/images";
 import AddAddressModal from "./addAddressModal";
 import AddNewDeliveryPricing from "./addNewDeliveryPricing";
+import { useToast } from "../../../contexts/ToastContext";
 
 interface AddNewProductProps {
   isOpen: boolean;
   onClose: () => void;
   selectedStore?: any;
+  editMode?: boolean;
+  initialProductData?: any;
 }
 
-const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selectedStore }) => {
+const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selectedStore, editMode = false, initialProductData }) => {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Fetch categories and brands data
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
@@ -29,21 +33,94 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     staleTime: 5 * 60 * 1000,
   });
 
-  // Create product mutation
+  // Create/Update product mutation
   const createProductMutation = useMutation({
-    mutationFn: createProduct,
+    mutationFn: (formData: FormData) => {
+      if (editMode && initialProductData?.product_info?.id && selectedStore?.id) {
+        return updateSellerProduct(selectedStore.id, initialProductData.product_info.id, formData);
+      }
+      return createProduct(formData);
+    },
     onSuccess: () => {
+      const action = editMode ? 'updated' : 'created';
+      showToast(`Product ${action} successfully!`, 'success');
       // Invalidate and refetch products data
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['sellerProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['adminProductDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProductDetails'] });
       // Reset form and close modal
       resetForm();
       onClose();
     },
     onError: (error) => {
-      console.error('Failed to create product:', error);
+      const action = editMode ? 'update' : 'create';
+      console.error(`Failed to ${action} product:`, error);
+      showToast(`Failed to ${action} product`, 'error');
       setIsSubmitting(false);
     },
+  });
+
+  // Bulk upload mutation
+  const bulkUploadMutation = useMutation({
+    mutationFn: uploadBulkProductsCSV,
+    onSuccess: () => {
+      showToast('Products uploaded successfully!', 'success');
+      
+      // Reset the file input
+      setUploadedFile(null);
+      const fileInput = document.getElementById('csvFileInput') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      
+      // Invalidate and refetch products data
+      queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProducts'] });
+    },
+    onError: (error) => {
+      console.error('Error uploading CSV:', error);
+      showToast('Error uploading CSV file. Please check the format and try again.', 'error');
+    }
+  });
+
+  // CSV Template download mutation
+  const downloadTemplateMutation = useMutation({
+    mutationFn: getCSVTemplate,
+    onSuccess: (response) => {
+      try {
+        const templateData = response.data;
+        
+        // Create CSV content from template data
+        const headers = templateData.headers.join(',');
+        const sampleRow = Object.values(templateData.sample_row).join(',');
+        
+        const csvContent = `${headers}\n${sampleRow}`;
+        
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'product_bulk_template.csv';
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+        
+        showToast('CSV template downloaded successfully', 'success');
+      } catch (error) {
+        console.error('Error processing CSV template:', error);
+        showToast('Error downloading CSV template', 'error');
+      }
+    },
+    onError: (error) => {
+      console.error('Error downloading CSV template:', error);
+      showToast('Failed to download CSV template', 'error');
+    }
   });
 
   // Form field states
@@ -109,6 +186,40 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     deliveryLocation: "",
     productImages: "",
   });
+
+  // Populate form with initial data when in edit mode
+  useEffect(() => {
+    if (editMode && initialProductData) {
+      const productInfo = initialProductData.product_info;
+      const variantsData = initialProductData.variants || [];
+      
+      if (productInfo) {
+        setProductName(productInfo.name || "");
+        setSelectedCategory(productInfo.category_id?.toString() || "");
+        setSelectedBrand(productInfo.brand || "");
+        setShortDescription(productInfo.description || "");
+        setFullDescription(productInfo.description || "");
+        setPrice(productInfo.price?.toString() || "");
+        setDiscountPrice(productInfo.discount_price?.toString() || "");
+        setHasVariants(productInfo.has_variants || false);
+        setLoyaltyPoints(productInfo.loyalty_points_applicable || false);
+        
+        // Set variants data
+        if (variantsData.length > 0) {
+          setVariants(variantsData.map((variant: any) => ({
+            id: variant.id,
+            sku: variant.sku || "",
+            color: variant.color || "",
+            size: variant.size || "",
+            price: variant.price?.toString() || "",
+            discount_price: variant.discount_price?.toString() || "",
+            stock: variant.stock?.toString() || "",
+            images: variant.images || [],
+          })));
+        }
+      }
+    }
+  }, [editMode, initialProductData]);
 
   // Extract categories and brands from API data
   const categories = categoriesData?.data || [];
@@ -401,234 +512,24 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
 
   const handleBulkUpload = async () => {
     if (!uploadedFile) {
-      alert("Please select a CSV file to upload");
+      showToast('Please select a CSV file to upload', 'warning');
       return;
     }
 
     setIsUploading(true);
 
     try {
-      // Read the CSV file
-      const text = await uploadedFile.text();
-      const lines = text.split("\n");
-      const headers = lines[0]
-        .split(",")
-        .map((header) => header.replace(/"/g, "").trim());
-
-      // Validate headers
-      const expectedHeaders = [
-        "Product Name",
-        "Category",
-        "Brand",
-        "Short Description",
-        "Full Description",
-        "Price",
-        "Discount Price",
-        "Variant",
-        "Coupon Code",
-        "Loyalty Points Allowed",
-        "Information Tag 1",
-        "Information Tag 2",
-        "Information Tag 3",
-        "Available Locations",
-        "Delivery Locations",
-        "Video URL",
-        "Image 1 URL",
-        "Image 2 URL",
-        "Image 3 URL",
-      ];
-
-      const isValidFormat = expectedHeaders.every((header) =>
-        headers.includes(header)
-      );
-
-      if (!isValidFormat) {
-        alert("Invalid CSV format. Please use the downloaded template.");
-        setIsUploading(false);
-        return;
-      }
-
-      // Process each product row
-      const products = [];
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim() === "") continue; // Skip empty lines
-
-        const values = lines[i]
-          .split(",")
-          .map((value) => value.replace(/"/g, "").trim());
-
-        if (values.length >= expectedHeaders.length) {
-          const product = {
-            productName: values[0],
-            category: values[1],
-            brand: values[2],
-            shortDescription: values[3],
-            fullDescription: values[4],
-            price: values[5],
-            discountPrice: values[6],
-            variant: values[7],
-            couponCode: values[8],
-            loyaltyPoints: values[9],
-            infoTag1: values[10],
-            infoTag2: values[11],
-            infoTag3: values[12],
-            availableLocations: values[13],
-            deliveryLocations: values[14],
-            videoUrl: values[15],
-            image1Url: values[16],
-            image2Url: values[17],
-            image3Url: values[18],
-          };
-
-          products.push(product);
-        }
-      }
-
-      // Simulate API call (replace with actual API endpoint)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Products to upload:", products);
-      alert(
-        `Successfully processed ${products.length} products from CSV file!`
-      );
-
-      // Reset the file input
-      setUploadedFile(null);
-      const fileInput = document.getElementById(
-        "csvFileInput"
-      ) as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
+      // Call the API with the CSV file
+      await bulkUploadMutation.mutateAsync(uploadedFile);
     } catch (error) {
-      console.error("Error processing CSV:", error);
-      alert(
-        "Error processing the CSV file. Please check the format and try again."
-      );
+      console.error('Error processing CSV:', error);
     } finally {
       setIsUploading(false);
     }
   };
 
   const downloadCSVTemplate = () => {
-    // Create PDF using data URL
-    const generatePDFDataURL = () => {
-      const content = `
-        %PDF-1.4
-        1 0 obj
-        <<
-        /Type /Catalog
-        /Pages 2 0 R
-        >>
-        endobj
-        
-        2 0 obj
-        <<
-        /Type /Pages
-        /Kids [3 0 R]
-        /Count 1
-        >>
-        endobj
-        
-        3 0 obj
-        <<
-        /Type /Page
-        /Parent 2 0 R
-        /MediaBox [0 0 612 792]
-        /Contents 4 0 R
-        /Resources <<
-          /Font << /F1 5 0 R >>
-        >>
-        >>
-        endobj
-        
-        4 0 obj
-        <<
-        /Length 2000
-        >>
-        stream
-        BT
-        /F1 24 Tf
-        50 750 Td
-        (Product Bulk Upload Template) Tj
-        0 -30 Td
-        /F1 12 Tf
-        (Instructions:) Tj
-        0 -20 Td
-        (1. Fill in all required fields for each product) Tj
-        0 -15 Td
-        (2. Use pipe separator | for multiple values) Tj
-        0 -15 Td
-        (3. Ensure all URLs are valid and accessible) Tj
-        0 -15 Td
-        (4. Save as CSV format when ready to upload) Tj
-        0 -30 Td
-        (Field Specifications:) Tj
-        0 -20 Td
-        (Product Name - iPhone 14 Pro Max - Required) Tj
-        0 -15 Td
-        (Category - Electronics - Required) Tj
-        0 -15 Td
-        (Brand - Apple - Required) Tj
-        0 -15 Td
-        (Short Description - Latest iPhone... - Required) Tj
-        0 -15 Td
-        (Price - 150000 - Required) Tj
-        0 -15 Td
-        (Discount Price - 140000 - Optional) Tj
-        0 -15 Td
-        (Variant - 128GB|256GB|512GB - Optional) Tj
-        0 -15 Td
-        (Available Locations - Warehouse A|B - Required) Tj
-        0 -15 Td
-        (Delivery Locations - City A|B|C - Required) Tj
-        ET
-        endstream
-        endobj
-        
-        5 0 obj
-        <<
-        /Type /Font
-        /Subtype /Type1
-        /BaseFont /Helvetica
-        >>
-        endobj
-        
-        xref
-        0 6
-        0000000000 65535 f 
-        0000000010 00000 n 
-        0000000079 00000 n 
-        0000000173 00000 n 
-        0000000301 00000 n 
-        0000002356 00000 n 
-        trailer
-        <<
-        /Size 6
-        /Root 1 0 R
-        >>
-        startxref
-        2456
-        %%EOF
-      `;
-
-      return content;
-    };
-
-    // Create PDF blob and download
-    const pdfContent = generatePDFDataURL();
-    const blob = new Blob([pdfContent], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "product_bulk_template.pdf";
-    link.style.display = "none";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Clean up
-    URL.revokeObjectURL(url);
+    downloadTemplateMutation.mutate();
   };
 
   return (
@@ -637,7 +538,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         {/* Header */}
         <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Add New Product</h2>
+            <h2 className="text-xl font-bold">{editMode ? 'Edit Product' : 'Add New Product'}</h2>
             <div className="flex items-center">
               <button
                 onClick={onClose}
@@ -747,7 +648,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   name="productName"
                   id="productName"
                   value={productName}
-                  onChange={(e) => setProductName((e.target as any).value)}
+                  onChange={(e) => setProductName(e.target.value)}
                   placeholder="Enter product name"
                   className={`border rounded-2xl p-5 ${
                     errors.productName ? "border-red-500" : "border-[#989898]"
@@ -873,7 +774,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   name="shortDescription"
                   id="shortDescription"
                   value={shortDescription}
-                  onChange={(e) => setShortDescription((e.target as any).value)}
+                  onChange={(e) => setShortDescription(e.target.value)}
                   placeholder="Type description"
                   className={`border rounded-2xl p-5 ${
                     errors.shortDescription
@@ -895,7 +796,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   name="fullDescription"
                   id="fullDescription"
                   value={fullDescription}
-                  onChange={(e) => setFullDescription((e.target as any).value)}
+                  onChange={(e) => setFullDescription(e.target.value)}
                   placeholder="Add full description"
                   rows={4}
                   className={`border rounded-2xl p-5 ${
@@ -919,7 +820,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   name="price"
                   id="price"
                   value={price}
-                  onChange={(e) => setPrice((e.target as any).value)}
+                  onChange={(e) => setPrice(e.target.value)}
                   placeholder="Type Price"
                   className={`border rounded-2xl p-5 ${
                     errors.price ? "border-red-500" : "border-[#989898]"
@@ -938,7 +839,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   name="discountPrice"
                   id="discountPrice"
                   value={discountPrice}
-                  onChange={(e) => setDiscountPrice((e.target as any).value)}
+                  onChange={(e) => setDiscountPrice(e.target.value)}
                   placeholder="Type Discount Price"
                   className="border border-[#989898] rounded-2xl p-5"
                 />
@@ -1058,7 +959,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   name="informationTag1"
                   id="informationTag1"
                   value={informationTag1}
-                  onChange={(e) => setInformationTag1((e.target as any).value)}
+                  onChange={(e) => setInformationTag1(e.target.value)}
                   placeholder="Information Tag 1"
                   className="border border-[#989898] rounded-2xl p-5 mb-2"
                 />
@@ -1162,7 +1063,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                       : "bg-[#E53E3E] cursor-pointer hover:bg-red-600"
                   }`}
                 >
-                  {isSubmitting ? "Creating Product..." : "Post Product"}
+                  {isSubmitting 
+                    ? (editMode ? "Updating Product..." : "Creating Product...") 
+                    : (editMode ? "Update Product" : "Post Product")
+                  }
                 </button>
               </div>
 
@@ -1208,11 +1112,14 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 </div>
                 <div className="flex items-center">
                   <img
-                    className="cursor-pointer w-8 h-8"
+                    className={`cursor-pointer w-8 h-8 ${downloadTemplateMutation.isPending ? 'opacity-50' : ''}`}
                     src={images.DownloadSimple}
                     alt=""
-                    onClick={downloadCSVTemplate}
+                    onClick={downloadTemplateMutation.isPending ? undefined : downloadCSVTemplate}
                   />
+                  {downloadTemplateMutation.isPending && (
+                    <div className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-[#E53E3E]"></div>
+                  )}
                 </div>
               </div>
               <div className="border border-[#CDCDCD] rounded-2xl flex flex-col items-center justify-center w-full mt-5 p-10 gap-2 relative">
@@ -1245,14 +1152,14 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 <button
                   type="button"
                   onClick={handleBulkUpload}
-                  disabled={!uploadedFile || isUploading}
+                  disabled={!uploadedFile || isUploading || bulkUploadMutation.isPending}
                   className={`w-full text-white rounded-xl py-4 font-medium transition-all ${
-                    !uploadedFile || isUploading
+                    !uploadedFile || isUploading || bulkUploadMutation.isPending
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-[#000] cursor-pointer hover:bg-gray-800"
                   }`}
                 >
-                  {isUploading ? "Processing CSV..." : "Upload bulk Products"}
+                  {isUploading || bulkUploadMutation.isPending ? "Processing CSV..." : "Upload bulk Products"}
                 </button>
               </div>
             </form>

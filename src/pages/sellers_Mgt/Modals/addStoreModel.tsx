@@ -10,6 +10,24 @@ interface AddStoreModalProps {
   onClose: () => void;
   onProceedToSavedAddress?: () => void;
   initialTab?: "Level 1" | "Level 2" | "Level 3";
+  editMode?: boolean;
+  initialStoreData?: {
+    id?: string;
+    storeName?: string;
+    email?: string;
+    phoneNumber?: string;
+    category?: number;
+    showPhoneOnProfile?: boolean;
+    profileImage?: string | null;
+    bannerImage?: string | null;
+    socialLinks?: Array<{ type: string; url: string }>;
+    location?: string;
+    storeStatus?: string;
+    businessDetails?: any;
+    addresses?: any[];
+    deliveryPricing?: any[];
+    isVerified?: boolean;
+  };
 }
 
 const AddStoreModal: React.FC<AddStoreModalProps> = ({
@@ -17,6 +35,8 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
   onClose,
   onProceedToSavedAddress,
   initialTab = "Level 1",
+  editMode = false,
+  initialStoreData,
 }) => {
   const [activeTab, setActiveTab] = useState<"Level 1" | "Level 2" | "Level 3">(
     initialTab
@@ -254,6 +274,8 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
                 onSaveAndClose={onClose}
                 onProceed={handleLevel1Complete}
                 isLoading={isLoading}
+                editMode={editMode}
+                initialData={initialStoreData}
               />
             )}
             {activeTab === "Level 2" && (

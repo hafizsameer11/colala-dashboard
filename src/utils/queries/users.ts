@@ -444,6 +444,23 @@ export const deleteSellerSocialFeedPost = async (userId: number | string, postId
 };
 
 /**
+ * Delete seller social feed post comment
+ */
+export const deleteSellerSocialFeedComment = async (userId: number | string, postId: number | string, commentId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.SELLER_SOCIAL_FEED.DeleteComment(userId, postId, commentId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete seller social feed comment API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get seller products with pagination
  */
 export const getSellerProducts = async (userId: number | string, page: number = 1) => {
@@ -626,6 +643,40 @@ export const createSellerCoupon = async (userId: number | string, couponData: an
     return response;
   } catch (error) {
     console.error('Create seller coupon API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update seller coupon
+ */
+export const updateSellerCoupon = async (userId: number | string, couponId: number | string, couponData: any) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.SELLER_COUPONS.Update(userId, couponId), 'PUT', couponData, token);
+    return response;
+  } catch (error) {
+    console.error('Update seller coupon API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete seller coupon
+ */
+export const deleteSellerCoupon = async (userId: number | string, couponId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.SELLER_COUPONS.Delete(userId, couponId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete seller coupon API call error:', error);
     throw error;
   }
 };
@@ -846,6 +897,23 @@ export const updateSubscriptionPlan = async (planId: number | string, planData: 
     return response;
   } catch (error) {
     console.error('Update subscription plan API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get subscription details
+ */
+export const getSubscriptionDetails = async (subscriptionId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SUBSCRIPTIONS.Details(subscriptionId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Subscription details API call error:', error);
     throw error;
   }
 };
@@ -1567,6 +1635,130 @@ export const createUser = async (userData: {
     return response;
   } catch (error) {
     console.error('Create user API call error:', error);
+    throw error;
+  }
+};
+
+// ==================== CSV BULK UPLOAD FUNCTIONS ====================
+
+/**
+ * Get CSV template for bulk product upload
+ */
+export const getCSVTemplate = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.SELLER_PRODUCTS.BulkUploadTemplate, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get CSV template API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload CSV file for bulk product creation
+ */
+export const uploadBulkProductsCSV = async (csvFile: File) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const formData = new FormData();
+    formData.append('csv_file', csvFile);
+    
+    const response = await apiCall(API_ENDPOINTS.SELLER_PRODUCTS.BulkUploadFile, 'POST', formData, token);
+    return response;
+  } catch (error) {
+    console.error('Upload bulk products CSV API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update seller product
+ */
+export const updateSellerProduct = async (userId: number | string, productId: number | string, productData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.SELLER_PRODUCTS.Update(userId, productId), 'PUT', productData, token);
+    return response;
+  } catch (error) {
+    console.error('Update seller product API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete seller product
+ */
+export const deleteSellerProduct = async (userId: number | string, productId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.SELLER_PRODUCTS.Delete(userId, productId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete seller product API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Bulk action on users (activate, deactivate, delete)
+ */
+export const bulkActionUsers = async (userIds: string[], action: 'activate' | 'deactivate' | 'delete') => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BUYER_USERS.BulkAction, 'POST', {
+      user_ids: userIds,
+      action: action
+    }, token);
+    return response;
+  } catch (error) {
+    console.error('Bulk action users API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Bulk action on buyer orders (update_status, mark_completed, mark_disputed, delete)
+ */
+export const bulkActionBuyerOrders = async (
+  orderIds: string[], 
+  action: 'update_status' | 'mark_completed' | 'mark_disputed' | 'delete',
+  status?: string
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const requestBody: any = {
+      order_ids: orderIds,
+      action: action
+    };
+    
+    // Add status if action is update_status
+    if (action === 'update_status' && status) {
+      requestBody.status = status;
+    }
+    
+    const response = await apiCall(API_ENDPOINTS.BUYER_ORDERS.BulkAction, 'POST', requestBody, token);
+    return response;
+  } catch (error) {
+    console.error('Bulk action buyer orders API call error:', error);
     throw error;
   }
 };
