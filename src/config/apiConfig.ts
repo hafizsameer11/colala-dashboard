@@ -377,6 +377,15 @@ const API_ENDPOINTS = {
   },
 
   // FAQ MANAGEMENT
+  // LEADERBOARD
+  LEADERBOARD: {
+    Main: API_DOMAIN + "/admin/leaderboard", // GET
+    TopRevenue: API_DOMAIN + "/admin/leaderboard/top-revenue", // GET
+    TopOrders: API_DOMAIN + "/admin/leaderboard/top-orders", // GET
+    TopFollowers: API_DOMAIN + "/admin/leaderboard/top-followers", // GET
+    Analytics: API_DOMAIN + "/admin/leaderboard/analytics", // GET
+  },
+
   FAQ: {
     Statistics: API_DOMAIN + "/admin/faq/statistics", // GET
     Categories: API_DOMAIN + "/admin/faq/categories", // GET

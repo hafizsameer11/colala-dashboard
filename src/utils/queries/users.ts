@@ -1814,3 +1814,109 @@ export const getUserBalanceDetails = async (userId: number | string) => {
   }
 };
 
+/**
+ * Get comprehensive leaderboard data (today, weekly, monthly, all)
+ */
+export const getLeaderboard = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.LEADERBOARD.Main, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get leaderboard API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get top performing stores by revenue
+ */
+export const getTopStoresByRevenue = async (dateFrom?: string, dateTo?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = API_ENDPOINTS.LEADERBOARD.TopRevenue;
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get top stores by revenue API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get top performing stores by orders
+ */
+export const getTopStoresByOrders = async (dateFrom?: string, dateTo?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = API_ENDPOINTS.LEADERBOARD.TopOrders;
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get top stores by orders API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get top performing stores by followers
+ */
+export const getTopStoresByFollowers = async () => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.LEADERBOARD.TopFollowers, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get top stores by followers API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get leaderboard analytics and trends
+ */
+export const getLeaderboardAnalytics = async (dateFrom?: string, dateTo?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = API_ENDPOINTS.LEADERBOARD.Analytics;
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get leaderboard analytics API call error:', error);
+    throw error;
+  }
+};
+

@@ -51,6 +51,10 @@ const Analytics = () => {
   const userTrends = analyticsData?.data?.user_trends || [];
   const orderTrends = analyticsData?.data?.order_trends || [];
   const revenueTrends = analyticsData?.data?.revenue_trends || [];
+  const topStores = analyticsData?.data?.top_stores || [];
+  const categoryBreakdown = analyticsData?.data?.category_breakdown || [];
+  const chatAnalytics = analyticsData?.data?.chat_analytics || {};
+  const socialAnalytics = analyticsData?.data?.social_analytics || {};
 
   // Type definitions for API data
   interface TrendData {
@@ -130,7 +134,7 @@ const Analytics = () => {
   const chartData = {
     labels: userTrends.slice(-12).map((trend: TrendData) => {
       const date = new Date(trend.date);
-      return date.toLocaleDateString('en-US', { month: 'short' });
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }),
     datasets: [
       {
@@ -919,8 +923,10 @@ const Analytics = () => {
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
-                  <div className="text-xs">Total Users</div>
-                  <div className="text-[20px] font-bold">200,000</div>
+                  <div className="text-xs">Active Orders</div>
+                  <div className="text-[20px] font-bold">
+                    {isLoading ? '...' : (siteStats.active_orders || 0).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
@@ -930,8 +936,10 @@ const Analytics = () => {
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
-                  <div className="text-xs">Active Orders</div>
-                  <div className="text-[20px] font-bold">574</div>
+                  <div className="text-xs">Completed Orders</div>
+                  <div className="text-[20px] font-bold">
+                    {isLoading ? '...' : (siteStats.completed_orders || 0).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
@@ -941,8 +949,10 @@ const Analytics = () => {
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
-                  <div className="text-xs">Completed Orders</div>
-                  <div className="text-[20px] font-bold">355</div>
+                  <div className="text-xs">Total Products</div>
+                  <div className="text-[20px] font-bold">
+                    {isLoading ? '...' : (siteStats.total_products || 0).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
@@ -953,8 +963,10 @@ const Analytics = () => {
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
-                  <div className="text-xs">Products Listed</div>
-                  <div className="text-[20px] font-bold">2,000</div>
+                  <div className="text-xs">Total Chats</div>
+                  <div className="text-[20px] font-bold">
+                    {isLoading ? '...' : (siteStats.total_chats || 0).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
@@ -964,8 +976,10 @@ const Analytics = () => {
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
-                  <div className="text-xs">Total Chats</div>
-                  <div className="text-[20px] font-bold">124</div>
+                  <div className="text-xs">Total Posts</div>
+                  <div className="text-[20px] font-bold">
+                    {isLoading ? '...' : (siteStats.total_posts || 0).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
@@ -975,8 +989,10 @@ const Analytics = () => {
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
-                  <div className="text-xs">Total Posts</div>
-                  <div className="text-[20px] font-bold">15</div>
+                  <div className="text-xs">Total Revenue</div>
+                  <div className="text-[20px] font-bold">
+                    {isLoading ? '...' : `₦${(siteStats.total_revenue || 0).toLocaleString()}`}
+                  </div>
                 </div>
               </div>
             </div>

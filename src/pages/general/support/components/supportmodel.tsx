@@ -135,13 +135,13 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Support</h2>
             <div className="flex flex-row items-center gap-3">
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={onClose}
                 className="p-2 rounded-md  cursor-pointer"
