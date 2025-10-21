@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreReviewDetails } from "../../../../utils/queries/users";
 import images from "../../../../constants/images";
@@ -26,6 +26,7 @@ interface ReviewData {
   images?: string[];
 }
 
+
 interface StoreRatingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,43 +38,18 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
   onClose,
   reviewData,
 }) => {
-  const [reviewDetails, setReviewDetails] = useState<{
-    id: number;
-    rating: number;
-    comment: string;
-    images: string[];
-    user: {
-      id: number;
-      full_name: string;
-      email: string;
-    };
-    store: {
-      id: number;
-      store_name: string;
-    };
-    created_at: string;
-    formatted_date: string;
-  } | null>(null);
-
   // Extract review ID from the reviewData
   const reviewId = reviewData?.id?.replace('store-', '') || '';
 
   // Fetch detailed review data
-  const { data: detailedReviewData, isLoading, error } = useQuery({
+  const { data: reviewDetailsData, isLoading, error } = useQuery({
     queryKey: ['storeReviewDetails', reviewId],
     queryFn: () => getStoreReviewDetails(reviewId),
     enabled: isOpen && !!reviewId,
   });
 
-  // Update review details when data is fetched
-  useEffect(() => {
-    if (detailedReviewData?.data) {
-      setReviewDetails(detailedReviewData.data);
-    }
-  }, [detailedReviewData]);
-
   // Debug logging
-  console.log('Store Review Details Debug:', detailedReviewData);
+  console.log('Store Review Details Debug:', reviewDetailsData);
 
   if (!isOpen) return null;
 
@@ -133,7 +109,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-black">
-              {isLoading ? 'Loading...' : reviewDetails?.store?.store_name || 'Store'} Review Details
+              {isLoading ? 'Loading...' : reviewDetailsData?.data?.store?.store_name || 'Store'} Review Details
             </h2>
           </div>
 
@@ -157,7 +133,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
             <div className="flex items-center justify-center h-full">
               <div className="text-lg text-red-600">Error loading review details. Please try again.</div>
             </div>
-          ) : reviewDetails ? (
+          ) : reviewDetailsData?.data ? (
             <>
               {/* Store Cover Section */}
               <div className="relative h-30 mt-10 ml-5 mb-14">
@@ -177,13 +153,16 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                   <div className="relative">
                     <img
                       className="w-18 h-18 rounded-full object-cover shadow-lg"
-                      src={images.sasha}
+                      src={reviewDetailsData?.data?.store?.profile_image ? `https://colala.hmstech.xyz/storage/${reviewDetailsData.data.store.profile_image}` : images.sasha}
                       alt="Store"
+                      onError={(e) => {
+                        e.currentTarget.src = images.sasha;
+                      }}
                     />
                   </div>
                   <div className="flex flex-col justify-end pb-3">
                     <h3 className="text-[18px] font-semibold text-black mb-1 drop-shadow-lg">
-                      {reviewDetails.store?.store_name || 'Unknown Store'}
+                      {reviewDetailsData?.data?.store?.store_name || 'Unknown Store'}
                     </h3>
                   </div>
                 </div>
@@ -195,22 +174,22 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
             </div>
           )}
 
-          {reviewDetails && (
+          {reviewDetailsData?.data && (
             <>
               {/* Content with padding */}
               <div className="px-6 mt-4">
                 {/* Star Rating Section */}
                 <div className="flex flex-row items-center justify-center gap-5 mb-6">
-                  {renderMainStars(reviewDetails.rating)}
+                  {renderMainStars(reviewDetailsData?.data?.rating || 0)}
                 </div>
 
                 {/* Rating Stats */}
                 <div className="flex flex-row justify-between border-b border-[#00000080] pb-4 mb-6">
                   <span className="text-[#E53E3E] text-[14px]">
-                    {reviewDetails.rating} Stars
+                    {reviewDetailsData?.data?.rating || 0} Stars
                   </span>
                   <span className="text-[#E53E3E] text-[14px]">
-                    Review ID: {reviewDetails.id}
+                    Review ID: {reviewDetailsData?.data?.id || 'N/A'}
                   </span>
                 </div>
 
@@ -220,38 +199,46 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                     <div className="flex flex-row justify-between mb-3">
                       <div className="flex flex-row gap-2">
                         <span>
-                          <img className="w-10 h-10" src={images.admin} alt="" />
+                          <img 
+                            className="w-10 h-10 rounded-full object-cover" 
+                            src={reviewDetailsData?.data?.user?.profile_picture ? `https://colala.hmstech.xyz/storage/${reviewDetailsData.data.user.profile_picture}` : images.admin} 
+                            alt="User"
+                            onError={(e) => {
+                              e.currentTarget.src = images.admin;
+                            }}
+                          />
                         </span>
                         <div className="flex flex-col">
                           <span className="font-medium text-md text-black">
-                            {reviewDetails.user?.full_name || 'Unknown User'}
+                            {reviewDetailsData?.data?.user?.full_name || 'Unknown User'}
                           </span>
                           <span className="text-xs text-gray-500">
-                            {reviewDetails.user?.email || 'No email'}
+                            {reviewDetailsData?.data?.user?.email || 'No email'}
                           </span>
                           <div className="flex flex-row">
-                            {renderStars(reviewDetails.rating)}
+                            {renderStars(reviewDetailsData?.data?.rating || 0)}
                           </div>
                         </div>
                       </div>
                       <div>
                         <span className="text-[#00000080] text-sm">
-                          {reviewDetails.formatted_date || reviewDetails.created_at}
+                          {reviewDetailsData?.data?.formatted_date || reviewDetailsData?.data?.created_at || 'Unknown date'}
                         </span>
                       </div>
                     </div>
                     <div className="mt-3 mb-3">
-                      <span className="text-sm">{reviewDetails.comment || 'No comment provided'}</span>
+                      <span className="text-sm">{reviewDetailsData?.data?.comment || 'No comment provided'}</span>
                     </div>
-                    {reviewDetails.images && reviewDetails.images.length > 0 && (
+                    {reviewDetailsData?.data?.images && reviewDetailsData.data.images.length > 0 && (
                       <div className="mb-3">
                         <div className="flex flex-row gap-2">
-                          {reviewDetails.images.map((image: string, index: number) => (
+                          {reviewDetailsData.data.images.map((image: string, index: number) => (
                             <img
                               key={index}
-                              className="w-16 h-16 rounded-lg object-cover"
-                              src={image}
+                              className="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                              src={`https://colala.hmstech.xyz/storage/${image}`}
                               alt={`Review Image ${index + 1}`}
+                              onClick={() => window.open(`https://colala.hmstech.xyz/storage/${image}`, '_blank')}
                             />
                           ))}
                         </div>

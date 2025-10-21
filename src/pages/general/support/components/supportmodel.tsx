@@ -4,10 +4,23 @@ import images from "../../../../constants/images";
 import { getSupportTicketDetails } from "../../../../utils/queries/support";
 import { replyToTicket, updateTicketStatus, resolveTicket, closeTicket } from "../../../../utils/mutations/support";
 
+interface Message {
+  id: number;
+  message: string;
+  sender_id: number;
+  formatted_date?: string;
+  created_at: string;
+  attachment?: string;
+  [key: string]: unknown;
+}
+
 interface SupportModelProps {
   isOpen: boolean;
   onClose: () => void;
-  ticketData?: any;
+  ticketData?: {
+    id: number | string;
+    [key: string]: unknown;
+  } | null;
 }
 
 const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData }) => {
@@ -16,10 +29,15 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  // Helper function to get ticket ID safely
+  const getTicketId = () => {
+    return ticketData?.id || 0;
+  };
+
   // Fetch ticket details
   const { data: ticketDetails, isLoading, error } = useQuery({
     queryKey: ['supportTicketDetails', ticketData?.id],
-    queryFn: () => getSupportTicketDetails(ticketData?.id),
+    queryFn: () => getSupportTicketDetails(getTicketId()),
     enabled: !!ticketData?.id && isOpen,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -28,9 +46,9 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
   const replyMutation = useMutation({
     mutationFn: (data: string | FormData) => {
       if (typeof data === 'string') {
-        return replyToTicket(ticketData?.id, data);
+        return replyToTicket(getTicketId(), data);
       } else {
-        return replyToTicket(ticketData?.id, data);
+        return replyToTicket(getTicketId(), data);
       }
     },
     onSuccess: () => {
@@ -43,7 +61,7 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
 
   // Update status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: (status: string) => updateTicketStatus(ticketData?.id, status),
+    mutationFn: (status: string) => updateTicketStatus(getTicketId(), status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supportTicketDetails', ticketData?.id] });
       queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
@@ -52,7 +70,7 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
 
   // Resolve mutation
   const resolveMutation = useMutation({
-    mutationFn: () => resolveTicket(ticketData?.id),
+    mutationFn: () => resolveTicket(getTicketId()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supportTicketDetails', ticketData?.id] });
       queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
@@ -61,7 +79,7 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
 
   // Close mutation
   const closeMutation = useMutation({
-    mutationFn: () => closeTicket(ticketData?.id),
+    mutationFn: () => closeTicket(getTicketId()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supportTicketDetails', ticketData?.id] });
       queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
@@ -168,7 +186,7 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
                 <div>
                   <img 
                     className="w-14 h-14 rounded-full object-cover" 
-                    src={images.admin} 
+                    src={ticketDetails.data.user_info?.profile_picture || images.admin} 
                     alt="User" 
                     onError={(e) => {
                       e.currentTarget.src = images.admin;
@@ -285,7 +303,7 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
             
             {/* Messages from API */}
             {ticketDetails.data.messages && ticketDetails.data.messages.length > 0 ? (
-              ticketDetails.data.messages.map((message: any, index: number) => (
+              ticketDetails.data.messages.map((message: Message, index: number) => (
                 <div key={index} className="flex flex-row justify-between">
                   {message.sender_id === ticketDetails.data.user_info?.user_id ? (
                     <div></div>
@@ -298,7 +316,7 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
                     {/* Message Text */}
                     {message.message && (
                       <span className={message.sender_id === ticketDetails.data.user_info?.user_id ? 'text-white' : 'text-black'}>
-                        {message.message}
+                        {String(message.message)}
                       </span>
                     )}
                     
@@ -306,10 +324,10 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
                     {message.attachment && (
                       <div className="mt-2">
                         <img 
-                          src={message.attachment} 
+                          src={String(message.attachment)} 
                           alt="Attachment" 
                           className="max-w-full h-auto rounded-lg cursor-pointer"
-                          onClick={() => window.open(message.attachment, '_blank')}
+                          onClick={() => window.open(String(message.attachment), '_blank')}
                         />
                       </div>
                     )}
@@ -368,7 +386,10 @@ const SupportModel: React.FC<SupportModelProps> = ({ isOpen, onClose, ticketData
                   type="text"
                   placeholder="Type a message"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    setNewMessage((e.target as any).value);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();

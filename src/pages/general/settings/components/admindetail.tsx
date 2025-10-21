@@ -9,16 +9,11 @@ interface Admin {
   email: string;
   phone: string;
   profile_picture: string | null;
-  role: "buyer" | "seller";
-  is_active: number;
+  role: "admin" | "moderator" | "super_admin";
+  is_active: boolean;
   wallet_balance: string;
   created_at: string;
   user_name?: string;
-  country?: string;
-  state?: string;
-  status?: "active" | "inactive";
-  user_code?: string;
-  updated_at?: string;
 }
 
 interface UserDetails {

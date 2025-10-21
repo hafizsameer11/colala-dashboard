@@ -4,20 +4,48 @@ import { getDisputesList, getDisputeDetails, resolveDispute, closeDispute } from
 
 export interface Dispute {
   id: string | number;
+  category?: string;
+  details?: string;
+  images?: string[];
+  status: "open" | "resolved" | "closed";
+  won_by?: string | null;
+  resolution_notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  resolved_at?: string | null;
+  closed_at?: string | null;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  chat?: {
+    id: number;
+    store_name: string;
+    user_name: string;
+    last_message: string;
+    created_at: string;
+  };
+  store_order?: {
+    id: number;
+    order_id: number;
+    status: string;
+    items_subtotal: string;
+    shipping_fee: string;
+    subtotal_with_shipping: string;
+    created_at: string;
+  };
+  // Legacy fields for backward compatibility
   store_name?: string;
   user_name?: string;
   last_message?: string;
   chat_date?: string;
-  won_by?: string;
-  status: "pending" | "resolved" | "on_hold";
-  created_at?: string;
-  updated_at?: string;
-  // Legacy fields for backward compatibility
+  wonBy?: string;
   storeName?: string;
   userName?: string;
   lastMessage?: string;
   chatDate?: string;
-  wonBy?: string;
 }
 
 type Tab = "All" | "Pending" | "On Hold" | "Resolved";
@@ -62,8 +90,8 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       // Add status filter based on active tab
       if (activeTab !== "All") {
         const statusMap: Record<string, string> = {
-          "Pending": "pending",
-          "On Hold": "on_hold", 
+          "Pending": "open",
+          "On Hold": "open", // Map "On Hold" to "open" status from API
           "Resolved": "resolved"
         };
         params.status = statusMap[activeTab];
@@ -95,10 +123,10 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
   // Helper function to get display values from dispute object
   const getDisputeDisplayValues = (dispute: Dispute) => {
     return {
-      storeName: dispute.store_name || dispute.storeName || 'N/A',
-      userName: dispute.user_name || dispute.userName || 'N/A',
-      lastMessage: dispute.last_message || dispute.lastMessage || 'N/A',
-      chatDate: dispute.chat_date || dispute.chatDate || 'N/A',
+      storeName: dispute.chat?.store_name || dispute.store_name || dispute.storeName || 'N/A',
+      userName: dispute.chat?.user_name || dispute.user?.name || dispute.user_name || dispute.userName || 'N/A',
+      lastMessage: dispute.chat?.last_message || dispute.last_message || dispute.lastMessage || 'N/A',
+      chatDate: dispute.chat?.created_at ? new Date(dispute.chat.created_at).toLocaleDateString() : dispute.chat_date || dispute.chatDate || 'N/A',
       wonBy: dispute.won_by || dispute.wonBy || '-'
     };
   };
@@ -107,6 +135,11 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
     switch (status) {
       case "resolved":
         return <div className="w-4 h-4 bg-[#008000] rounded-full"></div>;
+      case "open":
+        return <div className="w-4 h-4 bg-[#FFA500] rounded-full"></div>;
+      case "closed":
+        return <div className="w-4 h-4 bg-[#000000] rounded-full"></div>;
+      // Legacy status support
       case "pending":
         return <div className="w-4 h-4 bg-[#FFA500] rounded-full"></div>;
       case "on_hold":

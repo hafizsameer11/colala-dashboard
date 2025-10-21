@@ -8,7 +8,7 @@ import Categories from "./components/categories";
 import BrandsManagement from "./components/brandsManagement";
 import QuestionModal from "./components/questionmodal";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
-import { getAllUsers, getUserDetails } from "../../../utils/queries/users";
+import { getUserDetails, getAdminUsers } from "../../../utils/queries/users";
 import { 
   getFaqStatistics, 
   getFaqCategories, 
@@ -54,17 +54,14 @@ interface FaqStatistics {
 interface Admin {
   id: number;
   full_name: string;
+  user_name?: string;
   email: string;
   phone: string;
   profile_picture: string | null;
-  role: "buyer" | "seller";
-  status: "active" | "inactive";
-  wallet_balance: string | null;
-  escrow_balance: string | null;
-  points_balance: string | null;
-  store_name: string | null;
+  role: "admin" | "moderator" | "super_admin";
+  is_active: boolean;
+  wallet_balance: string;
   created_at: string;
-  formatted_date: string;
 }
 
 interface UserDetails {
@@ -140,8 +137,11 @@ const AllUsers = () => {
     error: usersError,
     refetch: refetchUsers 
   } = useQuery({
-    queryKey: ['allUsers', currentPage, debouncedSearch],
-    queryFn: () => getAllUsers(currentPage, debouncedSearch),
+    queryKey: ['adminUsers', currentPage, debouncedSearch],
+    queryFn: () => getAdminUsers({
+      search: debouncedSearch,
+      page: currentPage
+    }),
     enabled: activeTab === "Admin Management"
   });
 

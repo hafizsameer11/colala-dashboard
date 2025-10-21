@@ -5,17 +5,14 @@ import { getProfilePictureUrl } from "../../../../utils/imageUtils";
 interface Admin {
   id: number;
   full_name: string;
+  user_name?: string;
   email: string;
   phone: string;
   profile_picture: string | null;
-  role: "buyer" | "seller";
-  status: "active" | "inactive";
-  wallet_balance: string | null;
-  escrow_balance: string | null;
-  points_balance: string | null;
-  store_name: string | null;
+  role: "admin" | "moderator" | "super_admin";
+  is_active: boolean;
+  wallet_balance: string;
   created_at: string;
-  formatted_date: string;
 }
 
 interface PaginationProps {
@@ -71,9 +68,8 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
         user.role,
         user.email,
         user.phone,
-        user.store_name,
         user.created_at,
-        user.status,
+        user.is_active ? 'active' : 'inactive',
       ]
         .filter(Boolean)
         .join(" ")
@@ -187,12 +183,12 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                   <td className="p-4 text-black">{user.email}</td>
                   <td className="p-4 text-black capitalize">{user.role}</td>
                   <td className="p-4 text-black">{user.phone}</td>
-                  <td className="p-4 text-black">{user.formatted_date}</td>
+                  <td className="p-4 text-black">{user.created_at}</td>
                   <td className="p-4">
                     <div className="flex items-center justify-center">
                       <div
                         className={`w-5 h-5 rounded-full ${
-                          user.status === "active"
+                          user.is_active
                             ? "bg-[#008000]"
                             : "bg-red-500"
                         }`}

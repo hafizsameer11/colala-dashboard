@@ -377,9 +377,12 @@ const StoreTable: React.FC<StoreTableProps> = ({
                   </td>
                   <td className="p-3 text-left flex items-center gap-3">
                     <img
-                      src="/assets/layout/admin.png"
+                      src={store.profileImage || images.admin}
                       alt="User"
                       className="w-10 h-10 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = images.admin;
+                      }}
                     />
                     <span className="font-medium text-gray-900">{store.storeName}</span>
                   </td>

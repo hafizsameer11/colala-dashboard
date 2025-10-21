@@ -1,24 +1,105 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import images from "../../../../constants/images";
 import WarningModal from "./WarningModal";
 import { getDisputeDetails, resolveDispute, closeDispute } from "../../../../utils/queries/disputes";
 
+interface OrderItem {
+  id: number;
+  name: string;
+  sku?: string | null;
+  unit_price: string;
+  qty: number;
+  line_total: string;
+}
+
+interface ChatMessage {
+  id: number;
+  message: string;
+  sender_type: 'buyer' | 'store';
+  created_at: string;
+}
+
 interface Dispute {
   id: string | number;
+  category?: string;
+  details?: string;
+  images?: string[];
+  status: "open" | "resolved" | "closed";
+  won_by?: string | null;
+  resolution_notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  resolved_at?: string | null;
+  closed_at?: string | null;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  chat?: {
+    id: number;
+    store_name: string;
+    user_name: string;
+    last_message: string;
+    created_at: string;
+    store?: {
+      id: number;
+      name: string;
+      logo?: string;
+    };
+    user?: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    recent_messages?: Array<{
+      id: number;
+      message: string;
+      sender_type: 'buyer' | 'store';
+      created_at: string;
+    }>;
+  };
+  store_order?: {
+    id: number;
+    order_id: number;
+    status: string;
+    items_subtotal: string;
+    shipping_fee: string;
+    subtotal_with_shipping: string;
+    created_at: string;
+    order?: {
+      id: number;
+      order_no: string;
+      status: string;
+      grand_total: string;
+      payment_status: string;
+    };
+    store?: {
+      id: number;
+      name: string;
+      logo?: string;
+    };
+    items?: Array<{
+      id: number;
+      name: string;
+      sku?: string | null;
+      unit_price: string;
+      qty: number;
+      line_total: string;
+    }>;
+  };
+  // Legacy fields for backward compatibility
   store_name?: string;
   user_name?: string;
   last_message?: string;
   chat_date?: string;
-  won_by?: string;
-  status: "pending" | "resolved" | "on_hold";
-  created_at?: string;
-  updated_at?: string;
-  // Legacy fields for backward compatibility
+  wonBy?: string;
   storeName?: string;
   userName?: string;
   lastMessage?: string;
   chatDate?: string;
-  wonBy?: string;
 }
 
 interface DisputesModalProps {
@@ -41,10 +122,16 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
   const [showWarningModal, setShowWarningModal] = useState(false);
   
   // Dispute details and loading states
-  const [disputeDetails, setDisputeDetails] = useState<any>(null);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  // Fetch detailed dispute information
+  const { data: disputeDetails, isLoading: isLoadingDetails, error: detailsError } = useQuery({
+    queryKey: ['disputeDetails', disputeData?.id],
+    queryFn: () => getDisputeDetails(disputeData?.id || 0),
+    enabled: !!disputeData?.id && isOpen,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const openWarning = useCallback(() => setShowWarningModal(true), []);
   const closeWarning = useCallback(() => setShowWarningModal(false), []);
@@ -55,26 +142,6 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
   }, [hasJoinedChat, wonBy, onClose, openWarning]);
 
   // Fetch dispute details when modal opens
-  useEffect(() => {
-    if (isOpen && disputeData?.id) {
-      const fetchDisputeDetails = async () => {
-        try {
-          setIsLoadingDetails(true);
-          const response = await getDisputeDetails(disputeData.id);
-          if (response.status === 'success') {
-            setDisputeDetails(response.data);
-          }
-        } catch (error: unknown) {
-          console.error('Error fetching dispute details:', error);
-          console.error('Failed to load dispute details');
-        } finally {
-          setIsLoadingDetails(false);
-        }
-      };
-
-      fetchDisputeDetails();
-    }
-  }, [isOpen, disputeData?.id]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -213,13 +280,13 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                   </div>
                 )}
               </div>
-              <div className="rounded-full p-2 border border-[#CDCDCD]">
+              {/* <div className="rounded-full p-2 border border-[#CDCDCD]">
                 <img
                   className="cursor-pointer"
                   src={images.shoppingcart}
                   alt=""
                 />
-              </div>
+              </div> */}
               <button
                 onClick={handleClose}
                 className="p-2 rounded-md cursor-pointer"
@@ -231,21 +298,34 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
           </div>
         </div>
         {/* Content */}
-        <div className="pr-5 pl-5 mt-3">
-          <div className="flex flex-row justify-between">
-            <div className="flex gap-2">
-              <div>
-                <img className="w-14 h-14" src={images.sasha} alt="" />
+        {isLoadingDetails ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        ) : detailsError ? (
+          <div className="text-center text-red-500 p-4">
+            <p className="text-sm">Error loading dispute details</p>
+          </div>
+        ) : disputeDetails?.data ? (
+          <div className="pr-5 pl-5 mt-3">
+            <div className="flex flex-row justify-between">
+              <div className="flex gap-2">
+                <div>
+                  <img 
+                    className="w-14 h-14 rounded-full object-cover" 
+                    src={disputeDetails.data.dispute?.user?.profile_picture} 
+                    alt="User" 
+                  />
+                </div>
+                <div className="flex flex-col gap-1 items-center justify-center">
+                  <span className="text-[16px] mr-9">
+                    {disputeDetails.data.dispute?.user?.name || disputeDetails.data.dispute?.chat?.user?.name || "Unknown User"}
+                  </span>
+                  <span className="text-[#00000080] text-[14px] ml-[12px]">
+                    {disputeDetails.data.dispute?.user?.email || disputeDetails.data.dispute?.chat?.user?.email || "No email"}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col gap-1 items-center justify-center">
-                <span className="text-[16px] mr-9">
-                  {disputeData?.userName || "Cynthia Grace"}
-                </span>
-                <span className="text-[#00000080] text-[14px] ml-[12px]">
-                  Last seen: 2 min ago
-                </span>
-              </div>
-            </div>
 
             <div className="mt-5 flex flex-col gap-2">
               {!hasJoinedChat ? (
@@ -292,86 +372,140 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
               </button>
             </div>
           </div>
+          {/* Dispute Information */}
           <div className="border border-[#E53E3E] bg-[#FFE5E5] rounded-2xl p-3 mt-3">
             <div className="flex flex-col">
-              <div className="flex flex-row justify-between">
-                <span className="font-semibold">Items in cart (2)</span>
-                <span className="text-[#E53E3E] font-semibold">N5,000,000</span>
+              <div className="flex flex-row justify-between items-center mb-3">
+                <span className="font-semibold text-lg">Dispute Information</span>
+                <span className={`font-semibold px-3 py-1 rounded-full text-xs ${
+                  disputeDetails.data.dispute?.status === 'open' 
+                    ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' 
+                    : disputeDetails.data.dispute?.status === 'resolved'
+                    ? 'bg-green-100 text-green-800 border border-green-300'
+                    : 'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                  {disputeDetails.data.dispute?.status?.toUpperCase() || 'UNKNOWN'}
+                </span>
               </div>
-              <div className="flex flex-row mt-3">
-                <div>
-                  <img className="rounded-l-lg" src={images.iphone} alt="" />
+              <div className="space-y-2">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-700">Dispute ID</span>
+                  <span className="text-sm text-gray-900">#{disputeDetails.data.dispute?.id || 'N/A'}</span>
                 </div>
-                <div className="flex flex-col p-1 pr-3 pl-3 bg-[#F9F9F9] w-full rounded-r-lg justify-between">
-                  <div className="text-[18px]">Iphone 16 pro max - Black</div>
-                  <div className="flex flex-row justify-between">
-                    <span className="text-[#E53E3E] font-semibold">
-                      N2,500,000
-                    </span>
-                    <span>Qty: 1</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-700">Category</span>
+                  <span className="text-sm text-gray-900">{disputeDetails.data.dispute?.category || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-700">Details</span>
+                  <span className="text-sm text-gray-900">{disputeDetails.data.dispute?.details || 'No details provided'}</span>
+                </div>
+                
+                {/* Dispute Images */}
+                {disputeDetails.data.dispute?.images && disputeDetails.data.dispute.images.length > 0 && (
+                  <div className="flex flex-col mt-3">
+                    <span className="text-sm font-medium text-gray-700 mb-2">Dispute Images</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {disputeDetails.data.dispute.images.map((image: string, index: number) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={`https://colala.hmstech.xyz/storage/${image}`}
+                            alt={`Dispute evidence ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => window.open(`https://colala.hmstech.xyz/storage/${image}`, '_blank')}
+                          />
+                          <div className="absolute top-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 rounded">
+                            {index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Order Information */}
+          {disputeDetails.data.dispute?.store_order && (
+            <div className="border border-[#E53E3E] bg-[#FFE5E5] rounded-2xl p-3 mt-3">
+              <div className="flex flex-col">
+                <div className="flex flex-row justify-between">
+                  <span className="font-semibold">Order Information</span>
+                  <span className="text-[#E53E3E] font-semibold">
+                    ₦{disputeDetails.data.dispute.store_order.subtotal_with_shipping || '0'}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-700">Order No</span>
+                    <span className="text-sm text-gray-900">#{disputeDetails.data.dispute.store_order.order_id || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-700">Status</span>
+                    <span className="text-sm text-gray-900">{disputeDetails.data.dispute.store_order.status || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-700">Store</span>
+                    <span className="text-sm text-gray-900">{disputeDetails.data.dispute.store_order.store?.name || disputeDetails.data.dispute?.chat?.store_name || 'N/A'}</span>
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-row mt-3">
-                <div>
-                  <img className="rounded-l-lg" src={images.iphone} alt="" />
-                </div>
-                <div className="flex flex-col p-1 pr-3 pl-3 bg-[#F9F9F9] w-full rounded-r-lg justify-between">
-                  <div className="text-[18px]">Iphone 16 pro max - Black</div>
-                  <div className="flex flex-row justify-between">
-                    <span className="text-[#E53E3E] font-semibold">
-                      N2,500,000
-                    </span>
-                    <span>Qty: 1</span>
+                
+                {/* Order Items */}
+                {disputeDetails.data.dispute.store_order.items && disputeDetails.data.dispute.store_order.items.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-sm font-medium text-gray-700">Items ({disputeDetails.data.dispute.store_order.items.length})</span>
+                    <div className="mt-2 space-y-2">
+                      {disputeDetails.data.dispute.store_order.items.map((item: OrderItem, index: number) => (
+                        <div key={index} className="flex flex-row justify-between items-center p-2 bg-[#F9F9F9] rounded-lg">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{item.name || 'Unknown Product'}</span>
+                            <span className="text-xs text-gray-500">Qty: {item.qty || 1}</span>
+                            {item.sku && <span className="text-xs text-gray-400">SKU: {item.sku}</span>}
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-sm font-semibold text-[#E53E3E]">₦{item.unit_price || '0'}</span>
+                            <span className="text-xs text-gray-500">Total: ₦{item.line_total || '0'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
-          </div>
-          {/* Messages Section */}
-          {/* Original messages - always visible */}
-          <div className="flex flex-row justify-between">
-            <div></div>
-            <div className="bg-[#E53E3E] flex flex-col px-4 py-3 w-75 mt-3 rounded-t-3xl rounded-bl-3xl rounded-br-lg">
-              <span className="text-white">
-                How will i get the product delivered
-              </span>
-              <span className="text-[#FFFFFF80] text-[12px] flex justify-end-safe mr-4">
-                07:22AM
-              </span>
+          )}
+          {/* Chat Messages Section */}
+          {disputeDetails.data.dispute?.chat?.recent_messages && disputeDetails.data.dispute.chat.recent_messages.length > 0 ? (
+            disputeDetails.data.dispute.chat.recent_messages.map((message: ChatMessage, index: number) => (
+              <div key={message.id || index} className="flex flex-row justify-between">
+                {message.sender_type === 'buyer' ? (
+                  <div></div>
+                ) : null}
+                <div className={`flex flex-col px-4 py-3 w-75 mt-3 rounded-t-3xl ${
+                  message.sender_type === 'buyer' 
+                    ? 'bg-[#E53E3E] rounded-bl-3xl rounded-br-lg' 
+                    : 'bg-[#FFD8D8] rounded-br-3xl rounded-bl-lg'
+                }`}>
+                  <span className={message.sender_type === 'buyer' ? 'text-white' : 'text-black'}>
+                    {message.message}
+                  </span>
+                  <span className={`text-[12px] flex justify-end-safe mr-4 mt-1 ${
+                    message.sender_type === 'buyer' ? 'text-[#FFFFFF80]' : 'text-[#00000080]'
+                  }`}>
+                    {new Date(message.created_at).toLocaleTimeString()}
+                  </span>
+                </div>
+                {message.sender_type === 'store' ? (
+                  <div></div>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              <p className="text-sm">No messages in this chat yet</p>
             </div>
-          </div>
-          <div className="flex flex-row justify-between">
-            <div className="bg-[#FFD8D8] flex flex-col px-4 py-3 w-70 mt-3 rounded-t-3xl rounded-bl-lg rounded-br-3xl">
-              <span className="text-black">
-                Thank you for purchasing from us
-              </span>
-              <span className="text-[#00000080] text-[12px] flex justify-end-safe mr-3">
-                07:22AM
-              </span>
-            </div>
-            <div></div>
-          </div>
-          <div className="flex flex-row justify-between">
-            <div className="bg-[#FFD8D8] flex flex-col px-4 py-3 w-80 mt-2 rounded-tl-lg rounded-tr-3xl rounded-b-3xl">
-              <span className="text-black">
-                I will arrange a dispatch rider soon and i will contact you
-              </span>
-              <span className="text-[#00000080] text-[12px] flex justify-end-safe mr-3">
-                07:22AM
-              </span>
-            </div>
-            <div></div>
-          </div>
-          <div className="flex flex-row justify-between">
-            <div></div>
-            <div className="bg-[#E53E3E] flex flex-col px-3 py-3 w-53 mt-3 rounded-t-3xl rounded-bl-3xl rounded-br-lg">
-              <span className="text-white">Okay i will be expecting.</span>
-              <span className="text-[#FFFFFF80] text-[12px] flex justify-end-safe mr-4">
-                07:22AM
-              </span>
-            </div>
-          </div>
+          )}
           {/* Additional messages shown after joining chat */}
           {hasJoinedChat && (
             <>
@@ -415,23 +549,29 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
               </div>
             </>
           )}
-        </div>
-        {/* Message Input */}
-        <div className="sticky bottom-0 bg-white p-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Type a message"
-              className="w-full pl-12 pr-16 py-3 border border-[#CDCDCD] rounded-2xl text-[14px] bg-[#FFFFFF]"
-            />
-            <div className="absolute left-4 top-1/2 -translate-y-1/2">
-              <img src="/assets/layout/pin.svg" alt="Attachment" />
+          
+          {/* Message Input */}
+          <div className="sticky bottom-0 bg-white p-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Type a message"
+                className="w-full pl-12 pr-16 py-3 border border-[#CDCDCD] rounded-2xl text-[14px] bg-[#FFFFFF]"
+              />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                <img src="/assets/layout/pin.svg" alt="Attachment" />
+              </div>
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full">
+                <img src="/assets/layout/sendmessage.svg" alt="Send" />
+              </button>
             </div>
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full">
-              <img src="/assets/layout/sendmessage.svg" alt="Send" />
-            </button>
           </div>
         </div>
+        ) : (
+          <div className="text-center text-gray-500 p-4">
+            <p className="text-sm">No dispute data available</p>
+          </div>
+        )}
       </div>
       {/* Warning Modal */}
 

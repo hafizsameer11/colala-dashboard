@@ -386,6 +386,11 @@ const API_ENDPOINTS = {
     Analytics: API_DOMAIN + "/admin/leaderboard/analytics", // GET
   },
 
+  // ADMIN USER MANAGEMENT
+  ADMIN_USERS: {
+    List: API_DOMAIN + "/admin/admin-users", // GET
+  },
+
   FAQ: {
     Statistics: API_DOMAIN + "/admin/faq/statistics", // GET
     Categories: API_DOMAIN + "/admin/faq/categories", // GET

@@ -1920,3 +1920,37 @@ export const getLeaderboardAnalytics = async (dateFrom?: string, dateTo?: string
   }
 };
 
+/**
+ * Get all admin users with filtering and pagination
+ */
+export const getAdminUsers = async (params?: {
+  search?: string;
+  role?: string;
+  status?: string;
+  page?: number;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = API_ENDPOINTS.ADMIN_USERS.List;
+    const queryParams = new URLSearchParams();
+    
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.role && params.role !== 'all') queryParams.append('role', params.role);
+    if (params?.status && params.status !== 'all') queryParams.append('status', params.status);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    
+    if (queryParams.toString()) {
+      url += `?${queryParams.toString()}`;
+    }
+    
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get admin users API call error:', error);
+    throw error;
+  }
+};
+
