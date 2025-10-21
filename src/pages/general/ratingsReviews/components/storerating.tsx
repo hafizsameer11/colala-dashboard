@@ -141,7 +141,11 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                 <div
                   className="w-[512px] h-full bg-cover bg-center bg-no-repeat rounded-2xl"
                   style={{
-                    backgroundImage: `url(${images.cover})`,
+                    backgroundImage: `url(${
+                      reviewDetailsData?.data?.store?.banner_image 
+                        ? `https://colala.hmstech.xyz/storage/${reviewDetailsData.data.store.banner_image}`
+                        : images.cover
+                    })`,
                   }}
                 >
                   {/* Overlay for better text readability */}
