@@ -902,6 +902,23 @@ export const updateSubscriptionPlan = async (planId: number | string, planData: 
 };
 
 /**
+ * Delete subscription plan
+ */
+export const deleteSubscriptionPlan = async (planId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SUBSCRIPTIONS.DeletePlan(planId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete subscription plan API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get subscription details
  */
 export const getSubscriptionDetails = async (subscriptionId: number | string) => {

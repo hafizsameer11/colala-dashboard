@@ -18,6 +18,7 @@ interface ViewPlansModalProps {
   plans: Plan[];
   onEditPlan?: (plan: Plan) => void;
   onCreatePlan?: () => void;
+  onDeletePlan?: (planId: number) => void;
 }
 
 const ViewPlansModal: React.FC<ViewPlansModalProps> = ({
@@ -26,6 +27,7 @@ const ViewPlansModal: React.FC<ViewPlansModalProps> = ({
   plans,
   onEditPlan,
   onCreatePlan,
+  onDeletePlan,
 }) => {
   if (!isOpen) return null;
 
@@ -104,12 +106,30 @@ const ViewPlansModal: React.FC<ViewPlansModalProps> = ({
                           </div>
                         </td>
                         <td className="p-4 text-center">
-                          <button
-                            onClick={() => onEditPlan?.(plan)}
-                            className="text-[#E53E3E] hover:text-[#D32F2F] text-sm font-medium"
-                          >
-                            Edit
-                          </button>
+                          <div className="flex items-center justify-center gap-3">
+                            <button
+                              onClick={() => onEditPlan?.(plan)}
+                              className="text-[#E53E3E] hover:text-[#D32F2F] text-sm font-medium cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => onDeletePlan?.(plan.id)}
+                              disabled={plan.active_subscriptions_count > 0}
+                              className={`text-sm font-medium ${
+                                plan.active_subscriptions_count > 0
+                                  ? 'text-gray-400 cursor-not-allowed'
+                                  : 'text-red-600 hover:text-red-700 cursor-pointer'
+                              }`}
+                              title={
+                                plan.active_subscriptions_count > 0
+                                  ? 'Cannot delete plan with active subscriptions'
+                                  : 'Delete plan'
+                              }
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

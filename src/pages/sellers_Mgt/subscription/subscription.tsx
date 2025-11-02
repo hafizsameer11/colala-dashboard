@@ -6,7 +6,8 @@ import SubscriptionTable from "./subscriptionTable";
 import PlansModal from "../Modals/planModal";
 import ViewPlansModal from "../Modals/viewPlansModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAdminSubscriptions, getAdminSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan } from "../../../utils/queries/users";
+import { getAdminSubscriptions, getAdminSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan } from "../../../utils/queries/users";
+import { useToast } from "../../../contexts/ToastContext";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -16,6 +17,25 @@ function useDebouncedValue<T>(value: T, delay = 450) {
     return () => clearTimeout(id);
   }, [value, delay]);
   return debounced;
+}
+
+interface Plan {
+  id: number;
+  name: string;
+  price: string | number;
+  currency: string;
+  duration_days: number;
+  features: Record<string, string>;
+  active_subscriptions_count: number;
+  created_at: string | null;
+}
+
+interface PlanData {
+  name: string;
+  price: number;
+  currency: string;
+  duration_days: number;
+  features: Record<string, string>;
 }
 
 const Subscription = () => {
@@ -30,7 +50,7 @@ const Subscription = () => {
   ];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewPlansModalOpen, setIsViewPlansModalOpen] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   // search (debounced)
@@ -41,7 +61,6 @@ const Subscription = () => {
   const { data: subscriptionsData, isLoading, error } = useQuery({
     queryKey: ['adminSubscriptions', activeTab, currentPage],
     queryFn: () => getAdminSubscriptions(currentPage, activeTab === "All" ? undefined : activeTab),
-    keepPreviousData: true,
   });
 
   const { data: plansData } = useQuery({
@@ -50,6 +69,7 @@ const Subscription = () => {
   });
 
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Extract data
   const subscriptions = subscriptionsData?.data?.subscriptions || [];
@@ -63,16 +83,41 @@ const Subscription = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
       setIsModalOpen(false);
+      showToast('Subscription plan created successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Create plan error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create plan. Please try again.';
+      showToast(errorMessage, 'error');
     },
   });
 
   const updatePlanMutation = useMutation({
-    mutationFn: ({ planId, planData }: { planId: number | string; planData: any }) => 
+    mutationFn: ({ planId, planData }: { planId: number | string; planData: PlanData }) => 
       updateSubscriptionPlan(planId, planData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
       setIsModalOpen(false);
       setEditingPlan(null);
+      showToast('Subscription plan updated successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Update plan error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update plan. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  const deletePlanMutation = useMutation({
+    mutationFn: deleteSubscriptionPlan,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+      showToast('Subscription plan deleted successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Delete plan error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to delete plan. Please try again.';
+      showToast(errorMessage, 'error');
     },
   });
 
@@ -80,17 +125,23 @@ const Subscription = () => {
     if (page !== currentPage) setCurrentPage(page);
   };
 
-  const handleCreatePlan = (planData: any) => {
+  const handleCreatePlan = (planData: PlanData) => {
     createPlanMutation.mutate(planData);
   };
 
-  const handleUpdatePlan = (planData: any) => {
+  const handleUpdatePlan = (planData: PlanData) => {
     if (editingPlan) {
       updatePlanMutation.mutate({ planId: editingPlan.id, planData });
     }
   };
 
-  const handleEditPlan = (plan: any) => {
+  const handleDeletePlan = async (planId: number) => {
+    if (window.confirm('Are you sure you want to delete this subscription plan?')) {
+      deletePlanMutation.mutate(planId);
+    }
+  };
+
+  const handleEditPlan = (plan: Plan) => {
     setEditingPlan(plan);
     setIsViewPlansModalOpen(false); // Close the view plans modal
     setIsModalOpen(true);
@@ -221,7 +272,10 @@ const Subscription = () => {
                 type="text"
                 placeholder="Search"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  setSearch((e.target as any).value);
+                }}
                 className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -277,6 +331,7 @@ const Subscription = () => {
         plans={plans}
         onEditPlan={handleEditPlan}
         onCreatePlan={handleCreateNewPlan}
+        onDeletePlan={handleDeletePlan}
       />
     </div>
   );

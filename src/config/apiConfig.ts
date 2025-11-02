@@ -210,6 +210,7 @@ const API_ENDPOINTS = {
     Plans: API_DOMAIN + "/admin/subscription-plans", // GET
     CreatePlan: API_DOMAIN + "/admin/subscription-plans", // POST
     UpdatePlan: (planId: number | string) => `${API_DOMAIN}/admin/subscription-plans/${planId}`, // PUT
+    DeletePlan: (planId: number | string) => `${API_DOMAIN}/admin/subscription-plans/${planId}`, // DELETE
   },
 
   // ADMIN PROMOTIONS

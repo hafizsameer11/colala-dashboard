@@ -7,7 +7,7 @@ import BulkActionDropdown from "../../components/BulkActionDropdown";
 import OrdersTable from "./OrdersTable";
 import PageHeader from "../../components/PageHeader";
 import { getDashboardData } from "../../utils/queries/dashboard";
-import ChatsModel from "../../components/chatsModel";
+import ChatsModel from "../general/chats/components/chatmodel";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -48,7 +48,16 @@ const ORDER_FILTER_TABS = [
 
 type OrderFilterTab = (typeof ORDER_FILTER_TABS)[number];
 
-// (no-op)
+interface Order {
+  id: string | number;
+  order_no?: string | number;
+  store_name?: string;
+  buyer_name?: string;
+  product_name?: string;
+  price?: string;
+  order_date?: string;
+  status?: string;
+}
 
 // ============================================================================
 // MAIN DASHBOARD COMPONENT
@@ -66,13 +75,19 @@ const Dashboard = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Selected orders for bulk actions
-  const [selectedOrders, setSelectedOrders] = useState<unknown[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<Order[]>([]);
 
   // Chats modal state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChat, setSelectedChat] = useState<{
-    userId?: string | number;
-    chatId?: string | number;
+    id: string | number;
+    storeName?: string;
+    userName?: string;
+    lastMessage?: string;
+    chatDate?: string;
+    type?: string;
+    other?: string;
+    isUnread?: boolean;
   } | null>(null);
 
   // ============================================================================
@@ -143,7 +158,7 @@ const Dashboard = () => {
   /**
    * Handle selected orders change for bulk actions
    */
-  const handleSelectedOrdersChange = (orders: unknown[]) => {
+  const handleSelectedOrdersChange = (orders: Order[]) => {
     setSelectedOrders(orders);
   };
 
@@ -155,11 +170,20 @@ const Dashboard = () => {
   };
 
   /**
-   * Open chat modal with the provided user and chat IDs
+   * Open chat modal with the provided chat data
    */
-  const openChatModal = (userId?: string | number, chatId?: string | number) => {
-    if (!userId || !chatId) return;
-    setSelectedChat({ userId, chatId });
+  const openChatModal = (chat: {
+    id: string | number;
+    storeName?: string;
+    userName?: string;
+    lastMessage?: string;
+    chatDate?: string;
+    type?: string;
+    other?: string;
+    isUnread?: boolean;
+  }) => {
+    if (!chat || !chat.id) return;
+    setSelectedChat(chat);
     setIsChatOpen(true);
   };
 
@@ -525,7 +549,18 @@ const Dashboard = () => {
                     <div>Customer</div>
                   </div>
                   {dashboardData?.data?.latest_chats?.length > 0 ? (
-                    dashboardData.data.latest_chats.map((chat: { id?: number | string; chat_id?: number | string; store?: { name?: string; profile_image?: string }; customer?: { id?: number | string; user_id?: number | string; name?: string; profile_image?: string }; customer_id?: number | string }) => (
+                    dashboardData.data.latest_chats.map((chat: { 
+                      id?: number | string; 
+                      chat_id?: number | string; 
+                      store?: { name?: string; profile_image?: string }; 
+                      customer?: { id?: number | string; user_id?: number | string; name?: string; profile_image?: string }; 
+                      customer_id?: number | string;
+                      last_message?: string;
+                      created_at?: string;
+                      type?: string;
+                      other?: string;
+                      is_unread?: boolean;
+                    }) => (
                       <div key={chat.id} className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
                         <div className="flex flex-row items-center gap-2">
                           <img
@@ -547,13 +582,20 @@ const Dashboard = () => {
                               className="w-10 h-10 cursor-pointer"
                               src={images.eye}
                               alt="View chat"
-                              onClick={() =>
-                                openChatModal(
-                                  // Prefer explicit IDs if available; fall back to common fields
-                                  chat.customer?.id ?? chat.customer?.user_id ?? chat.customer_id,
-                                  chat.id ?? chat.chat_id
-                                )
-                              }
+                              onClick={() => {
+                                const chatId = chat.id ?? chat.chat_id;
+                                if (!chatId) return;
+                                openChatModal({
+                                  id: chatId,
+                                  storeName: chat.store?.name,
+                                  userName: chat.customer?.name,
+                                  lastMessage: chat.last_message,
+                                  chatDate: chat.created_at,
+                                  type: chat.type,
+                                  other: chat.other,
+                                  isUnread: chat.is_unread
+                                });
+                              }}
                             />
                           </span>
                         </div>
@@ -628,8 +670,7 @@ const Dashboard = () => {
       <ChatsModel
         isOpen={isChatOpen}
         onClose={closeChatModal}
-        userId={selectedChat?.userId}
-        chatId={selectedChat?.chatId}
+        chatData={selectedChat || undefined}
       />
     </>
   );

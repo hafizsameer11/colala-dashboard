@@ -252,13 +252,6 @@ export const updateKnowledgeBase = async (id: number | string, kbData: {
       formData.append('is_active', kbData.is_active ? '1' : '0');
     }
 
-    // Debug logging
-    console.log('Update KB - kbData:', kbData);
-    console.log('Update KB - FormData entries:');
-    for (const [key, value] of formData.entries()) {
-      console.log(`  ${key}:`, value);
-    }
-
     const response = await apiCall(API_ENDPOINTS.KNOWLEDGE_BASE.Update(id), 'PUT', formData, token);
     return response;
   } catch (error) {
