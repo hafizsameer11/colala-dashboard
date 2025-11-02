@@ -241,14 +241,14 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
                   </span>
                 </div>
               </div>
-              <div className="mt-5">
+              {/* <div className="mt-5">
                 <button className="px-5 py-2 cursor-pointer text-white bg-[#F29F9F] rounded-lg mr-2">
                   Join Chat
                 </button>
                 <button className="px-3 py-2 cursor-pointer text-white bg-black rounded-lg">
                   Switch to Store
                 </button>
-              </div>
+              </div> */}
             </div>
           {/* Order Information */}
           {chatDetails.data.order_info && (

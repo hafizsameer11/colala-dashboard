@@ -81,9 +81,9 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatId, userId
                   </div>
                 </div>
                 <div className="mt-5">
-                  <button className="px-5 py-2 cursor-pointer text-white bg-[#F29F9F] rounded-lg mr-2">
+                  {/* <button className="px-5 py-2 cursor-pointer text-white bg-[#F29F9F] rounded-lg mr-2">
                     Join Chat
-                  </button>
+                  </button> */}
                   {/* <button className="px-3 py-2 cursor-pointer text-white bg-black rounded-lg">
                     Switch to Store
                   </button> */}
