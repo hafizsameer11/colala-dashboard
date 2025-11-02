@@ -1974,3 +1974,38 @@ export const getAdminUsers = async (params?: {
   }
 };
 
+/**
+ * Get knowledge base items with pagination
+ */
+export const getKnowledgeBase = async (page: number = 1) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const url = `${API_ENDPOINTS.KNOWLEDGE_BASE.List}?page=${page}`;
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get knowledge base API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get knowledge base item details by ID
+ */
+export const getKnowledgeBaseDetails = async (id: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.KNOWLEDGE_BASE.Details(id), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get knowledge base details API call error:', error);
+    throw error;
+  }
+};
+

@@ -6,6 +6,7 @@ import AddNewAdmin from "./components/addnewadmin";
 import AdminDetail from "./components/admindetail";
 import Categories from "./components/categories";
 import BrandsManagement from "./components/brandsManagement";
+import KnowledgeBase from "./components/knowledgeBase";
 import QuestionModal from "./components/questionmodal";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
 import { getUserDetails, getAdminUsers } from "../../../utils/queries/users";
@@ -430,6 +431,13 @@ const AllUsers = () => {
           isThisWeekDropdownOpen={isThisWeekDropdownOpen}
           setIsThisWeekDropdownOpen={setIsThisWeekDropdownOpen}
         />
+      ) : activeTab === "Knowledge Base" ? (
+        <KnowledgeBase
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isThisWeekDropdownOpen={isThisWeekDropdownOpen}
+          setIsThisWeekDropdownOpen={setIsThisWeekDropdownOpen}
+        />
       ) : activeTab === "Admin Management" ? (
         <>
           <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
@@ -438,7 +446,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
         {/* Main Tabs Group */}
         <div className="flex items-center bg-white border border-[#989898] rounded-lg p-2 ">
-          {["General", "Admin Management", "Categories", "Brands", "FAQs"].map(
+          {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base"].map(
             (tab) => {
               const isActive = activeTab === tab;
               return (
@@ -666,7 +674,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2 ">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs"].map(
+                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -755,7 +763,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs"].map(
+                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (

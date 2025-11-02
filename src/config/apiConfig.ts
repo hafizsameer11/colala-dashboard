@@ -394,6 +394,16 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/admin-users", // GET
   },
 
+  // KNOWLEDGE BASE
+  KNOWLEDGE_BASE: {
+    List: API_DOMAIN + "/admin/knowledge-base", // GET
+    Create: API_DOMAIN + "/admin/knowledge-base", // POST
+    Update: (id: number | string) => `${API_DOMAIN}/admin/knowledge-base/${id}`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/knowledge-base/${id}`, // DELETE
+    Details: (id: number | string) => `${API_DOMAIN}/admin/knowledge-base/${id}`, // GET
+    ToggleStatus: (id: number | string) => `${API_DOMAIN}/admin/knowledge-base/${id}/toggle-status`, // POST
+  },
+
   FAQ: {
     Statistics: API_DOMAIN + "/admin/faq/statistics", // GET
     Categories: API_DOMAIN + "/admin/faq/categories", // GET
