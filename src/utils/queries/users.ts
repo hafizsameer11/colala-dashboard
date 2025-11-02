@@ -1290,6 +1290,26 @@ export const getUserDetails = async (userId: number | string) => {
   }
 };
 
+/**
+ * Get user notifications (admin can view any user's notifications)
+ */
+export const getUserNotifications = async (userId: number | string, page: number = 1, status?: 'read' | 'unread') => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = `${API_ENDPOINTS.BUYER_USERS.Notifications(userId)}?page=${page}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get user notifications API call error:', error);
+    throw error;
+  }
+};
 
 /**
  * Create a new service

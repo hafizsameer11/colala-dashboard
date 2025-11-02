@@ -111,3 +111,49 @@ export const updateUser = async (userData: {
     throw error;
   }
 };
+
+/**
+ * Top up user wallet (admin action)
+ */
+export const topUpWallet = async (userId: number | string, amount: number, description?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  
+  try {
+    const data = {
+      amount,
+      ...(description && { description }),
+    };
+    
+    const response = await apiCall(API_ENDPOINTS.BUYER_USERS.TopUp(userId), 'POST', data, token);
+    return response;
+  } catch (error) {
+    console.error('Top up wallet API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Withdraw from user wallet (admin action)
+ */
+export const withdrawWallet = async (userId: number | string, amount: number, description?: string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  
+  try {
+    const data = {
+      amount,
+      ...(description && { description }),
+    };
+    
+    const response = await apiCall(API_ENDPOINTS.BUYER_USERS.Withdraw(userId), 'POST', data, token);
+    return response;
+  } catch (error) {
+    console.error('Withdraw wallet API call error:', error);
+    throw error;
+  }
+};

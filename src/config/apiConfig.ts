@@ -89,6 +89,9 @@ const API_ENDPOINTS = {
     TransactionDetails: (userId: number | string, transactionId: number | string) => `${API_DOMAIN}/admin/users/${userId}/transactions/${transactionId}/details`, // GET
     TransactionBulkAction: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/transactions/bulk-action`, // POST
     Posts: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/posts`, // GET
+    TopUp: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/wallet/top-up`, // POST
+    Withdraw: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/wallet/withdraw`, // POST
+    Notifications: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/notifications`, // GET
   },
 
   // BUYER ORDERS

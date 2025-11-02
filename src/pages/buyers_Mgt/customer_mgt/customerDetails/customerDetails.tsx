@@ -30,6 +30,12 @@ const CustomerDetails: React.FC = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  // Debug: Log API response to check wallet structure
+  if (profileData?.data) {
+    console.log('API Response:', profileData.data);
+    console.log('Wallet Info:', profileData.data.wallet_info);
+  }
+
   // Transform API response to match component expectations
   const userData = profileData?.data ? {
     // Map user_info to top level
@@ -47,11 +53,29 @@ const CustomerDetails: React.FC = () => {
     is_blocked: profileData.data.user_info?.status === "blocked",
     role: profileData.data.user_info?.role || "buyer",
 
-    // Map wallet_info
-    wallet: {
-      shopping_balance: profileData.data.wallet_info?.shopping_balance || "0",
-      escrow_balance: profileData.data.wallet_info?.escrow_balance || "0",
-    },
+    // Map wallet_info - handle both 'balance' and 'shopping_balance' field names
+    // Check if wallet_info exists, then extract balance values (handling both field names and types)
+    wallet: (() => {
+      const walletInfo = profileData.data.wallet_info;
+      if (!walletInfo) return { shopping_balance: "0", escrow_balance: "0" };
+      
+      // Try shopping_balance first, then balance, handle both string and number types
+      const shoppingBalance = walletInfo.shopping_balance !== undefined && walletInfo.shopping_balance !== null
+        ? String(walletInfo.shopping_balance)
+        : (walletInfo.balance !== undefined && walletInfo.balance !== null
+          ? String(walletInfo.balance)
+          : "0");
+      
+      // Handle escrow_balance (string or number)
+      const escrowBalance = walletInfo.escrow_balance !== undefined && walletInfo.escrow_balance !== null
+        ? String(walletInfo.escrow_balance)
+        : "0";
+      
+      return {
+        shopping_balance: shoppingBalance,
+        escrow_balance: escrowBalance,
+      };
+    })(),
 
     // Map statistics
     statistics: profileData.data.statistics || {
@@ -68,7 +92,15 @@ const CustomerDetails: React.FC = () => {
     // Legacy fields for backward compatibility
     userName: profileData.data.user_info?.full_name || "Unknown",
     phoneNumber: profileData.data.user_info?.phone || "No phone",
-    walletBalance: profileData.data.wallet_info?.shopping_balance || "0",
+    walletBalance: (() => {
+      const walletInfo = profileData.data.wallet_info;
+      if (!walletInfo) return "0";
+      return walletInfo.shopping_balance !== undefined && walletInfo.shopping_balance !== null
+        ? String(walletInfo.shopping_balance)
+        : (walletInfo.balance !== undefined && walletInfo.balance !== null
+          ? String(walletInfo.balance)
+          : "0");
+    })(),
   } : state || {
     id: userId,
     full_name: "Unknown",

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { bulkActionUsers } from "../../../../../utils/queries/users";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { bulkActionUsers, getUserNotifications } from "../../../../../utils/queries/users";
+import { topUpWallet, withdrawWallet } from "../../../../../utils/mutations/users";
 import { useToast } from "../../../../../contexts/ToastContext";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
@@ -46,7 +47,16 @@ interface ActivityProps {
 
 const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpDescription, setTopUpDescription] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawDescription, setWithdrawDescription] = useState("");
+  const [notificationsPage, setNotificationsPage] = useState(1);
+  const [notificationsFilter, setNotificationsFilter] = useState<'read' | 'unread' | undefined>(undefined);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -82,6 +92,52 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
       console.error('Bulk action error:', error);
       showToast('Failed to perform action', 'error');
     },
+  });
+
+  // Top up wallet mutation
+  const topUpMutation = useMutation({
+    mutationFn: ({ amount, description }: { amount: number; description?: string }) => 
+      topUpWallet(userData.id!, amount, description),
+    onSuccess: () => {
+      showToast('Wallet topped up successfully!', 'success');
+      setShowTopUpModal(false);
+      setTopUpAmount("");
+      setTopUpDescription("");
+      // Refresh user details to update wallet balance
+      queryClient.invalidateQueries({ queryKey: ['userDetails', userData.id] });
+    },
+    onError: (error: any) => {
+      console.error('Top up error:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to top up wallet. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  // Withdraw wallet mutation
+  const withdrawMutation = useMutation({
+    mutationFn: ({ amount, description }: { amount: number; description?: string }) => 
+      withdrawWallet(userData.id!, amount, description),
+    onSuccess: () => {
+      showToast('Amount withdrawn successfully!', 'success');
+      setShowWithdrawModal(false);
+      setWithdrawAmount("");
+      setWithdrawDescription("");
+      // Refresh user details to update wallet balance
+      queryClient.invalidateQueries({ queryKey: ['userDetails', userData.id] });
+    },
+    onError: (error: any) => {
+      console.error('Withdraw error:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to withdraw amount. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  // Get user notifications query
+  const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({
+    queryKey: ['userNotifications', userData.id, notificationsPage, notificationsFilter],
+    queryFn: () => getUserNotifications(userData.id!, notificationsPage, notificationsFilter),
+    enabled: showNotificationsModal && !!userData.id,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
   const handleBulkActionSelect = (action: string) => {
@@ -134,6 +190,38 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
   const handleEditUser = () => {
     setShowEditModal(true);
+  };
+
+  const handleTopUp = () => {
+    setShowTopUpModal(true);
+  };
+
+  const handleWithdraw = () => {
+    setShowWithdrawModal(true);
+  };
+
+  const handleTopUpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(topUpAmount);
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid amount', 'error');
+      return;
+    }
+    topUpMutation.mutate({ amount, description: topUpDescription || undefined });
+  };
+
+  const handleWithdrawSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(withdrawAmount);
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid amount', 'error');
+      return;
+    }
+    withdrawMutation.mutate({ amount, description: withdrawDescription || undefined });
+  };
+
+  const handleBellClick = () => {
+    setShowNotificationsModal(true);
   };
 
   const DotsDropdown = () => (
@@ -210,12 +298,18 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
               </span>
               <div className="flex flex-row gap-5 ">
                 <div>
-                  <button className="bg-white rounded-2xl px-6 py-2 text-black">
+                  <button 
+                    onClick={handleTopUp}
+                    className="bg-white rounded-2xl px-6 py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     Topup
                   </button>
                 </div>
                 <div>
-                  <button className="bg-white rounded-2xl px-6 py-2 text-black">
+                  <button 
+                    onClick={handleWithdraw}
+                    className="bg-white rounded-2xl px-6 py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     Withdraw
                   </button>
                 </div>
@@ -303,6 +397,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                       className="w-10 h-10 cursor-pointer"
                       src={images.bell}
                       alt=""
+                      onClick={handleBellClick}
                     />
                   </div>
                   <div>
@@ -403,6 +498,300 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
           statistics: userData.statistics,
         }}
       />
+
+      {/* Top Up Modal */}
+      {showTopUpModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center"
+          onClick={() => {
+            if (!topUpMutation.isPending) {
+              setShowTopUpModal(false);
+              setTopUpAmount("");
+              setTopUpDescription("");
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Top Up Wallet</h2>
+              <button
+                onClick={() => {
+                  setShowTopUpModal(false);
+                  setTopUpAmount("");
+                  setTopUpDescription("");
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleTopUpSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount (₦)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  placeholder="Enter amount"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={topUpDescription}
+                  onChange={(e) => setTopUpDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] resize-none"
+                  rows={3}
+                  placeholder="Enter description"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTopUpModal(false);
+                    setTopUpAmount("");
+                    setTopUpDescription("");
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={topUpMutation.isPending}
+                  className="flex-1 bg-[#E53E3E] text-white py-2 px-4 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {topUpMutation.isPending ? 'Processing...' : 'Top Up'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center"
+          onClick={() => {
+            if (!withdrawMutation.isPending) {
+              setShowWithdrawModal(false);
+              setWithdrawAmount("");
+              setWithdrawDescription("");
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Withdraw from Wallet</h2>
+              <button
+                onClick={() => {
+                  setShowWithdrawModal(false);
+                  setWithdrawAmount("");
+                  setWithdrawDescription("");
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleWithdrawSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount (₦)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  placeholder="Enter amount"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Available Balance: ₦{userData.wallet?.shopping_balance || userData.walletBalance || '0'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={withdrawDescription}
+                  onChange={(e) => setWithdrawDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] resize-none"
+                  rows={3}
+                  placeholder="Enter description"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowWithdrawModal(false);
+                    setWithdrawAmount("");
+                    setWithdrawDescription("");
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={withdrawMutation.isPending}
+                  className="flex-1 bg-[#E53E3E] text-white py-2 px-4 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {withdrawMutation.isPending ? 'Processing...' : 'Withdraw'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotificationsModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center"
+          onClick={() => setShowNotificationsModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">User Notifications</h2>
+              <button
+                onClick={() => setShowNotificationsModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-3 mb-4">
+              <button
+                onClick={() => setNotificationsFilter(undefined)}
+                className={`px-4 py-2 rounded-md ${notificationsFilter === undefined ? 'bg-[#E53E3E] text-white' : 'bg-gray-200 text-gray-700'}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setNotificationsFilter('unread')}
+                className={`px-4 py-2 rounded-md ${notificationsFilter === 'unread' ? 'bg-[#E53E3E] text-white' : 'bg-gray-200 text-gray-700'}`}
+              >
+                Unread
+              </button>
+              <button
+                onClick={() => setNotificationsFilter('read')}
+                className={`px-4 py-2 rounded-md ${notificationsFilter === 'read' ? 'bg-[#E53E3E] text-white' : 'bg-gray-200 text-gray-700'}`}
+              >
+                Read
+              </button>
+            </div>
+
+            {/* Statistics */}
+            {notificationsData?.data?.statistics && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Total</p>
+                    <p className="text-lg font-semibold">{notificationsData.data.statistics.total_notifications}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Unread</p>
+                    <p className="text-lg font-semibold text-red-600">{notificationsData.data.statistics.unread_count}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Read</p>
+                    <p className="text-lg font-semibold text-green-600">{notificationsData.data.statistics.read_count}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Notifications List */}
+            {isLoadingNotifications ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+              </div>
+            ) : notificationsData?.data?.notifications && notificationsData.data.notifications.length > 0 ? (
+              <div className="space-y-3">
+                {notificationsData.data.notifications.map((notification: any) => (
+                  <div
+                    key={notification.id}
+                    className={`border rounded-lg p-4 ${notification.is_read ? 'bg-gray-50' : 'bg-white border-l-4 border-l-[#E53E3E]'}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{notification.title || 'Notification'}</p>
+                        <p className="text-sm text-gray-600 mt-1">{notification.message || notification.body}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      {!notification.is_read && (
+                        <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No notifications found
+              </div>
+            )}
+
+            {/* Pagination */}
+            {notificationsData?.data?.pagination && (
+              <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                <button
+                  onClick={() => setNotificationsPage(prev => Math.max(1, prev - 1))}
+                  disabled={notificationsPage === 1}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {notificationsData.data.pagination.current_page} of {notificationsData.data.pagination.last_page}
+                </span>
+                <button
+                  onClick={() => setNotificationsPage(prev => prev + 1)}
+                  disabled={notificationsPage >= notificationsData.data.pagination.last_page}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
