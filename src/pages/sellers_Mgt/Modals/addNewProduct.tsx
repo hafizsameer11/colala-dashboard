@@ -131,6 +131,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const [fullDescription, setFullDescription] = useState("");
   const [price, setPrice] = useState("");
   const [discountPrice, setDiscountPrice] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [referralFee, setReferralFee] = useState("");
+  const [referralPersonLimit, setReferralPersonLimit] = useState("");
   const [selectedVarient, setSelectedVarient] = useState("");
   const [selectedCoupon, setSelectedCoupon] = useState("");
   const [loyaltyPoints, setLoyaltyPoints] = useState(false);
@@ -186,6 +189,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     availableLocation: "",
     deliveryLocation: "",
     productImages: "",
+    quantity: "",
+    referralFee: "",
+    referralPersonLimit: "",
   });
 
   // Populate form with initial data when in edit mode
@@ -203,6 +209,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         setFullDescription(productInfo.description || "");
         setPrice(productInfo.price?.toString() || "");
         setDiscountPrice(productInfo.discount_price?.toString() || "");
+        setQuantity((productInfo.quantity ?? "").toString());
+        setReferralFee((productInfo.referral_fee ?? "").toString());
+        setReferralPersonLimit((productInfo.referral_person_limit ?? "").toString());
         setHasVariants(productInfo.has_variants || false);
         setLoyaltyPoints(productInfo.loyalty_points_applicable || false);
         
@@ -343,7 +352,24 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         selectedDeliveryLocation === "" ? "Delivery location is required" : "",
       productImages:
         (existingImages.length + productImages.length) < 3 ? "At least 3 images are required" : "",
+      quantity: "",
+      referralFee: "",
+      referralPersonLimit: "",
     };
+
+    // Optional numeric validations
+    if (quantity.trim() !== "") {
+      const q = Number(quantity);
+      if (!Number.isInteger(q) || q < 0) newErrors.quantity = "Quantity must be an integer ≥ 0";
+    }
+    if (referralFee.trim() !== "") {
+      const r = Number(referralFee);
+      if (Number.isNaN(r) || r < 0) newErrors.referralFee = "Referral fee must be a number ≥ 0";
+    }
+    if (referralPersonLimit.trim() !== "") {
+      const p = Number(referralPersonLimit);
+      if (!Number.isInteger(p) || p < 1) newErrors.referralPersonLimit = "Referral person limit must be an integer ≥ 1";
+    }
 
     setErrors(newErrors);
     return Object.values(newErrors).every((error) => error === "");
@@ -369,7 +395,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       formData.append('name', productName);
       formData.append('description', fullDescription);
       formData.append('price', price);
-      formData.append('quantity', '0'); // Default quantity
+      // Quantity (nullable, default to 0 if empty)
+      formData.append('quantity', quantity.trim() === '' ? '0' : quantity);
       
       // Add category_id
       if (selectedCategory) {
@@ -392,6 +419,14 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       
       if (discountPrice) {
         formData.append('discount_price', discountPrice);
+      }
+
+      // Referral fields (nullable)
+      if (referralFee.trim() !== '') {
+        formData.append('referral_fee', referralFee);
+      }
+      if (referralPersonLimit.trim() !== '') {
+        formData.append('referral_person_limit', referralPersonLimit);
       }
       
       // Add status (nullable field)
@@ -467,6 +502,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     setFullDescription("");
     setPrice("");
     setDiscountPrice("");
+    setQuantity("");
+    setReferralFee("");
+    setReferralPersonLimit("");
     setSelectedVarient("");
     setSelectedCoupon("");
     setLoyaltyPoints(false);
@@ -491,6 +529,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       availableLocation: "",
       deliveryLocation: "",
       productImages: "",
+      quantity: "",
+      referralFee: "",
+      referralPersonLimit: "",
     });
   };
 
@@ -891,6 +932,70 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   className="border border-[#989898] rounded-2xl p-5"
                 />
               </div>
+              {/* Quantity */}
+              <div className="mt-5 flex flex-col gap-2">
+                <label htmlFor="quantity" className="text-lg">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  name="quantity"
+                  id="quantity"
+                  min={0}
+                  value={quantity}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuantity(e.currentTarget.value)}
+                  placeholder="Enter stock quantity"
+                  className={`border rounded-2xl p-5 ${
+                    errors.quantity ? "border-red-500" : "border-[#989898]"
+                  }`}
+                />
+                {errors.quantity && (
+                  <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
+                )}
+              </div>
+              {/* Referral Fee */}
+              <div className="mt-5 flex flex-col gap-2">
+                <label htmlFor="referralFee" className="text-lg">
+                  Referral Fee
+                </label>
+                <input
+                  type="number"
+                  name="referralFee"
+                  id="referralFee"
+                  min={0}
+                  step="0.01"
+                  value={referralFee}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReferralFee(e.currentTarget.value)}
+                  placeholder="Enter referral fee"
+                  className={`border rounded-2xl p-5 ${
+                    errors.referralFee ? "border-red-500" : "border-[#989898]"
+                  }`}
+                />
+                {errors.referralFee && (
+                  <p className="text-red-500 text-sm mt-1">{errors.referralFee}</p>
+                )}
+              </div>
+              {/* Referral Person Limit */}
+              <div className="mt-5 flex flex-col gap-2">
+                <label htmlFor="referralPersonLimit" className="text-lg">
+                  Referral Person Limit
+                </label>
+                <input
+                  type="number"
+                  name="referralPersonLimit"
+                  id="referralPersonLimit"
+                  min={1}
+                  value={referralPersonLimit}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReferralPersonLimit(e.currentTarget.value)}
+                  placeholder="Enter person limit"
+                  className={`border rounded-2xl p-5 ${
+                    errors.referralPersonLimit ? "border-red-500" : "border-[#989898]"
+                  }`}
+                />
+                {errors.referralPersonLimit && (
+                  <p className="text-red-500 text-sm mt-1">{errors.referralPersonLimit}</p>
+                )}
+              </div>
               <div className="mt-5 text-md underline text-[#E53E3E] cursor-pointer">
                 Add Wholesale prices
               </div>
@@ -1067,38 +1172,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
               </div>
 
               {/* Delivery locations Dropdown */}
-              <div className="mt-5">
-                <label className="block text-lg mb-2">Delivery locations</label>
-                <div className="relative">
-                  <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${
-                      errors.deliveryLocation
-                        ? "border-red-500"
-                        : "border-[#989898]"
-                    }`}
-                    onClick={() => setShowAddDeliveryModal(true)}
-                  >
-                    <div
-                      className={
-                        selectedDeliveryLocation
-                          ? "text-black"
-                          : "text-[#00000080]"
-                      }
-                    >
-                      {selectedDeliveryLocation || "Delivery locations"}
-                    </div>
-                    <div className="transform transition-transform duration-200">
-                      <img src={images?.rightarrow} alt="arrow" />
-                    </div>
-                  </div>
-
-                </div>
-                {errors.deliveryLocation && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.deliveryLocation}
-                  </p>
-                )}
-              </div>
 
               <div className="mt-5">
                 <button

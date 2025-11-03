@@ -221,6 +221,11 @@ const API_ENDPOINTS = {
     Extend: (promotionId: number | string) => `${API_DOMAIN}/admin/promotions/${promotionId}/extend`, // POST
   },
 
+  // ADMIN SELLER HELP REQUESTS
+  ADMIN_SELLER_HELP: {
+    List: API_DOMAIN + "/admin/seller-help/requests", // GET
+  },
+
   // ADMIN PRODUCTS
   ADMIN_PRODUCTS: {
     List: API_DOMAIN + "/admin/products", // GET

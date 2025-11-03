@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminStores } from "../../../utils/queries/users";
 
@@ -25,6 +25,10 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
   title = "Select Store"
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const handleSearchChange = (e: unknown) => {
+    const value = (e as { target?: { value?: string } }).target?.value ?? '';
+    setSearchTerm(value);
+  };
 
   // Fetch stores data
   const { data: storesData, isLoading, error } = useQuery({
@@ -34,12 +38,15 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
     staleTime: 5 * 60 * 1000,
   });
 
-  const stores: Store[] = storesData?.data?.stores || [];
+  // API returns paginated stores under data.stores.data
+  const stores: Store[] = Array.isArray(storesData?.data?.stores?.data)
+    ? storesData.data.stores.data
+    : [];
 
 
   // Filter stores based on search term
   const filteredStores = stores.filter(store =>
-    store.store_name.toLowerCase().includes(searchTerm.toLowerCase())
+    (store.store_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleStoreSelect = (store: Store) => {
@@ -71,7 +78,7 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
             type="text"
             placeholder="Search stores..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm((e.target as any).value)}
+            onChange={handleSearchChange}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         </div>

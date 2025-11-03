@@ -37,6 +37,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Disputes from "./pages/general/disputes/disputes";
 import { QueryProvider } from "./providers/QueryProvider";
+import SellerHelpRequests from "./pages/general/sellerHelpRequests/sellerHelpRequests";
 
 // Component to handle initial route based on auth status
 const InitialRoute = () => {
@@ -87,6 +88,7 @@ function App() {
     { path: "ratings-reviews", element: <RatingsReviews /> },
     { path: "referral-mgt", element: <ReferralMgt /> },
     { path: "notifications", element: <Notifications /> },
+    { path: "seller-help-requests", element: <SellerHelpRequests /> },
     { path: "settings", element: <Settings /> },
   ];
 

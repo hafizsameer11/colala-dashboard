@@ -1958,6 +1958,42 @@ export const getLeaderboardAnalytics = async (dateFrom?: string, dateTo?: string
 };
 
 /**
+ * Get admin seller help requests with pagination and filtering
+ */
+export const getAdminSellerHelpRequests = async (params?: {
+  page?: number;
+  status?: string; // pending|resolved|closed|all
+  service_type?: string; // category filter or 'all'
+  search?: string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
+  per_page?: number;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', String(params.page));
+    if (params?.per_page) query.append('per_page', String(params.per_page));
+    if (params?.status && params.status !== 'all') query.append('status', params.status);
+    if (params?.service_type && params.service_type !== 'all') query.append('service_type', params.service_type);
+    if (params?.search) query.append('search', params.search);
+    if (params?.date_from) query.append('date_from', params.date_from);
+    if (params?.date_to) query.append('date_to', params.date_to);
+
+    const base = API_ENDPOINTS.ADMIN_SELLER_HELP.List;
+    const url = query.toString() ? `${base}?${query.toString()}` : base;
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Get admin seller help requests API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all admin users with filtering and pagination
  */
 export const getAdminUsers = async (params?: {

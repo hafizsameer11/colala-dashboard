@@ -62,6 +62,12 @@ export const General_links = [
      sublinks: [],
   },
   {
+    name: "Seller Help Requests",
+    link: "/seller-help-requests",
+    icon: images.support,
+     sublinks: [],
+  },
+  {
     name: "Settings",
     link: "/settings",
     icon: images.settings,
