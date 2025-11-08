@@ -367,9 +367,9 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                 </div>
               )}
               
-              <button className="px-3 py-3 cursor-pointer text-white bg-black rounded-lg">
+              {/* <button className="px-3 py-3 cursor-pointer text-white bg-black rounded-lg">
                 Switch to buyer
-              </button>
+              </button> */}
             </div>
           </div>
           {/* Dispute Information */}

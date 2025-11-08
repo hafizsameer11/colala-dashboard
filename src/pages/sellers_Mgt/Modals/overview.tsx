@@ -13,7 +13,7 @@ interface OverviewProps {
   };
   storeInfo?: unknown;
   images?: unknown[];
-  variants?: Array<{ color?: string }>;
+  variants?: Array<{ color?: string | null; size?: string | null }>;
   productId?: string | number;
   userId?: string;
   onEditProduct?: () => void;
@@ -23,20 +23,22 @@ interface OverviewProps {
 }
 
 // ColorPicker component
-const ColorPicker: React.FC<{ variants?: Array<{ color?: string }> }> = ({ variants = [] }) => {
+const ColorPicker: React.FC<{ colors: string[] }> = ({ colors }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
-  const colors = variants.length > 0 ? variants.map(v => v.color || "#000000") : ["#000000", "#0000FF", "#FF0000", "#FFFF00", "#00FFFF"];
+  if (colors.length === 0) return null;
 
   return (
     <div className="flex gap-2 pb-4">
       {colors.map((color, index) => (
         <span
-          key={index}
+          key={color}
           onClick={() => setSelected(index)}
-          className={`rounded-full w-12 h-12 inline-block cursor-pointer ${selected === index ? "border-3 border-[#E53E3E]" : ""
-            }`}
+          className={`rounded-full w-12 h-12 inline-block cursor-pointer ${
+            selected === index ? "border-3 border-[#E53E3E]" : ""
+          }`}
           style={{ backgroundColor: color }}
+          title={color}
         ></span>
       ))}
     </div>
@@ -44,22 +46,20 @@ const ColorPicker: React.FC<{ variants?: Array<{ color?: string }> }> = ({ varia
 };
 
 // SizePicker component
-const SizePicker: React.FC = () => {
+const SizePicker: React.FC<{ sizes: string[] }> = ({ sizes }) => {
   const [selected, setSelected] = useState<number | null>(null);
 
-  const sizes = ["S", "M", "L", "XL", "XXL"];
+  if (sizes.length === 0) return null;
 
   return (
     <div className="flex gap-2 pb-4">
       {sizes.map((size, index) => (
         <span
-          key={index}
+          key={`${size}-${index}`}
           onClick={() => setSelected(index)}
-          className={`flex items-center justify-center rounded-2xl w-15 h-15 cursor-pointer text-lg border border-[#00000080]
-            ${selected === index
-              ? "bg-[#E53E3E] text-white"
-              : "bg-white text-black"
-            }`}
+          className={`flex items-center justify-center rounded-2xl w-15 h-15 cursor-pointer text-lg border border-[#00000080] ${
+            selected === index ? "bg-[#E53E3E] text-white" : "bg-white text-black"
+          }`}
         >
           {size}
         </span>
@@ -72,13 +72,40 @@ const Overview: React.FC<OverviewProps> = ({
   productInfo, 
   variants, 
   productId, 
-  userId, // eslint-disable-line @typescript-eslint/no-unused-vars
+  userId: _userId, // intentionally unused at the moment
   onEditProduct,
   onDeleteProduct,
   onViewAnalytics,
-  onUpdateStatus
+  onUpdateStatus: _onUpdateStatus
 }) => {
   const [isBoostModalOpen, setIsBoostModalOpen] = useState(false);
+
+  const colorOptions = Array.from(
+    new Set(
+      (variants || [])
+        .map((variant) => variant.color)
+        .filter((color): color is string => Boolean(color && color.trim()))
+    )
+  );
+
+  const sizeOptions = Array.from(
+    new Set(
+      (variants || [])
+        .map((variant) => variant.size)
+        .filter((size): size is string => Boolean(size && size.trim()))
+    )
+  );
+
+  const formatCurrency = (amount?: string) => {
+    if (!amount) return null;
+    const numericValue = Number(amount);
+    if (Number.isNaN(numericValue)) return null;
+    return `₦${numericValue.toLocaleString()}`;
+  };
+
+  const originalPrice = formatCurrency(productInfo?.price);
+  const discountedPrice = formatCurrency(productInfo?.discount_price);
+  const displayPrice = discountedPrice ?? originalPrice ?? "₦0";
 
   return (
     <div className="">
@@ -99,11 +126,11 @@ const Overview: React.FC<OverviewProps> = ({
         </div>
         <div className="mt-2">
           <span className="font-bold text-[#E53E3E] text-[17px]">
-            ₦{productInfo?.price ? parseFloat(productInfo.price).toLocaleString() : "0"}
+            {displayPrice}
           </span>
-          {productInfo?.discount_price && (
+          {discountedPrice && originalPrice && discountedPrice !== originalPrice && (
             <span className="line-through text-[#00000080] text-[14px] ml-2">
-              ₦{parseFloat(productInfo.discount_price).toLocaleString()}
+              {originalPrice}
             </span>
           )}
         </div>
@@ -142,24 +169,28 @@ const Overview: React.FC<OverviewProps> = ({
         )}
 
         {/* Colors Section */}
-        <div className="border-t border-b border-[#00000080] mt-2">
-          <div className="flex flex-col gap-3">
-            <span className="text-lg font-medium pt-3">Colors</span>
-            <div>
-              <ColorPicker variants={variants} />
+        {colorOptions.length > 0 && (
+          <div className="border-t border-b border-[#00000080] mt-2">
+            <div className="flex flex-col gap-3">
+              <span className="text-lg font-medium pt-3">Colors</span>
+              <div>
+                <ColorPicker colors={colorOptions} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Size Section */}
-        <div className="border-b border-[#00000080]">
-          <div className="flex flex-col gap-3">
-            <span className="text-lg font-medium pt-3">Size</span>
-            <div>
-              <SizePicker />
+        {sizeOptions.length > 0 && (
+          <div className="border-b border-[#00000080]">
+            <div className="flex flex-col gap-3">
+              <span className="text-lg font-medium pt-3">Size</span>
+              <div>
+                <SizePicker sizes={sizeOptions} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Quantity Left and Counter */}
         {/* <div className="mt-4 flex flex-row justify-between items-center border-b border-[#00000080] pb-3">
@@ -226,7 +257,7 @@ const Overview: React.FC<OverviewProps> = ({
             </button>
 
             {/* Status Button */}
-            <button
+            {/* <button
               type="button"
               onClick={onUpdateStatus}
               className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
@@ -235,7 +266,7 @@ const Overview: React.FC<OverviewProps> = ({
               <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            </button>
+            </button> */}
 
             {/* Edit Product Button */}
             <button

@@ -44,6 +44,12 @@ export const General_links = [
      sublinks: [],
   },
   {
+    name: "Withdraw Requests",
+    link: "/withdrawal-requests",
+    icon: images.transaction,
+     sublinks: [],
+  },
+  {
     name: "Ratings & Reviews",
     link: "/ratings-reviews",
     icon: images.ratingsreviews,

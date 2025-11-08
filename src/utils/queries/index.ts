@@ -5,6 +5,7 @@ export * from './dashboard';
 export * from './notifications';
 export * from './referrals';
 export * from './support';
+export * from './withdrawalRequests';
 
 // Export chats functions with explicit naming to avoid conflicts
 export {

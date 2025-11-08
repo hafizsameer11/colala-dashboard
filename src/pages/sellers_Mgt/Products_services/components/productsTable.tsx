@@ -242,9 +242,13 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                   </td>
                   <td className="p-4 text-left">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-[#E53E3E]">{product.price}</span>
+                      <span className="font-semibold text-[#E53E3E]">
+                        {product.discountPrice ?? product.price}
+                      </span>
                       {product.discountPrice && (
-                        <span className="text-sm text-gray-500 line-through">{product.discountPrice}</span>
+                        <span className="text-sm text-gray-500 line-through">
+                          {product.price}
+                        </span>
                       )}
                     </div>
                   </td>

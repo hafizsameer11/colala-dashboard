@@ -38,6 +38,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Disputes from "./pages/general/disputes/disputes";
 import { QueryProvider } from "./providers/QueryProvider";
 import SellerHelpRequests from "./pages/general/sellerHelpRequests/sellerHelpRequests";
+import WithdrawalRequests from "./pages/general/withdrawalRequests/withdrawalRequests";
 
 // Component to handle initial route based on auth status
 const InitialRoute = () => {
@@ -85,6 +86,7 @@ function App() {
     { path: "leaderboard", element: <LeaderBoard /> },
     { path: "support", element: <Support /> },
     { path: "disputes", element: <Disputes /> },
+    { path: "withdrawal-requests", element: <WithdrawalRequests /> },
     { path: "ratings-reviews", element: <RatingsReviews /> },
     { path: "referral-mgt", element: <ReferralMgt /> },
     { path: "notifications", element: <Notifications /> },

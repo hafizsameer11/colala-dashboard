@@ -70,10 +70,18 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   const productInfo = productDetails?.data?.product_info;
   const storeInfo = productDetails?.data?.store_info;
-  const images = productDetails?.data?.images || [];
+  const productImages = productDetails?.data?.images || [];
   const variants = productDetails?.data?.variants || [];
   const reviews = productDetails?.data?.reviews || [];
   const statistics = productDetails?.data?.statistics;
+
+  const resolveStorageUrl = (path?: string | null) => {
+    if (!path) return "";
+    const trimmedPath = path.replace(/^\/+/, "");
+    return path.startsWith("http")
+      ? path
+      : `https://colala.hmstech.xyz/storage/${trimmedPath}`;
+  };
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
@@ -113,9 +121,9 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   // Debug logging
   console.log('Product details data:', productDetails?.data);
   console.log('Product ID:', product?.id);
-  console.log('Images array:', images);
+  console.log('Images array:', productImages);
   console.log('Selected image index:', selectedImageIndex);
-  console.log('Current image:', images[selectedImageIndex]);
+  console.log('Current image:', productImages[selectedImageIndex]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -132,21 +140,25 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 {productInfo?.video && (
                   <div className="relative rounded-2xl overflow-hidden">
                     <video
-                      src={productInfo.video}
+                      src={resolveStorageUrl(productInfo.video)}
                       className="w-full h-auto object-cover rounded-2xl"
                       controls
+                      preload="metadata"
                     />
                   </div>
                 )}
 
                 {/* Main Product Image */}
-                {images.length > 0 && (
+                {productImages.length > 0 && (
                   <div className="mt-5">
                     <div className="relative w-full h-80 mb-4 rounded-2xl overflow-hidden">
                       <img 
-                        src={images[selectedImageIndex]?.url || images[selectedImageIndex]?.path} 
+                        src={
+                          productImages[selectedImageIndex]?.url ||
+                          resolveStorageUrl(productImages[selectedImageIndex]?.path)
+                        }
                         alt={`Product image ${selectedImageIndex + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain bg-[#F9F9F9]"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMjAwTDI1MCAyNTBMMjAwIDMwMEwxNTAgMjUwTDIwMCAyMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
                         }}
@@ -155,7 +167,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     
                     {/* Thumbnail Images */}
                     <div className="flex flex-row gap-3">
-                      {images.map((img: { id?: string; url?: string; path?: string }, index: number) => (
+                      {productImages.map((img: { id?: string; url?: string; path?: string }, index: number) => (
                         <div 
                           key={img.id || index} 
                           className={`relative cursor-pointer transition-all duration-200 ${
@@ -166,7 +178,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                           onClick={() => setSelectedImageIndex(index)}
                         >
                           <img 
-                            src={img.url || img.path} 
+                            src={img.url || resolveStorageUrl(img.path)} 
                             alt={`Product thumbnail ${index + 1}`}
                             className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                             onError={(e) => {
@@ -180,9 +192,9 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 )}
                 
                 {/* Show placeholder if no images */}
-                {images.length === 0 && (
+                {productImages.length === 0 && (
                   <div className="mt-5">
-                    <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
+                  <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
                       <span className="text-gray-400 text-lg">No Product Images</span>
                     </div>
                   </div>
@@ -235,7 +247,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   setQuantity={setQuantity}
                   productInfo={productInfo}
                   storeInfo={storeInfo}
-                  images={images}
+                  images={productImages}
                   variants={variants}
                   productId={product?.id}
                   userId={userId}

@@ -226,6 +226,17 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/seller-help/requests", // GET
   },
 
+  // ADMIN WITHDRAWAL REQUESTS
+  WITHDRAWAL_REQUESTS: {
+    List: API_DOMAIN + "/admin/withdrawal-requests", // GET
+    Details: (requestId: number | string) =>
+      `${API_DOMAIN}/admin/withdrawal-requests/${requestId}`, // GET
+    Approve: (requestId: number | string) =>
+      `${API_DOMAIN}/admin/withdrawal-requests/${requestId}/approve`, // POST
+    Reject: (requestId: number | string) =>
+      `${API_DOMAIN}/admin/withdrawal-requests/${requestId}/reject`, // POST
+  },
+
   // ADMIN PRODUCTS
   ADMIN_PRODUCTS: {
     List: API_DOMAIN + "/admin/products", // GET
