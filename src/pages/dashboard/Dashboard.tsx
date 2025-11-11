@@ -209,6 +209,11 @@ const Dashboard = () => {
    * Prepare chart data from API response
    * Maps site statistics to Chart.js format
    */
+  const usersData = dashboardData?.data?.site_stats?.chart_data?.map((item: { users: number }) => item.users) ||
+    new Array(12).fill(0);
+  const ordersData = dashboardData?.data?.site_stats?.chart_data?.map((item: { orders: number }) => item.orders) ||
+    new Array(12).fill(0);
+
   const chartData = {
     labels: dashboardData?.data?.site_stats?.chart_data?.map((item: { month: string }) => item.month) || [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -217,8 +222,7 @@ const Dashboard = () => {
     datasets: [
       {
         label: "Users",
-        data: dashboardData?.data?.site_stats?.chart_data?.map((item: { users: number }) => item.users) ||
-          new Array(12).fill(0),
+        data: usersData,
         backgroundColor: "#E53E3E",
         borderRadius: 50,
         barThickness: 20,
@@ -226,8 +230,7 @@ const Dashboard = () => {
       },
       {
         label: "Orders",
-        data: dashboardData?.data?.site_stats?.chart_data?.map((item: { orders: number }) => item.orders) ||
-          new Array(12).fill(0),
+        data: ordersData,
         backgroundColor: "#008000",
         borderRadius: 50,
         barThickness: 20,
@@ -235,6 +238,61 @@ const Dashboard = () => {
       },
     ],
   };
+
+  /**
+   * Calculate dynamic max value and step size based on actual data
+   */
+  const calculateChartMax = () => {
+    // Find the maximum value across both datasets
+    const allValues = [...usersData, ...ordersData];
+    const dataMax = Math.max(...allValues, 0); // Ensure at least 0
+
+    // If no data, return a default small value
+    if (dataMax === 0) {
+      return { max: 100, stepSize: 20 };
+    }
+
+    // Add 20% padding above the max value for better visualization
+    const paddedMax = dataMax * 1.2;
+
+    // Round up to the nearest "nice" number
+    // This creates cleaner scale divisions
+    const magnitude = Math.pow(10, Math.floor(Math.log10(paddedMax)));
+    const normalized = paddedMax / magnitude;
+    
+    let roundedMax;
+    if (normalized <= 1) {
+      roundedMax = magnitude;
+    } else if (normalized <= 2) {
+      roundedMax = 2 * magnitude;
+    } else if (normalized <= 5) {
+      roundedMax = 5 * magnitude;
+    } else {
+      roundedMax = 10 * magnitude;
+    }
+
+    // Calculate appropriate step size (aim for 5-10 divisions)
+    const stepSize = roundedMax / 5;
+
+    // Round step size to a nice number
+    const stepMagnitude = Math.pow(10, Math.floor(Math.log10(stepSize)));
+    const normalizedStep = stepSize / stepMagnitude;
+    
+    let roundedStep;
+    if (normalizedStep <= 1) {
+      roundedStep = stepMagnitude;
+    } else if (normalizedStep <= 2) {
+      roundedStep = 2 * stepMagnitude;
+    } else if (normalizedStep <= 5) {
+      roundedStep = 5 * stepMagnitude;
+    } else {
+      roundedStep = 10 * stepMagnitude;
+    }
+
+    return { max: roundedMax, stepSize: roundedStep };
+  };
+
+  const { max: dynamicMax, stepSize: dynamicStepSize } = calculateChartMax();
 
   /**
    * Chart configuration options
@@ -255,8 +313,8 @@ const Dashboard = () => {
       },
       y: {
         beginAtZero: true,
-        max: 1200,
-        ticks: { stepSize: 200 },
+        max: dynamicMax,
+        ticks: { stepSize: dynamicStepSize },
         grid: { display: false },
         border: { display: false },
       },
