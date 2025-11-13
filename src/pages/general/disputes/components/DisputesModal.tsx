@@ -25,7 +25,7 @@ interface Dispute {
   category?: string;
   details?: string;
   images?: string[];
-  status: "open" | "resolved" | "closed";
+  status: "open" | "pending" | "on_hold" | "resolved" | "closed";
   won_by?: string | null;
   resolution_notes?: string | null;
   created_at?: string;

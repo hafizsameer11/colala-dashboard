@@ -1,13 +1,13 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DisputesModal from "./DisputesModal";
-import { getDisputesList, getDisputeDetails, resolveDispute, closeDispute } from "../../../../utils/queries/disputes";
+import { getDisputesList } from "../../../../utils/queries/disputes";
 
 export interface Dispute {
   id: string | number;
   category?: string;
   details?: string;
   images?: string[];
-  status: "open" | "resolved" | "closed";
+  status: "open" | "pending" | "on_hold" | "resolved" | "closed";
   won_by?: string | null;
   resolution_notes?: string | null;
   created_at?: string;
@@ -19,6 +19,34 @@ export interface Dispute {
     name: string;
     email: string;
     phone: string;
+    profile_picture?: string;
+  };
+  dispute_chat?: {
+    id: number;
+    buyer?: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    seller?: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    store?: {
+      id: number;
+      name: string;
+    };
+    messages?: Array<{
+      id: number;
+      sender_id: number;
+      sender_type: "buyer" | "seller" | "admin";
+      sender_name: string;
+      message: string;
+      image: string | null;
+      is_read: boolean;
+      created_at: string;
+    }>;
   };
   chat?: {
     id: number;
@@ -35,6 +63,14 @@ export interface Dispute {
     shipping_fee: string;
     subtotal_with_shipping: string;
     created_at: string;
+    items?: Array<{
+      id: number;
+      name: string;
+      sku: string;
+      unit_price: string;
+      qty: number;
+      line_total: string;
+    }>;
   };
   // Legacy fields for backward compatibility
   store_name?: string;
@@ -76,13 +112,19 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
     per_page: 20,
     total: 0
   });
-  const [currentPage, setCurrentPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [currentPage, setCurrentPage] = useState(1); // Reserved for future pagination implementation
 
   // Fetch disputes data
-  const fetchDisputes = async () => {
+  const fetchDisputes = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params: any = {
+      const params: {
+        page: number;
+        per_page: number;
+        status?: string;
+        search?: string;
+      } = {
         page: currentPage,
         per_page: 20
       };
@@ -113,36 +155,59 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab, search, currentPage, pagination]);
 
   // Fetch disputes when component mounts or dependencies change
   useEffect(() => {
     fetchDisputes();
-  }, [activeTab, search, currentPage]);
+  }, [fetchDisputes]);
 
   // Helper function to get display values from dispute object
   const getDisputeDisplayValues = (dispute: Dispute) => {
+    // Handle new API structure with dispute_chat
+    const disputeChat = dispute.dispute_chat;
+    const legacyChat = dispute.chat;
+    
+    // Check if it's the new structure (dispute_chat)
+    if (disputeChat) {
+      const lastMessage = disputeChat.messages && disputeChat.messages.length > 0 
+        ? disputeChat.messages[disputeChat.messages.length - 1]
+        : null;
+      
+      return {
+        storeName: disputeChat.store?.name || dispute.store_name || dispute.storeName || 'N/A',
+        userName: disputeChat.buyer?.name || dispute.user?.name || dispute.user_name || dispute.userName || 'N/A',
+        lastMessage: lastMessage?.message || dispute.last_message || dispute.lastMessage || 'N/A',
+        chatDate: lastMessage?.created_at 
+          ? new Date(lastMessage.created_at).toLocaleDateString()
+          : dispute.chat_date || dispute.chatDate || 'N/A',
+        wonBy: dispute.won_by || dispute.wonBy || '-'
+      };
+    }
+    
+    // Fallback to legacy chat structure
     return {
-      storeName: dispute.chat?.store_name || dispute.store_name || dispute.storeName || 'N/A',
-      userName: dispute.chat?.user_name || dispute.user?.name || dispute.user_name || dispute.userName || 'N/A',
-      lastMessage: dispute.chat?.last_message || dispute.last_message || dispute.lastMessage || 'N/A',
-      chatDate: dispute.chat?.created_at ? new Date(dispute.chat.created_at).toLocaleDateString() : dispute.chat_date || dispute.chatDate || 'N/A',
+      storeName: legacyChat?.store_name || dispute.store_name || dispute.storeName || 'N/A',
+      userName: legacyChat?.user_name || dispute.user?.name || dispute.user_name || dispute.userName || 'N/A',
+      lastMessage: legacyChat?.last_message || dispute.last_message || dispute.lastMessage || 'N/A',
+      chatDate: legacyChat?.created_at 
+        ? new Date(legacyChat.created_at).toLocaleDateString()
+        : dispute.chat_date || dispute.chatDate || 'N/A',
       wonBy: dispute.won_by || dispute.wonBy || '-'
     };
   };
 
   const getStatusIndicator = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "resolved":
         return <div className="w-4 h-4 bg-[#008000] rounded-full"></div>;
       case "open":
         return <div className="w-4 h-4 bg-[#FFA500] rounded-full"></div>;
-      case "closed":
-        return <div className="w-4 h-4 bg-[#000000] rounded-full"></div>;
-      // Legacy status support
       case "pending":
         return <div className="w-4 h-4 bg-[#FFA500] rounded-full"></div>;
       case "on_hold":
+        return <div className="w-4 h-4 bg-[#000000] rounded-full"></div>;
+      case "closed":
         return <div className="w-4 h-4 bg-[#000000] rounded-full"></div>;
       default:
         return <div className="w-4 h-4 bg-gray-300 rounded-full"></div>;
@@ -275,7 +340,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       <DisputesModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        disputeData={selectedDispute}
+        disputeData={selectedDispute as Dispute | null | undefined}
         onDisputeUpdate={fetchDisputes}
       />
     </div>

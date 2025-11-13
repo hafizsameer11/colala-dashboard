@@ -434,14 +434,28 @@ const Dashboard = () => {
                   icon={images.Users}
                   title="Total Users"
                   value={dashboardData?.data?.buyer_stats?.total_users?.value || 0}
-                  subtitle={`+${dashboardData?.data?.buyer_stats?.total_users?.increase || 0}% increase from last month`}
+                  subtitle={
+                    <>
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.total_users?.increase || 0}%
+                      </span>{" "}
+                      increase from last month
+                    </>
+                  }
                   iconBgColor="#470434"
                 />
                 <StatCard
                   icon={images.orders}
                   title="Total Orders"
                   value={dashboardData?.data?.buyer_stats?.total_orders?.value || 0}
-                  subtitle={`+${dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}% increase from last month`}
+                  subtitle={
+                    <>
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}%
+                      </span>{" "}
+                      increase from last month
+                    </>
+                  }
                   iconBgColor="#042A47"
                 />
               </StatCardGrid>
@@ -452,14 +466,28 @@ const Dashboard = () => {
                   icon={images.orders}
                   title="Completed Orders"
                   value={dashboardData?.data?.buyer_stats?.completed_orders?.value || 0}
-                  subtitle={`+${dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0}% increase from last month`}
+                  subtitle={
+                    <>
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0}%
+                      </span>{" "}
+                      increase from last month
+                    </>
+                  }
                   iconBgColor="#471204"
                 />
                 <StatCard
                   icon={images.money}
                   title="Total Transactions"
                   value={dashboardData?.data?.buyer_stats?.total_transactions?.value || 0}
-                  subtitle={`+${dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}% increase from last month`}
+                  subtitle={
+                    <>
+                      <span className="text-[#1DB61D]">
+                        +{dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}%
+                      </span>{" "}
+                      increase from last month
+                    </>
+                  }
                   iconBgColor="#044713"
                 />
               </StatCardGrid>

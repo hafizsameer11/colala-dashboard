@@ -392,8 +392,13 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/disputes", // GET
     Statistics: API_DOMAIN + "/admin/disputes/statistics", // GET
     Details: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/details`, // GET
+    UpdateStatus: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/status`, // PUT
     Resolve: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/resolve`, // POST
     Close: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/close`, // POST
+    BulkAction: API_DOMAIN + "/admin/disputes/bulk-action", // POST
+    Analytics: API_DOMAIN + "/admin/disputes/analytics", // GET
+    Chat: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/chat`, // GET
+    SendMessage: (id: number | string) => `${API_DOMAIN}/admin/disputes/${id}/message`, // POST
   },
 
   // FAQ MANAGEMENT
