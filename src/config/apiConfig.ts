@@ -435,6 +435,12 @@ const API_ENDPOINTS = {
     Details: (id: number | string) => `${API_DOMAIN}/admin/faq/${id}/details`, // GET
     ByCategory: (category: string) => `${API_DOMAIN}/admin/faq/${category}`, // GET (get FAQs by category)
   },
+
+  // TERMS & POLICIES
+  TERMS: {
+    Get: API_DOMAIN + "/admin/terms", // GET
+    Update: API_DOMAIN + "/admin/terms", // PUT
+  },
   
 };
 

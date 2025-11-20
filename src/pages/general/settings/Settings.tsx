@@ -17,6 +17,7 @@ import {
   updateFaq, 
   deleteFaq
 } from "../../../utils/queries/faq";
+import { getTerms, updateTerms } from "../../../utils/queries/terms";
 
 interface FaqItem {
   id: number;
@@ -111,6 +112,15 @@ interface Question {
   answer: string;
 }
 
+interface TermsData {
+  buyer_privacy_policy?: string;
+  buyer_terms_and_condition?: string;
+  buyer_return_policy?: string;
+  seller_onboarding_policy?: string;
+  seller_privacy_policy?: string;
+  seller_terms_and_condition?: string;
+}
+
 const AllUsers = () => {
   const [selectedOption, setSelectedOption] = useState("Online");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -170,6 +180,18 @@ const AllUsers = () => {
   const [isLoadingFaqs, setIsLoadingFaqs] = useState(false);
   const [currentFaqPage] = useState(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Terms State
+  const [termsData, setTermsData] = useState<TermsData>({
+    buyer_privacy_policy: "",
+    buyer_terms_and_condition: "",
+    buyer_return_policy: "",
+    seller_onboarding_policy: "",
+    seller_privacy_policy: "",
+    seller_terms_and_condition: "",
+  });
+  const [isLoadingTerms, setIsLoadingTerms] = useState(false);
+  const [isSavingTerms, setIsSavingTerms] = useState(false);
 
   // Filter FAQ data based on active tab
   const getFilteredFaqData = () => {
@@ -307,6 +329,49 @@ const AllUsers = () => {
       loadFaqData();
     }
   }, [activeTab, faqActiveTab, currentFaqPage, refreshTrigger]); // Only depend on tab changes
+
+  // Fetch Terms data when Terms tab is active
+  useEffect(() => {
+    if (activeTab === "Terms") {
+      const loadTermsData = async () => {
+        setIsLoadingTerms(true);
+        try {
+          const response = await getTerms();
+          if (response.status === 'success' && response.data?.terms) {
+            setTermsData({
+              buyer_privacy_policy: response.data.terms.buyer_privacy_policy || "",
+              buyer_terms_and_condition: response.data.terms.buyer_terms_and_condition || "",
+              buyer_return_policy: response.data.terms.buyer_return_policy || "",
+              seller_onboarding_policy: response.data.terms.seller_onboarding_policy || "",
+              seller_privacy_policy: response.data.terms.seller_privacy_policy || "",
+              seller_terms_and_condition: response.data.terms.seller_terms_and_condition || "",
+            });
+          }
+        } catch (error) {
+          console.error('Error loading terms data:', error);
+        } finally {
+          setIsLoadingTerms(false);
+        }
+      };
+      
+      loadTermsData();
+    }
+  }, [activeTab]);
+
+  const handleSaveTerms = async () => {
+    setIsSavingTerms(true);
+    try {
+      const response = await updateTerms(termsData);
+      if (response.status === 'success') {
+        alert('Terms and policies updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating terms:', error);
+      alert('Failed to update terms. Please try again.');
+    } finally {
+      setIsSavingTerms(false);
+    }
+  };
 
   const dropdownOptions = ["Online", "All", "Active", "Inactive"];
 
@@ -446,7 +511,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
         {/* Main Tabs Group */}
         <div className="flex items-center bg-white border border-[#989898] rounded-lg p-2 ">
-          {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base"].map(
+          {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
             (tab) => {
               const isActive = activeTab === tab;
               return (
@@ -674,7 +739,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2 ">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base"].map(
+                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -763,7 +828,7 @@ const AllUsers = () => {
             <div className="flex items-center gap-3">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base"].map(
+                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -1123,6 +1188,248 @@ const AllUsers = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      ) : activeTab === "Terms" ? (
+        <>
+          <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
+            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+
+            <div className="flex items-center gap-3">
+              {/* Main Tabs Group */}
+              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2">
+                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+                  (tab) => {
+                    const isActive = activeTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                          isActive
+                            ? "bg-[#E53E3E] text-white"
+                            : "text-gray-700 hover:text-gray-900"
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+
+              {/* This Week Dropdown - Separate */}
+              <div className="relative">
+                <div className="bg-white border border-gray-300 rounded-lg">
+                  <button
+                    onClick={() =>
+                      setIsThisWeekDropdownOpen(!isThisWeekDropdownOpen)
+                    }
+                    className="flex items-center p-4 cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg transition-all duration-200"
+                  >
+                    <span className="cursor-pointer">This Week</span>
+                    <svg
+                      className={`w-4 h-4 ml-2 transition-transform duration-200 ${
+                        isThisWeekDropdownOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {isThisWeekDropdownOpen && (
+                  <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    {["This Week", "Last Week", "This Month", "Last Month"].map(
+                      (option) => (
+                        <button
+                          key={option}
+                          onClick={() => {
+                            setIsThisWeekDropdownOpen(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          {option}
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="p-6 bg-gray-50 min-h-screen">
+            <div className="max-w-7xl mx-auto">
+              {/* Terms Content */}
+              {activeTab === "Terms" && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                      <h2 className="text-lg font-medium text-gray-900">
+                        Terms & Policies
+                      </h2>
+                    </div>
+
+                    {isLoadingTerms ? (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mr-2"></div>
+                        <span className="text-gray-600">Loading terms...</span>
+                      </div>
+                    ) : (
+                      <div className="p-6 space-y-6">
+                        {/* Buyer Section */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                            Buyer Policies
+                          </h3>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Buyer Privacy Policy
+                            </label>
+                            <textarea
+                              value={termsData.buyer_privacy_policy || ""}
+                              onChange={(e) =>
+                                setTermsData({
+                                  ...termsData,
+                                  buyer_privacy_policy: e.target.value,
+                                })
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+                              placeholder="Enter buyer privacy policy..."
+                              rows={6}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Buyer Terms and Conditions
+                            </label>
+                            <textarea
+                              value={termsData.buyer_terms_and_condition || ""}
+                              onChange={(e) =>
+                                setTermsData({
+                                  ...termsData,
+                                  buyer_terms_and_condition: e.target.value,
+                                })
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+                              placeholder="Enter buyer terms and conditions..."
+                              rows={6}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Buyer Return Policy
+                            </label>
+                            <textarea
+                              value={termsData.buyer_return_policy || ""}
+                              onChange={(e) =>
+                                setTermsData({
+                                  ...termsData,
+                                  buyer_return_policy: e.target.value,
+                                })
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+                              placeholder="Enter buyer return policy..."
+                              rows={6}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Seller Section */}
+                        <div className="space-y-4 pt-6 border-t border-gray-200">
+                          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                            Seller Policies
+                          </h3>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Seller Onboarding Policy
+                            </label>
+                            <textarea
+                              value={termsData.seller_onboarding_policy || ""}
+                              onChange={(e) =>
+                                setTermsData({
+                                  ...termsData,
+                                  seller_onboarding_policy: e.target.value,
+                                })
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+                              placeholder="Enter seller onboarding policy..."
+                              rows={6}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Seller Privacy Policy
+                            </label>
+                            <textarea
+                              value={termsData.seller_privacy_policy || ""}
+                              onChange={(e) =>
+                                setTermsData({
+                                  ...termsData,
+                                  seller_privacy_policy: e.target.value,
+                                })
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+                              placeholder="Enter seller privacy policy..."
+                              rows={6}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Seller Terms and Conditions
+                            </label>
+                            <textarea
+                              value={termsData.seller_terms_and_condition || ""}
+                              onChange={(e) =>
+                                setTermsData({
+                                  ...termsData,
+                                  seller_terms_and_condition: e.target.value,
+                                })
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+                              placeholder="Enter seller terms and conditions..."
+                              rows={6}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="flex justify-end pt-6 border-t border-gray-200">
+                          <button
+                            onClick={handleSaveTerms}
+                            disabled={isSavingTerms}
+                            className="px-6 py-3 bg-[#E53E3E] text-white font-medium rounded-lg hover:bg-[#D32F2F] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSavingTerms ? (
+                              <span className="flex items-center">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                Saving...
+                              </span>
+                            ) : (
+                              "Save Changes"
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
