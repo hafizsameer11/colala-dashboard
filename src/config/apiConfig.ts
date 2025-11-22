@@ -33,7 +33,7 @@ const API_ENDPOINTS = {
     BulkAction: API_DOMAIN + "/admin/all-users/bulk-action", // POST
     Profile: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/profile`, // GET
     Details: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/details`, // GET
-    Create: API_DOMAIN + "/admin/users", // POST
+    Create: API_DOMAIN + "/admin/all-users", // POST
     Update: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // PUT
     Delete: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // DELETE
   },

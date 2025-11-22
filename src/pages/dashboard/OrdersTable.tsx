@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 
 interface Order {
   id: string | number;
@@ -37,15 +37,26 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [selectAll, setSelectAll] = useState(false);
 
   // Helper function to normalize order data
-  const normalizeOrder = (order: Order): Order => ({
-    id: order.id,
-    storeName: order.store_name || order.storeName || 'Unknown Store',
-    buyerName: order.buyer_name || order.buyerName || 'Unknown Buyer',
-    productName: order.product_name || order.productName || 'Unknown Product',
-    price: order.price || '₦0.00',
-    orderDate: order.order_date || order.orderDate || 'Unknown Date',
-    status: order.status || 'Unknown Status',
-  });
+  const normalizeOrder = (order: Order): Order => {
+    // Handle both snake_case and camelCase for status_color
+    // Check the raw order object for status_color (could be in either format)
+    const orderWithStatusColor = order as Order & { statusColor?: string };
+    const rawStatusColor = order.status_color || orderWithStatusColor.statusColor;
+    const statusColor = rawStatusColor && typeof rawStatusColor === 'string' && rawStatusColor.trim() !== '' 
+      ? rawStatusColor.trim() 
+      : undefined;
+    
+    return {
+      id: order.id,
+      storeName: order.store_name || order.storeName || 'Unknown Store',
+      buyerName: order.buyer_name || order.buyerName || 'Unknown Buyer',
+      productName: order.product_name || order.productName || 'Unknown Product',
+      price: order.price || '₦0.00',
+      orderDate: order.order_date || order.orderDate || 'Unknown Date',
+      status: order.status || 'Unknown Status',
+      status_color: statusColor, // Preserve status_color from API
+    };
+  };
 
   // Use real orders data or fallback to empty array
   const normalizedOrders = orders.map(normalizeOrder);
@@ -81,9 +92,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectAll(false);
     // optionally also clear selections not in the current view
     setSelectedRows((prev) =>
-      prev.filter((id) => filteredOrders.some((o) => o.id === id))
+      prev.filter((id) => filteredOrders.some((o) => String(o.id) === id))
     );
-  }, [filterStatus, searchTerm]); // eslint-disable-line
+  }, [filterStatus, searchTerm, filteredOrders]);
 
   // Remove the problematic useEffect hooks that cause infinite loops
   // We'll handle the selection in the event handlers instead
@@ -96,7 +107,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onSelectedOrdersChange([]);
       }
     } else {
-      const visibleIds = filteredOrders.map((o) => o.id);
+      const visibleIds = filteredOrders.map((o) => String(o.id));
       setSelectedRows(visibleIds);
       onRowSelect?.(visibleIds);
       if (onSelectedOrdersChange) {
@@ -106,12 +117,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectAll(!selectAll);
   };
 
-  const handleRowSelect = (orderId: string) => {
+  const handleRowSelect = (orderId: string | number) => {
+    const orderIdStr = String(orderId);
     let newSelectedRows: string[];
-    if (selectedRows.includes(orderId)) {
-      newSelectedRows = selectedRows.filter((id) => id !== orderId);
+    if (selectedRows.includes(orderIdStr)) {
+      newSelectedRows = selectedRows.filter((id) => id !== orderIdStr);
     } else {
-      newSelectedRows = [...selectedRows, orderId];
+      newSelectedRows = [...selectedRows, orderIdStr];
     }
     setSelectedRows(newSelectedRows);
     setSelectAll(newSelectedRows.length === filteredOrders.length);
@@ -126,12 +138,76 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const getStatusStyle = (status: Order["status"]) => {
-    switch (status?.toLowerCase()) {
+  // Helper function to format status text for display
+  const formatStatusText = (status: Order["status"]): string => {
+    if (!status) return "Unknown Status";
+    return status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  // Map status_color from API to CSS classes
+  const getStatusColorStyle = (statusColor?: string): string | null => {
+    if (!statusColor || statusColor.trim() === "") return null;
+    
+    const colorLower = statusColor.toLowerCase().trim();
+    switch (colorLower) {
+      case "gray":
+      case "grey":
+        return "bg-gray-100 text-gray-600 border border-gray-300";
+      case "purple":
+        return "bg-[#8000801A] text-[#800080] border border-[#800080]";
+      case "blue":
+        return "bg-[#1E90FF1A] text-[#1E90FF] border border-[#1E90FF]";
+      case "green":
+        return "bg-[#0080001A] text-[#008000] border border-[#008000]";
+      case "red":
+        return "bg-[#E53E3E1A] text-[#E53E3E] border border-[#E53E3E]";
+      case "orange":
+        return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]";
+      default:
+        return null;
+    }
+  };
+
+  const getStatusStyle = (status: Order["status"], statusColor?: string): string => {
+    // Normalize status for comparison
+    const statusLower = status?.toLowerCase().trim() || "";
+    
+    // First, prioritize status_color from API if available and valid
+    // This is the primary source of truth for styling
+    if (statusColor && typeof statusColor === 'string') {
+      const trimmedColor = statusColor.trim().toLowerCase();
+      if (trimmedColor !== "" && trimmedColor !== "undefined" && trimmedColor !== "null") {
+        const colorStyle = getStatusColorStyle(trimmedColor);
+        if (colorStyle) {
+          return colorStyle;
+        }
+      }
+    }
+    
+    // Fallback to status-based styling if status_color is not available or invalid
+    // Handle statuses with underscores and variations (check these first before switch)
+    if (statusLower.includes("pending_acceptance") || statusLower === "pending_acceptance" || statusLower === "pending acceptance") {
+      return "bg-gray-100 text-gray-600 border border-gray-300";
+    }
+    if (statusLower.includes("out_for_delivery") || statusLower === "out_for_delivery" || statusLower === "out for delivery") {
+      return "bg-[#1E90FF1A] text-[#1E90FF] border border-[#1E90FF]"; // Blue for out_for_delivery
+    }
+    if (statusLower === "accepted" || (statusLower.includes("accepted") && !statusLower.includes("pending"))) {
+      return "bg-gray-100 text-gray-600 border border-gray-300";
+    }
+    if (statusLower === "paid" || statusLower.includes("paid")) {
+      return "bg-gray-100 text-gray-600 border border-gray-300";
+    }
+    
+    // Handle standard statuses
+    switch (statusLower) {
       case "placed":
         return "bg-[#E53E3E1A] text-[#E53E3E] border border-[#E53E3E]";
       case "pending":
-        return "bg-[#1E90FF1A] text-[#1E90FF] border border-[#1E90FF]";
+        return "bg-gray-100 text-gray-600 border border-gray-300";
       case "delivered":
         return "bg-[#8000801A] text-[#800080] border border-[#800080]";
       case "completed":
@@ -139,6 +215,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       case "disputed":
         return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]";
       default:
+        // Default to grey if status is unknown
         return "bg-gray-100 text-gray-600 border border-gray-300";
     }
   };
@@ -195,7 +272,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <td className="p-4 text-center">
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(order.id)}
+                    checked={selectedRows.includes(String(order.id))}
                     onChange={() => handleRowSelect(order.id)}
                     className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                   />
@@ -218,10 +295,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <td className="p-4 text-center">
                   <span
                     className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
-                      order.status
+                      order.status || "",
+                      order.status_color
                     )}`}
                   >
-                    {order.status}
+                    {formatStatusText(order.status || "")}
                   </span>
                 </td>
               </tr>

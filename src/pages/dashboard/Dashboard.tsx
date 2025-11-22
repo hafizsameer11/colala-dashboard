@@ -39,8 +39,10 @@ ChartJS.register(
  */
 const ORDER_FILTER_TABS = [
   "All",
-  "placed",
-  "pending",
+  "paid",
+  "pending_acceptance",
+  "accepted",
+  "out_for_delivery",
   "delivered",
   "completed",
   "disputed",
@@ -334,6 +336,17 @@ const Dashboard = () => {
   // ============================================================================
 
   /**
+   * Format tab label for display (convert "pending_acceptance" to "Pending Acceptance")
+   */
+  const formatTabLabel = (tab: string): string => {
+    if (tab === "All") return "All";
+    return tab
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  /**
    * Render filter tab buttons with smooth transitions
    */
   const TabButtons = useCallback(() => {
@@ -363,7 +376,7 @@ const Dashboard = () => {
                 userSelect: 'none'
               }}
             >
-              {tab}
+              {formatTabLabel(tab)}
             </button>
           );
         })}

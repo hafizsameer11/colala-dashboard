@@ -41,6 +41,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
     country: "",
     state: "",
     role: "buyer" as "buyer" | "seller",
+    status: "active" as "active" | "inactive",
     referral_code: "",
     profile_picture: null as File | null,
   });
@@ -65,6 +66,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
         country: userData.user_info?.country || "",
         state: userData.user_info?.state || "",
         role: userData.user_info?.role || "buyer",
+        status: userData.user_info?.status || "active",
         referral_code: "",
         profile_picture: null,
       });
@@ -72,16 +74,20 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
   }, [userData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+    const target = e.target;
+    const name = target.name;
+    const type = target.type;
     
     if (type === 'file') {
-      const file = (e.target as HTMLInputElement).files?.[0] || null;
+      const fileInput = target as HTMLInputElement;
+      const file = fileInput.files?.[0] || null;
       console.log('File selected:', file); // Debug log
       setFormData((prev) => ({
         ...prev,
         [name]: file,
       }));
     } else {
+      const value = 'value' in target ? target.value : '';
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -94,7 +100,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = e.target;
+    const target = e.target;
+    const name = target.name;
+    const value = 'value' in target ? target.value : '';
     setAddressData((prev) => ({
       ...prev,
       [name]: value,
@@ -121,11 +129,23 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
     console.log('Form data being submitted:', formData);
     console.log('Profile picture file:', formData.profile_picture);
     
-    // Update user
-    updateUserMutation.mutate({
+    // Update user - only include profile_picture if it's a File
+    const updateData = {
       userId: userData?.user_info?.id,
-      ...formData
-    });
+      full_name: formData.full_name,
+      user_name: formData.user_name,
+      email: formData.email,
+      phone: formData.phone,
+      country: formData.country,
+      state: formData.state,
+      role: formData.role,
+      status: formData.status,
+      referral_code: formData.referral_code,
+      ...(formData.password && { password: formData.password }),
+      ...(formData.profile_picture && { profile_picture: formData.profile_picture }),
+    };
+    
+    updateUserMutation.mutate(updateData);
   };
 
   if (!isOpen) return null;
@@ -420,10 +440,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                       <select
                         id="status"
                         name="status"
-                        value={userData?.user_info?.status || 'active'}
-                        onChange={(e) => {
-                          // Handle status change if needed
-                        }}
+                        value={formData.status}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-shadow"
                       >
                         <option value="active">Active</option>
@@ -465,8 +483,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                             onClick={() => {
                               setFormData(prev => ({ ...prev, profile_picture: null }));
                               // Reset file input
-                              const fileInput = document.getElementById('profile_picture_placeholder') as HTMLInputElement;
-                              if (fileInput) fileInput.value = '';
+                              const fileInput = document.getElementById('profile_picture_placeholder') as HTMLInputElement | null;
+                              if (fileInput && 'value' in fileInput) {
+                                fileInput.value = '';
+                              }
                             }}
                             className="text-xs text-red-600 hover:text-red-800 underline"
                           >

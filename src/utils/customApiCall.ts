@@ -25,16 +25,16 @@ export const apiCall = async (
   data?: any,
   token?: string
 ) => {
-  let headers: any = {
-    'Content-Type': 'application/json',
-  };
+  let headers: any = {};
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  if (data && data instanceof FormData) {
-    headers['Content-Type'] = 'multipart/form-data';
+  // Only set Content-Type for non-FormData requests
+  // For FormData, let axios set it automatically with the correct boundary
+  if (!(data && data instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
   }
 
   try {
