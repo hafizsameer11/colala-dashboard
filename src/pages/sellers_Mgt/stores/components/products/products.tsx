@@ -7,11 +7,11 @@ import ServiceModal from "../../../Modals/serviceModal";
 import ServicesTable from "./servicesTable";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getSellerProducts } from "../../../../../utils/queries/users";
+import { getSellerProducts, getSellerDetails } from "../../../../../utils/queries/users";
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState("All");
-  const tabs = ["All", "General", "Sponsored"]; 
+  const tabs = ["All", "General", "Sponsored"];
   const [showModal, setShowModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedProductType, setSelectedProductType] = useState("Products");
@@ -25,9 +25,20 @@ const Products = () => {
     keepPreviousData: true,
   });
 
+  // Fetch seller details to get store information
+  const { data: sellerDetails } = useQuery({
+    queryKey: ['sellerDetails', storeId],
+    queryFn: () => getSellerDetails(storeId!),
+    enabled: !!storeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const summaryStats = productsResp?.data?.summary_stats;
   const products = productsResp?.data?.products?.data ?? [];
   const pagination = productsResp?.data?.products;
+
+  // Extract store info from seller details
+  const storeInfo = sellerDetails?.data?.store_info;
 
   const handlePageChange = (page: number) => {
     if (page !== currentPage) setCurrentPage(page);
@@ -77,11 +88,10 @@ const Products = () => {
               <button
                 key={product}
                 onClick={() => handleProductOptionSelect(product)}
-                className={`block w-full text-left px-4 py-2 text-sm ${
-                  product === selectedProductType
-                    ? "text-[#E53E3E] bg-gray-50"
-                    : "text-black"
-                } cursor-pointer hover:bg-gray-50`}
+                className={`block w-full text-left px-4 py-2 text-sm ${product === selectedProductType
+                  ? "text-[#E53E3E] bg-gray-50"
+                  : "text-black"
+                  } cursor-pointer hover:bg-gray-50`}
               >
                 {product}
               </button>
@@ -111,9 +121,8 @@ const Products = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
-            }`}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+              }`}
           >
             {tab}
           </button>
@@ -270,7 +279,7 @@ const Products = () => {
         </div>
       )}
 
-      <AddNewProduct isOpen={showModal} onClose={() => setShowModal(false)} />
+      <AddNewProduct isOpen={showModal} onClose={() => setShowModal(false)} selectedStore={storeInfo} />
       <ServiceModal
         isOpen={showServiceModal}
         onClose={() => setShowServiceModal(false)}

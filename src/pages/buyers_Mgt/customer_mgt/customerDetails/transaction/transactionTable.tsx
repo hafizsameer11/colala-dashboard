@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import BuyerTransactionDetails from "../../../../../components/buyerTransactionDetails";
+import { formatCurrency } from "../../../../../utils/formatCurrency";
 
 interface ApiTransaction {
   id: number;
@@ -130,10 +131,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       setSelectedRows(remaining);
       onRowSelect?.(remaining);
       setSelectAll(false);
-      
+
       // Call onSelectedTransactionsChange with actual transaction objects
       if (onSelectedTransactionsChange) {
-        const selectedTransactions = normalizedTransactions.filter(transaction => 
+        const selectedTransactions = normalizedTransactions.filter(transaction =>
           remaining.includes(transaction.id)
         );
         onSelectedTransactionsChange(selectedTransactions);
@@ -143,10 +144,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       setSelectedRows(union);
       onRowSelect?.(union);
       setSelectAll(true);
-      
+
       // Call onSelectedTransactionsChange with actual transaction objects
       if (onSelectedTransactionsChange) {
-        const selectedTransactions = normalizedTransactions.filter(transaction => 
+        const selectedTransactions = normalizedTransactions.filter(transaction =>
           union.includes(transaction.id)
         );
         onSelectedTransactionsChange(selectedTransactions);
@@ -160,27 +161,45 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         ? prev.filter((id) => id !== transactionId)
         : [...prev, transactionId];
       onRowSelect?.(next);
-      
+
       // Call onSelectedTransactionsChange with actual transaction objects
       if (onSelectedTransactionsChange) {
-        const selectedTransactions = normalizedTransactions.filter(transaction => 
+        const selectedTransactions = normalizedTransactions.filter(transaction =>
           next.includes(transaction.id)
         );
         onSelectedTransactionsChange(selectedTransactions);
       }
-      
+
       return next;
     });
   };
 
-  const getStatusStyle = (status: Transaction["status"]) => {
-    switch (status) {
-      case "Successful":
+  const getStatusStyle = (status: string, color?: string) => {
+    // If we have a color from the API, use it
+    if (color) {
+      switch (color.toLowerCase()) {
+        case "green":
+          return "bg-[#0080001A] text-[#008000] border border-[#008000]";
+        case "yellow":
+          return "bg-[#AAAAAA1A] text-[#FFA500] border border-[#FFA500]";
+        case "blue":
+          return "bg-[#0000FF1A] text-[#0000FF] border border-[#0000FF]";
+        case "red":
+          return "bg-[#FF00001A] text-[#FF0000] border border-[#FF0000]";
+      }
+    }
+
+    // Fallback to status string matching (case-insensitive)
+    switch (status.toLowerCase()) {
+      case "successful":
+      case "success":
         return "bg-[#0080001A] text-[#008000] border border-[#008000]";
-      case "Pending":
+      case "pending":
         return "bg-[#AAAAAA1A] text-[#FFA500] border border-[#FFA500]";
-      case "Failed":
+      case "failed":
         return "bg-[#FF00001A] text-[#FF0000] border border-[#FF0000]";
+      case "order_payment":
+        return "bg-[#0000FF1A] text-[#0000FF] border border-[#0000FF]";
       default:
         return "bg-gray-100 text-gray-600 border border-gray-300";
     }
@@ -242,9 +261,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               visibleTxs.map((transaction, index) => (
                 <tr
                   key={transaction.id}
-                  className={`border-t border-[#E5E5E5] transition-colors ${
-                    index === visibleTxs.length - 1 ? "" : "border-b"
-                  }`}
+                  className={`border-t border-[#E5E5E5] transition-colors ${index === visibleTxs.length - 1 ? "" : "border-b"
+                    }`}
                 >
                   <td className="p-4">
                     <input
@@ -257,8 +275,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   <td className="p-4 text-[14px] text-black text-left">
                     {transaction.reference}
                   </td>
-                  <td className="p-4 text-[14px] text-black font-semibold text-center">
-                    {transaction.amount}
+                  <td className="p-4 text-[14px] font-semibold text-black text-center">
+                    {formatCurrency(transaction.amount)}
                   </td>
                   <td className="p-4 text-[14px] text-black text-center">
                     <span className="text-sm">
@@ -271,10 +289,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   <td className="p-4 text-center">
                     <span
                       className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
-                        transaction.status
+                        transaction.status,
+                        transaction.statusColor
                       )}`}
                     >
-                      {transaction.status}
+                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                     </span>
                   </td>
                   <td className="p-4 text-center">
@@ -293,27 +312,29 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       </div>
 
       {/* Pagination */}
-      {pagination && pagination.last_page > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <button
-            onClick={() => onPageChange && onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <span className="px-4 py-2">
-            Page {currentPage} of {pagination.last_page}
-          </span>
-          <button
-            onClick={() => onPageChange && onPageChange(currentPage + 1)}
-            disabled={currentPage === pagination.last_page}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      {
+        pagination && pagination.last_page > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button
+              onClick={() => onPageChange && onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-4 py-2">
+              Page {currentPage} of {pagination.last_page}
+            </span>
+            <button
+              onClick={() => onPageChange && onPageChange(currentPage + 1)}
+              disabled={currentPage === pagination.last_page}
+              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )
+      }
 
       <BuyerTransactionDetails
         isOpen={showModal}
@@ -321,7 +342,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         transaction={selectedTransactionTable}
         transactionId={selectedTransactionTable?.id}
       />
-    </div>
+    </div >
   );
 };
 

@@ -118,9 +118,8 @@ const StoreDetails: React.FC = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-6 bg-[#E53E3E] text-white" : "px-2 text-black"
-            }`}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-6 bg-[#E53E3E] text-white" : "px-2 text-black"
+              }`}
           >
             {tab}
           </button>
@@ -132,7 +131,7 @@ const StoreDetails: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "Activity":
-        return <Activity userData={userData} />;
+        return <Activity userData={userData} storeId={storeId!} />;
       case "Orders":
         return <Orders />;
       case "Chats":

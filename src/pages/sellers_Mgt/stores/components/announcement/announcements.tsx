@@ -61,43 +61,43 @@ const Announcements = () => {
   // Extract data from API responses with better error handling
   const allAnnouncements = React.useMemo(() => {
     if (!announcementsData) return [];
-    
+
     // Handle different possible response structures
     const data = announcementsData as any;
-    const announcements = data?.data?.announcements || 
-                         data?.announcements || 
-                         data?.data || 
-                         [];
-    
+    const announcements = data?.data?.announcements ||
+      data?.announcements ||
+      data?.data ||
+      [];
+
     return Array.isArray(announcements) ? announcements : [];
   }, [announcementsData]);
 
   const allBanners = React.useMemo(() => {
     if (!bannersData) return [];
-    
+
     // Handle different possible response structures
     const data = bannersData as any;
-    const banners = data?.data?.banners || 
-                   data?.banners || 
-                   data?.data || 
-                   [];
-    
+    const banners = data?.data?.banners ||
+      data?.banners ||
+      data?.data ||
+      [];
+
     return Array.isArray(banners) ? banners : [];
   }, [bannersData]);
 
   // Combine all data for filtering with proper type assignment
   const allData = React.useMemo(() => {
     const combinedData = [
-      ...allAnnouncements.map((item: any) => ({ 
-        ...item, 
+      ...allAnnouncements.map((item: any) => ({
+        ...item,
         type: 'text',
         id: item.id || item.announcement_id || Math.random().toString(),
         created_at: item.created_at || item.createdAt || item.date || new Date().toISOString(),
         title: item.title || item.message || 'Announcement',
         content: item.message || item.content || item.description || ''
       })),
-      ...allBanners.map((item: any) => ({ 
-        ...item, 
+      ...allBanners.map((item: any) => ({
+        ...item,
         type: 'banner',
         id: item.id || item.banner_id || Math.random().toString(),
         created_at: item.created_at || item.createdAt || item.date || new Date().toISOString(),
@@ -105,7 +105,7 @@ const Announcements = () => {
         content: item.description || item.content || item.message || ''
       }))
     ];
-    
+
     return combinedData;
   }, [allAnnouncements, allBanners]);
 
@@ -138,7 +138,7 @@ const Announcements = () => {
           item.description || '',
           item.name || ''
         ].join(' ').toLowerCase();
-        
+
         return searchableText.includes(searchLower);
       });
     }
@@ -148,7 +148,7 @@ const Announcements = () => {
       const now = new Date();
       let startDate: Date | null = null;
       let endDate: Date | null = null;
-      
+
       switch (dateFilter) {
         case "Today":
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -169,11 +169,11 @@ const Announcements = () => {
         default:
           break;
       }
-      
+
       if (startDate) {
         filtered = filtered.filter(item => {
           const itemDate = new Date(item.created_at || item.updated_at || item.createdAt || item.updatedAt);
-          
+
           if (endDate) {
             return itemDate >= startDate! && itemDate < endDate;
           } else {
@@ -212,7 +212,7 @@ const Announcements = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ announcementId, message }: { announcementId: string; message: string }) => 
+    mutationFn: ({ announcementId, message }: { announcementId: string; message: string }) =>
       updateSellerAnnouncement(storeId!, announcementId, message),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerAnnouncements', storeId] });
@@ -239,7 +239,7 @@ const Announcements = () => {
   });
 
   const updateBannerMutation = useMutation({
-    mutationFn: ({ bannerId, formData }: { bannerId: string; formData: FormData }) => 
+    mutationFn: ({ bannerId, formData }: { bannerId: string; formData: FormData }) =>
       updateSellerBanner(storeId!, bannerId, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerBanners', storeId] });
@@ -283,7 +283,12 @@ const Announcements = () => {
   };
 
   const handleEditAnnouncement = (announcement: any) => {
-    setEditingAnnouncement(announcement);
+    // Ensure we extract the message from the correct field
+    const message = announcement.message || announcement.content || announcement.description || '';
+    setEditingAnnouncement({
+      id: announcement.id,
+      message: message
+    });
     setShowAnnouncementModal(true);
   };
 
@@ -354,9 +359,8 @@ const Announcements = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
-            }`}
+            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+              }`}
           >
             {tab}
           </button>
@@ -374,8 +378,8 @@ const Announcements = () => {
               <TabButtons />
             </div>
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
-              <select 
-                value={dateFilter} 
+              <select
+                value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
                 className="bg-transparent border-none outline-none cursor-pointer"
               >
@@ -437,8 +441,8 @@ const Announcements = () => {
           </div>
         </div>
         <div className="mt-5">
-          
-          <AnnouncementsTable 
+
+          <AnnouncementsTable
             announcements={Array.isArray(filteredData) ? filteredData : []}
             isLoading={isLoading}
             error={error as any}

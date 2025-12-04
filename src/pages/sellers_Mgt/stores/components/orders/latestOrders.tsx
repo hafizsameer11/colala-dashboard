@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../../../Modals/orderDetails";
 import { useParams, useNavigate } from "react-router-dom";
+import images from "../../../../../constants/images";
 
 interface OrderUi {
   id: string;
@@ -138,67 +139,76 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
           </div>
         ) : error ? (
           <div className="p-8 text-center text-red-500">Failed to load orders.</div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="p-10 text-center flex flex-col items-center justify-center">
+            <img
+              src={images.shoppingcart}
+              alt="No orders"
+              className="w-16 h-16 mb-4 opacity-20 grayscale"
+            />
+            <p className="text-gray-500 text-lg font-medium">No orders available for this store yet</p>
+          </div>
         ) : (
-        <table className="w-full">
-          <thead className="bg-[#F2F2F2]">
-            <tr className="text-center">
-              <th className="p-3 text-left font-semibold">
-                <input
-                  type="checkbox"
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                  className="w-5 h-5"
-                />
-              </th>
-              <th className="p-3 text-left font-semibold">Store Name</th>
-              <th className="p-3 text-left font-semibold">Product Name</th>
-              <th className="p-3 text-center font-semibold">Price</th>
-              <th className="p-3 text-center font-semibold">Order Date</th>
-              <th className="p-3 text-center font-semibold">Status</th>
-              <th className="p-3 text-center font-semibold">Other</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map((order) => (
-              <tr
-                key={order.id}
-                className="text-center border-t border-gray-200"
-              >
-                <td className="p-3">
+          <table className="w-full">
+            <thead className="bg-[#F2F2F2]">
+              <tr className="text-center">
+                <th className="p-3 text-left font-semibold">
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(order.id)}
-                    onChange={() => handleRowSelect(order.id)}
+                    checked={selectAll}
+                    onChange={handleSelectAll}
                     className="w-5 h-5"
                   />
-                </td>
-                <td className="p-3 text-left">{order.storeName}</td>
-                <td className="p-3 text-left">{order.productName}</td>
-                <td className="p-3 font-bold">{order.price}</td>
-                <td className="p-3">{order.orderDate}</td>
-                <td className="p-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="p-3 space-x-2">
-                  <button
-                    onClick={() => handleShowDetails(order)}
-                    className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
-                  >
-                    Details
-                  </button>
-                  <button 
-                    onClick={handleViewChat}
-                    className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer"
-                  >
-                    View Chat
-                  </button>
-                </td>
+                </th>
+                <th className="p-3 text-left font-semibold">Store Name</th>
+                <th className="p-3 text-left font-semibold">Product Name</th>
+                <th className="p-3 text-center font-semibold">Price</th>
+                <th className="p-3 text-center font-semibold">Order Date</th>
+                <th className="p-3 text-center font-semibold">Status</th>
+                <th className="p-3 text-center font-semibold">Other</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredOrders.map((order) => (
+                <tr
+                  key={order.id}
+                  className="text-center border-t border-gray-200"
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(order.id)}
+                      onChange={() => handleRowSelect(order.id)}
+                      className="w-5 h-5"
+                    />
+                  </td>
+                  <td className="p-3 text-left">{order.storeName}</td>
+                  <td className="p-3 text-left">{order.productName}</td>
+                  <td className="p-3 font-bold">{order.price}</td>
+                  <td className="p-3">{order.orderDate}</td>
+                  <td className="p-3">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="p-3 space-x-2">
+                    <button
+                      onClick={() => handleShowDetails(order)}
+                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-6 py-2 rounded-lg cursor-pointer"
+                    >
+                      Details
+                    </button>
+                    <button
+                      onClick={handleViewChat}
+                      className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer"
+                    >
+                      View Chat
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -223,9 +233,9 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
 
       {/* Order Details Modal */}
       {selectedOrderId && (
-        <OrderDetails 
-          isOpen={showModal} 
-          onClose={() => setShowModal(false)} 
+        <OrderDetails
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
           orderId={selectedOrderId}
         />
       )}

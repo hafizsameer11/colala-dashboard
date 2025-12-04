@@ -21,9 +21,8 @@ const ColorPicker: React.FC<{ variants?: Array<{ color?: string; size?: string }
         <span
           key={index}
           onClick={() => setSelected(index)}
-          className={`rounded-full w-12 h-12 inline-block cursor-pointer ${
-            selected === index ? "border-3 border-[#E53E3E]" : ""
-          }`}
+          className={`rounded-full w-12 h-12 inline-block cursor-pointer ${selected === index ? "border-3 border-[#E53E3E]" : ""
+            }`}
           style={{ backgroundColor: color }}
         ></span>
       ))}
@@ -52,10 +51,9 @@ const SizePicker: React.FC<{ variants?: Array<{ color?: string; size?: string }>
           key={index}
           onClick={() => setSelected(index)}
           className={`flex items-center justify-center rounded-2xl w-15 h-15 cursor-pointer text-lg border border-[#00000080]
-            ${
-              selected === index
-                ? "bg-[#E53E3E] text-white"
-                : "bg-white text-black"
+            ${selected === index
+              ? "bg-[#E53E3E] text-white"
+              : "bg-white text-black"
             }`}
         >
           {size}
@@ -121,9 +119,9 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
       {/* Main Product Image */}
       {productData?.complete?.images && productData.complete.images.length > 0 && (
         <div className="mb-6">
-          <img 
-            src={productData.complete.images[0].path.startsWith('http') 
-              ? productData.complete.images[0].path 
+          <img
+            src={productData.complete.images[0].path.startsWith('http')
+              ? productData.complete.images[0].path
               : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`}
             alt={productData?.complete?.product?.name || 'Product'}
             className="w-full h-80 object-cover rounded-2xl"
@@ -133,7 +131,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
           />
         </div>
       )}
-      
+
       <div>
         <div className="flex flex-row justify-between w-80">
           <span className="font-semibold text-[17px]">
@@ -157,44 +155,44 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
           )}
         </div>
         {/* Information Tags - Only show if product has specific features */}
-        {(productData?.complete?.product?.is_featured || 
-          productData?.complete?.product?.discount_price || 
+        {(productData?.complete?.product?.is_featured ||
+          productData?.complete?.product?.discount_price ||
           (productData?.complete?.store?.average_rating || 0) > 4) && (
-          <div className="mt-4 space-y-2">
-            {/* Featured Product Tag */}
-            {productData?.complete?.product?.is_featured && (
-              <div className="flex items-center bg-[#FFA500] text-white rounded-md">
-                <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
-                  <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-                  <img className="w-5 h-5" src={images.cart1} alt="" />
+            <div className="mt-4 space-y-2">
+              {/* Featured Product Tag */}
+              {productData?.complete?.product?.is_featured && (
+                <div className="flex items-center bg-[#FFA500] text-white rounded-md">
+                  <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
+                    <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                    <img className="w-5 h-5" src={images.cart1} alt="" />
+                  </div>
+                  <span className="text-sm font-medium">Featured Product</span>
                 </div>
-                <span className="text-sm font-medium">Featured Product</span>
-              </div>
-            )}
+              )}
 
-            {/* Discount Available Tag */}
-            {productData?.complete?.product?.discount_price && (
-              <div className="flex items-center bg-[#0000FF] text-white rounded-md">
-                <div className="relative w-15 h-10 bg-[#14146F] overflow-hidden rounded-md flex items-center px-3">
-                  <div className="absolute top-0 right-0 w-1/3 h-full bg-[#0000FF] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-                  <img className="w-5 h-5" src={images.cart1} alt="" />
+              {/* Discount Available Tag */}
+              {productData?.complete?.product?.discount_price && (
+                <div className="flex items-center bg-[#0000FF] text-white rounded-md">
+                  <div className="relative w-15 h-10 bg-[#14146F] overflow-hidden rounded-md flex items-center px-3">
+                    <div className="absolute top-0 right-0 w-1/3 h-full bg-[#0000FF] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                    <img className="w-5 h-5" src={images.cart1} alt="" />
+                  </div>
+                  <span className="text-sm font-medium">Discount Available</span>
                 </div>
-                <span className="text-sm font-medium">Discount Available</span>
-              </div>
-            )}
+              )}
 
-            {/* High Rated Store Tag */}
-            {(productData?.complete?.store?.average_rating || 0) > 4 && (
-              <div className="flex items-center bg-[#800080] text-white rounded-md">
-                <div className="relative w-15 h-10 bg-[#050531] overflow-hidden rounded-md flex items-center px-3">
-                  <div className="absolute top-0 right-0 w-1/3 h-full bg-[#800080] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-                  <img className="w-5 h-5" src={images.cart1} alt="" />
+              {/* High Rated Store Tag */}
+              {(productData?.complete?.store?.average_rating || 0) > 4 && (
+                <div className="flex items-center bg-[#800080] text-white rounded-md">
+                  <div className="relative w-15 h-10 bg-[#050531] overflow-hidden rounded-md flex items-center px-3">
+                    <div className="absolute top-0 right-0 w-1/3 h-full bg-[#800080] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                    <img className="w-5 h-5" src={images.cart1} alt="" />
+                  </div>
+                  <span className="text-sm font-medium">Highly Rated Store</span>
                 </div>
-                <span className="text-sm font-medium">Highly Rated Store</span>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
         {/* Colors Section - Only show if there are color variants */}
         {productData?.complete?.product?.variants?.some((v) => v.color) && (
@@ -261,7 +259,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
 
         {/* Contact Buttons */}
         <div className="mt-5">
-          <div className="flex flex-row justify-between">
+          {/* <div className="flex flex-row justify-between">
             <div className="p-3 rounded-2xl border border-[#CACACA] cursor-pointer">
               <img className="w-7 h-7" src={images.whatsapp} alt="" />
             </div>
@@ -282,7 +280,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                 }
               </button>
             </div>
-          </div>
+          </div> */}
           {/* <div className="mt-3">
             <button className="bg-[#E53E3E] rounded-2xl text-white w-full py-3.5 cursor-pointer">
               Checkout
@@ -304,33 +302,33 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                 {/* Store Card */}
                 <div className="rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
                   {/* Cover Image with Avatar */}
-                    <div className="relative h-30">
+                  <div className="relative h-30">
+                    <img
+                      src={productData?.complete?.store?.banner_image
+                        ? `https://colala.hmstech.xyz/storage/${productData.complete.store.banner_image}`
+                        : images.cover
+                      }
+                      alt="Store cover"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = images.cover;
+                      }}
+                    />
+                    {/* Store Avatar positioned over cover */}
+                    <div className="absolute -bottom-8 left-4">
                       <img
-                        src={productData?.complete?.store?.banner_image 
-                          ? `https://colala.hmstech.xyz/storage/${productData.complete.store.banner_image}` 
-                          : images.cover
+                        src={productData?.complete?.store?.profile_image
+                          ? `https://colala.hmstech.xyz/storage/${productData.complete.store.profile_image}`
+                          : images.icon
                         }
-                        alt="Store cover"
-                        className="w-full h-full object-cover"
+                        alt="Store profile"
+                        className="w-18 h-18 rounded-full object-cover shadow-md"
                         onError={(e) => {
-                          e.currentTarget.src = images.cover;
+                          e.currentTarget.src = images.icon;
                         }}
                       />
-                      {/* Store Avatar positioned over cover */}
-                      <div className="absolute -bottom-8 left-4">
-                        <img
-                          src={productData?.complete?.store?.profile_image 
-                            ? `https://colala.hmstech.xyz/storage/${productData.complete.store.profile_image}` 
-                            : images.icon
-                          }
-                          alt="Store profile"
-                          className="w-18 h-18 rounded-full object-cover shadow-md"
-                          onError={(e) => {
-                            e.currentTarget.src = images.icon;
-                          }}
-                        />
-                      </div>
                     </div>
+                  </div>
 
                   {/* Content */}
                   <div className="pt-10 pb-4 px-4">

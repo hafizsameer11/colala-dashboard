@@ -152,7 +152,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 {productImages.length > 0 && (
                   <div className="mt-5">
                     <div className="relative w-full h-80 mb-4 rounded-2xl overflow-hidden">
-                      <img 
+                      <img
                         src={
                           productImages[selectedImageIndex]?.url ||
                           resolveStorageUrl(productImages[selectedImageIndex]?.path)
@@ -164,21 +164,20 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                         }}
                       />
                     </div>
-                    
+
                     {/* Thumbnail Images */}
                     <div className="flex flex-row gap-3">
                       {productImages.map((img: { id?: string; url?: string; path?: string }, index: number) => (
-                        <div 
-                          key={img.id || index} 
-                          className={`relative cursor-pointer transition-all duration-200 ${
-                            selectedImageIndex === index 
-                              ? 'ring-2 ring-red-500 ring-offset-2' 
+                        <div
+                          key={img.id || index}
+                          className={`relative cursor-pointer transition-all duration-200 ${selectedImageIndex === index
+                              ? 'ring-2 ring-red-500 ring-offset-2'
                               : 'hover:ring-2 hover:ring-gray-300'
-                          }`}
+                            }`}
                           onClick={() => setSelectedImageIndex(index)}
                         >
-                          <img 
-                            src={img.url || resolveStorageUrl(img.path)} 
+                          <img
+                            src={img.url || resolveStorageUrl(img.path)}
                             alt={`Product thumbnail ${index + 1}`}
                             className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                             onError={(e) => {
@@ -190,11 +189,11 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Show placeholder if no images */}
                 {productImages.length === 0 && (
                   <div className="mt-5">
-                  <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
+                    <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
                       <span className="text-gray-400 text-lg">No Product Images</span>
                     </div>
                   </div>
@@ -207,33 +206,30 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setProductTab("overview")}
-                className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${
-                  productTab === "overview"
+                className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${productTab === "overview"
                     ? "bg-[#E53E3E] text-white"
                     : "bg-white text-[#00000080]"
-                }`}
+                  }`}
               >
                 Overview
               </button>
               <button
                 type="button"
                 onClick={() => setProductTab("description")}
-                className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${
-                  productTab === "description"
+                className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${productTab === "description"
                     ? "bg-[#E53E3E] text-white"
                     : "bg-white text-[#00000080]"
-                }`}
+                  }`}
               >
                 Description
               </button>
               <button
                 type="button"
                 onClick={() => setProductTab("reviews")}
-                className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${
-                  productTab === "reviews"
+                className={`flex-1 py-3 px-4 rounded-lg border border-[#CDCDCD] cursor-pointer transition-colors ${productTab === "reviews"
                     ? "bg-[#E53E3E] text-white"
                     : "bg-white text-[#00000080]"
-                }`}
+                  }`}
               >
                 Reviews
               </button>
@@ -242,8 +238,8 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             {/* Tab Content */}
             <div className="mt-5">
               {productTab === "overview" && (
-                <Overview 
-                  quantity={quantity} 
+                <Overview
+                  quantity={quantity}
                   setQuantity={setQuantity}
                   productInfo={productInfo}
                   storeInfo={storeInfo}
@@ -264,14 +260,14 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               )}
 
               {productTab === "description" && (
-                <Description 
+                <Description
                   productInfo={productInfo}
                   variants={variants}
                 />
               )}
 
               {productTab === "reviews" && (
-                <Review 
+                <Review
                   reviews={reviews}
                   statistics={statistics}
                 />
@@ -295,8 +291,8 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Product Details</h2>
             <div className="flex items-center gap-3">
-             
-              
+
+
               {/* Close Button */}
               <button
                 onClick={onClose}
@@ -319,11 +315,10 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 onClick={() =>
                   setActiveTab(tab as "Product Details" | "Product Stats")
                 }
-                className={`px-6 py-3 rounded-xl cursor-pointer font-medium transition-colors text-sm ${
-                  activeTab === tab
+                className={`px-6 py-3 rounded-xl cursor-pointer font-medium transition-colors text-sm ${activeTab === tab
                     ? "bg-[#E53E3E] text-white shadow-sm"
                     : "text-[#000000] "
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -340,7 +335,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         <AddNewProduct
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          selectedStore={{ id: userId }}
+          selectedStore={storeInfo}
           editMode={true}
           initialProductData={productDetails?.data}
         />
@@ -372,9 +367,8 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               <button
                 onClick={confirmDelete}
                 disabled={deleteProductMutation.isPending}
-                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${
-                  deleteProductMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
-                }`}
+                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${deleteProductMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
+                  }`}
               >
                 {deleteProductMutation.isPending ? 'Deleting...' : 'Delete Product'}
               </button>

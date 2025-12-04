@@ -25,10 +25,10 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const states = [
-    "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", 
-    "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", 
-    "FCT", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", 
-    "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", 
+    "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
+    "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",
+    "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi",
+    "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun",
     "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
   ];
 
@@ -102,9 +102,8 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
             </label>
             <div className="relative">
               <div
-                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${
-                  errors.state ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${errors.state ? "border-red-500" : "border-[#989898]"
+                  }`}
                 onClick={() => setShowStateDropdown(!showStateDropdown)}
               >
                 <div
@@ -113,9 +112,8 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
                   {formData.state || "Select State"}
                 </div>
                 <div
-                  className={`transform transition-transform duration-200 ${
-                    showStateDropdown ? "rotate-90" : ""
-                  }`}
+                  className={`transform transition-transform duration-200 ${showStateDropdown ? "rotate-90" : ""
+                    }`}
                 >
                   <img src={images?.rightarrow} alt="arrow" />
                 </div>
@@ -150,9 +148,8 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
             </label>
             <div className="relative">
               <div
-                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${
-                  errors.lga ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${errors.lga ? "border-red-500" : "border-[#989898]"
+                  }`}
                 onClick={() => setShowLGADropdown(!showLGADropdown)}
               >
                 <div
@@ -161,9 +158,8 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
                   {formData.lga || "Select LGA"}
                 </div>
                 <div
-                  className={`transform transition-transform duration-200 ${
-                    showLGADropdown ? "rotate-90" : ""
-                  }`}
+                  className={`transform transition-transform duration-200 ${showLGADropdown ? "rotate-90" : ""
+                    }`}
                 >
                   <img src={images?.rightarrow} alt="arrow" />
                 </div>
@@ -203,14 +199,13 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
                 onChange={(e) => handleInputChange("deliveryFee", e.target.value)}
                 placeholder="Enter delivery fee"
                 disabled={formData.isFreeDelivery}
-                className={`w-full border p-4 rounded-lg pr-10 text-base ${
-                  errors.deliveryFee ? "border-red-500" : "border-[#989898]"
-                } ${formData.isFreeDelivery ? "bg-gray-100" : ""}`}
+                className={`w-full border p-4 rounded-lg pr-10 text-base ${errors.deliveryFee ? "border-red-500" : "border-[#989898]"
+                  } ${formData.isFreeDelivery ? "bg-gray-100" : ""}`}
               />
-              <img 
-                src={images.rightarrow} 
-                alt="arrow" 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2" 
+              <img
+                src={images.rightarrow}
+                alt="arrow"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
               />
             </div>
             {errors.deliveryFee && (
@@ -220,9 +215,8 @@ const DeliveryPricingModal: React.FC<DeliveryPricingModalProps> = ({ isOpen, onC
 
           {/* Mark for Free Delivery */}
           <div
-            className={`mt-5 flex flex-row gap-3 items-center p-2 rounded ${
-              formData.isFreeDelivery ? "bg-[#E53E3E]" : "bg-transparent"
-            }`}
+            className={`mt-5 flex flex-row gap-3 items-center p-2 rounded ${formData.isFreeDelivery ? "bg-[#E53E3E]" : "bg-transparent"
+              }`}
           >
             <input
               type="checkbox"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OrderDetails from "../Modals/orderDetails";
 import ChatsModel from "../Modals/chatsModel";
+import images from "../../../constants/images";
 
 interface ApiOrder {
   store_order_id: number;
@@ -78,6 +79,13 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   onPageChange,
   onStatusUpdate,
 }) => {
+  console.log('LatestOrders Debug:', {
+    ordersLength: orders?.length,
+    isLoading,
+    error,
+    activeTab
+  });
+
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -90,11 +98,12 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     return orders.map((order: ApiOrder) => {
       // Debug log to see what fields are available
       console.log('Order data:', order);
-      
+
       return {
         id: order.store_order_id.toString(),
         orderNumber: order.order_number,
         storeName: order.store_name,
+        seller_name: order.seller_name,
         sellerName: order.seller_name,
         customerName: order.customer_name,
         status: order.status,
@@ -110,11 +119,11 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   }, [orders]);
   const openChat = (userId?: number | string, chatId?: number | string) => {
     console.log('Opening chat with:', { userId, chatId });
-    
+
     // Check if we have the required IDs
     if (!userId || !chatId) {
       console.log('Missing chat data:', { userId, chatId });
-      
+
       // If we have userId but no chatId, we could potentially create a new chat
       if (userId && !chatId) {
         const createNewChat = confirm("No existing chat found for this order. Would you like to start a new conversation?");
@@ -129,7 +138,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       }
       return;
     }
-    
+
     setSelectedChat({ userId: String(userId), chatId: String(chatId) });
     setIsChatOpen(true);
   };
@@ -155,6 +164,11 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
         .includes(q)
     );
   }, [normalizedOrders, activeTab, searchTerm]);
+
+  console.log('Filtered Orders Debug:', {
+    filteredLength: filteredOrders.length,
+    normalizedLength: normalizedOrders.length
+  });
 
   // Reset selection when tab or search changes
   useEffect(() => {
@@ -221,8 +235,15 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
               </tr>
             ) : filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-500">
-                  No orders found.
+                <td colSpan={7} className="p-10 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <img
+                      src={images.shoppingcart}
+                      alt="No orders"
+                      className="w-16 h-16 mb-4 opacity-20 grayscale"
+                    />
+                    <p className="text-gray-500 text-lg font-medium">No orders available for this store yet</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -245,9 +266,8 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                   <td className="p-3">{order.formattedDate}</td>
                   <td className="p-3">
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        statusColors[order.status] || statusColors["pending"]
-                      }`}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status] || statusColors["pending"]
+                        }`}
                     >
                       {order.status.replace('_', ' ').toUpperCase()}
                     </span>
@@ -299,13 +319,13 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
         </div>
       )}
 
-      <OrderDetails 
-        isOpen={showModal} 
+      <OrderDetails
+        isOpen={showModal}
         onClose={() => setShowModal(false)}
         orderId={selectedOrder?.id}
         onStatusUpdate={onStatusUpdate}
       />
-      <ChatsModel 
+      <ChatsModel
         isOpen={isChatOpen}
         onClose={closeChat}
         userId={selectedChat?.userId}

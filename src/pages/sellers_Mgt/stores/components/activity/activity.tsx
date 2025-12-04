@@ -27,7 +27,7 @@ interface ActivityProps {
     created_at?: string;
     last_login?: string;
     location?: string;
-    
+
     // Store Info
     storeName?: string;
     storeEmail?: string;
@@ -53,14 +53,14 @@ interface ActivityProps {
       website?: string;
       [key: string]: unknown;
     };
-    
+
     // Financial Info
     walletBalance?: string;
     escrowBalance?: string | number;
     rewardBalance?: string | number;
     referralBalance?: string | number;
     loyaltyPoints?: string | number;
-    
+
     // Store Data Arrays
     addresses?: Array<{
       id: number;
@@ -103,7 +103,7 @@ interface ActivityProps {
       name: string;
       description?: string;
     }>;
-    
+
     // Statistics
     statistics?: {
       total_products?: number;
@@ -115,23 +115,24 @@ interface ActivityProps {
       total_customers?: number;
       average_rating?: number;
     };
-    
+
     // Activities
-    recentActivities?: Array<{ 
-      id: number; 
-      activity: string; 
-      created_at: string 
+    recentActivities?: Array<{
+      id: number;
+      activity: string;
+      created_at: string
     }>;
-    recent_activities?: Array<{ 
-      id: number; 
-      activity: string; 
-      created_at: string 
+    recent_activities?: Array<{
+      id: number;
+      activity: string;
+      created_at: string
     }>;
-    
+
     // Legacy fields for backward compatibility
     isVerified?: boolean;
     createdAt?: string;
   };
+  storeId: string;
 }
 
 // Seller-specific API functions
@@ -192,7 +193,7 @@ const updateSellerWallet = async (sellerId: string | number, action: 'topup' | '
   }
 };
 
-const Activity: React.FC<ActivityProps> = ({ userData }) => {
+const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
   // const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -211,7 +212,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
   // Seller block/unblock mutation
   const toggleBlockMutation = useMutation({
-    mutationFn: ({ sellerId, action }: { sellerId: string | number; action: 'block' | 'unblock' }) => 
+    mutationFn: ({ sellerId, action }: { sellerId: string | number; action: 'block' | 'unblock' }) =>
       toggleSellerBlock(sellerId, action),
     onSuccess: (_, variables) => {
       const actionMessages = {
@@ -219,7 +220,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
         unblock: 'Seller unblocked successfully'
       };
       showToast(actionMessages[variables.action], 'success');
-      
+
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['sellersList'] });
       queryClient.invalidateQueries({ queryKey: ['sellers'] });
@@ -236,12 +237,12 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
     mutationFn: (sellerId: string | number) => removeSeller(sellerId),
     onSuccess: () => {
       showToast('Seller removed successfully', 'success');
-      
+
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['sellersList'] });
       queryClient.invalidateQueries({ queryKey: ['sellers'] });
       queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
-      
+
       // Redirect to sellers list after successful deletion
       setTimeout(() => {
         window.location.href = '/stores-mgt';
@@ -255,38 +256,40 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
   // Top up wallet mutation
   const topUpMutation = useMutation({
-    mutationFn: ({ amount, description }: { amount: number; description?: string }) => 
+    mutationFn: ({ amount, description }: { amount: number; description?: string }) =>
       updateSellerWallet(userData.id!, 'topup', amount, description),
     onSuccess: () => {
       showToast('Wallet topped up successfully!', 'success');
       setShowTopUpModal(false);
       setTopUpAmount("");
       setTopUpDescription("");
-      // Refresh seller details to update wallet balance
-      queryClient.invalidateQueries({ queryKey: ['sellerDetails', userData.id] });
+      // Refresh seller details to update wallet balance using the correct query key
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails', storeId] });
     },
-    onError: (error: unknown) => {
+    onError: (error: any) => {
       console.error('Top up error:', error);
-      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to top up wallet. Please try again.';
+      // Extract error message from API response
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to top up wallet. Please try again.';
       showToast(errorMessage, 'error');
     },
   });
 
   // Withdraw wallet mutation
   const withdrawMutation = useMutation({
-    mutationFn: ({ amount, description }: { amount: number; description?: string }) => 
+    mutationFn: ({ amount, description }: { amount: number; description?: string }) =>
       updateSellerWallet(userData.id!, 'withdraw', amount, description),
     onSuccess: () => {
       showToast('Amount withdrawn successfully!', 'success');
       setShowWithdrawModal(false);
       setWithdrawAmount("");
       setWithdrawDescription("");
-      // Refresh seller details to update wallet balance
-      queryClient.invalidateQueries({ queryKey: ['sellerDetails', userData.id] });
+      // Refresh seller details to update wallet balance using the correct query key
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails', storeId] });
     },
-    onError: (error: unknown) => {
+    onError: (error: any) => {
       console.error('Withdraw error:', error);
-      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to withdraw amount. Please try again.';
+      // Extract error message from API response
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to withdraw amount. Please try again.';
       showToast(errorMessage, 'error');
     },
   });
@@ -329,17 +332,17 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const handleDropdownAction = (action: string) => {
     console.log(`${action} action triggered for seller:`, userData.userName || userData.full_name);
     setIsDropdownOpen(false);
-    
+
     if (!userData.id) {
       showToast('Seller ID not found', 'error');
       return;
     }
-    
+
     if (action === 'Toggle Block') {
       // Check current status to determine block/unblock action
       const isCurrentlyBlocked = userData.is_active === 0;
       const blockAction = isCurrentlyBlocked ? 'unblock' : 'block';
-      
+
       toggleBlockMutation.mutate({
         sellerId: userData.id,
         action: blockAction
@@ -396,14 +399,13 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
       {isDropdownOpen && (
         <div
-          className="absolute right-0 top-12 bg-white rounded-lg border border-gray-200 py-2 w-48 z-50"
+          className="absolute right-0 top-12 bg-white rounded-lg border border-gray-200 py-2 w-48 z-[1000]"
           style={{ boxShadow: "5px 5px 15px 0px rgba(0, 0, 0, 0.25)" }}
         >
           <div
             onClick={() => !toggleBlockMutation.isPending && !removeSellerMutation.isPending && handleDropdownAction("Toggle Block")}
-            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${
-              toggleBlockMutation.isPending || removeSellerMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${toggleBlockMutation.isPending || removeSellerMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             <svg
               className="w-5 h-5 mr-3 text-gray-600"
@@ -416,16 +418,15 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
               />
             </svg>
             <span className="text-gray-800 font-medium">
-              {toggleBlockMutation.isPending ? 'Processing...' : 
-               userData.is_active === 0 ? 'Unblock Seller' : 'Block Seller'}
+              {toggleBlockMutation.isPending ? 'Processing...' :
+                userData.is_active === 0 ? 'Unblock Seller' : 'Block Seller'}
             </span>
           </div>
 
           <div
             onClick={() => !toggleBlockMutation.isPending && !removeSellerMutation.isPending && handleDropdownAction("Delete Seller")}
-            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${
-              toggleBlockMutation.isPending || removeSellerMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer ${toggleBlockMutation.isPending || removeSellerMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             <svg
               className="w-5 h-5 mr-3 text-gray-600"
@@ -460,7 +461,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
               </span>
               <div className="flex flex-row gap-5 ">
                 <div>
-                  <button 
+                  <button
                     onClick={handleTopUp}
                     className="bg-white rounded-2xl px-6 py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer"
                   >
@@ -468,7 +469,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                   </button>
                 </div>
                 <div>
-                  <button 
+                  <button
                     onClick={handleWithdraw}
                     className="bg-white rounded-2xl px-6 py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer"
                   >
@@ -631,8 +632,8 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
       {/* <AddUserModal isOpen={showModal} onClose={() => setShowModal(false)} /> */}
 
       {/* Edit Store Modal */}
-      <AddStoreModal 
-        isOpen={showEditModal} 
+      <AddStoreModal
+        isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         initialTab="Level 1"
         editMode={true}
@@ -657,8 +658,8 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
       {/* Top Up Modal */}
       {showTopUpModal && (
-        <div 
-          className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center"
+        <div
+          className="fixed inset-0 z-[1000] bg-[#00000080] bg-opacity-50 flex items-center justify-center"
           onClick={() => {
             if (!topUpMutation.isPending) {
               setShowTopUpModal(false);
@@ -667,7 +668,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             }
           }}
         >
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
@@ -747,7 +748,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
       {/* Withdraw Modal */}
       {showWithdrawModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center"
           onClick={() => {
             if (!withdrawMutation.isPending) {
@@ -757,7 +758,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             }
           }}
         >
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
@@ -840,11 +841,11 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
       {/* Notifications Modal */}
       {showNotificationsModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center"
           onClick={() => setShowNotificationsModal(false)}
         >
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >

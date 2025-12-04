@@ -75,6 +75,23 @@ export const getUserProfile = async (userId: number | string) => {
 };
 
 /**
+ * Get user saved addresses
+ */
+export const getUserAddresses = async (userId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Addresses(userId), 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('User addresses API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get user orders with pagination
  */
 export const getUserOrders = async (userId: number | string) => {

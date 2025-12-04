@@ -4,6 +4,7 @@ import { createProduct, updateSellerProduct, getCategories, getBrands, getCSVTem
 import images from "../../../constants/images";
 import AddAddressModal from "./addAddressModal";
 import AddNewDeliveryPricing from "./addNewDeliveryPricing";
+import AddVariantModal from "./AddVariantModal";
 import { useToast } from "../../../contexts/ToastContext";
 
 interface AddNewProductProps {
@@ -33,11 +34,123 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     staleTime: 5 * 60 * 1000,
   });
 
+  // Form field states
+  const [productName, setProductName] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
+  const [fullDescription, setFullDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [discountPrice, setDiscountPrice] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [referralFee, setReferralFee] = useState("");
+  const [referralPersonLimit, setReferralPersonLimit] = useState("");
+  const [selectedCoupon, setSelectedCoupon] = useState("");
+  const [loyaltyPoints, setLoyaltyPoints] = useState(false);
+  const [hasVariants, setHasVariants] = useState(false);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [showAddDeliveryModal, setShowAddDeliveryModal] = useState(false);
+
+  // Variant states
+  const [informationTag1, setInformationTag1] = useState("");
+  const [informationTag2, setInformationTag2] = useState("");
+  const [informationTag3, setInformationTag3] = useState("");
+  const [selectedAvailableLocation, setSelectedAvailableLocation] = useState("");
+  const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState("");
+
+  // New Variant States
+  const [showAddVariantModal, setShowAddVariantModal] = useState(false);
+  const [variantTypes, setVariantTypes] = useState<string[]>([]);
+  const [variantSizes, setVariantSizes] = useState<string[]>([]);
+  const [useDefaultVariantPricing, setUseDefaultVariantPricing] = useState(true);
+  const [variantDetailData, setVariantDetailData] = useState<{
+    color: Record<string, unknown>;
+    size: {
+      [size: string]: {
+        price: string;
+        compare: string;
+        images: Array<{ fileObject?: File; uri: string }>;
+      };
+    };
+  } | null>(null);
+
+  // File upload states
+  const [productVideo, setProductVideo] = useState<File | null>(null);
+  const [productImages, setProductImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<Array<{ id: string, url: string, path: string }>>([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [dropdownStates, setDropdownStates] = useState({
+    category: false,
+    brand: false,
+    coupon: false,
+    availableLocation: false,
+    deliveryLocation: false,
+  });
+
+  // Error state for validation
+  const [errors, setErrors] = useState({
+    productName: "",
+    category: "",
+    brand: "",
+    shortDescription: "",
+    fullDescription: "",
+    price: "",
+    coupon: "",
+    availableLocation: "",
+    deliveryLocation: "",
+    productImages: "",
+    quantity: "",
+    referralFee: "",
+    referralPersonLimit: "",
+  });
+
+  // Reset form function
+  const resetForm = () => {
+    setProductName("");
+    setSelectedCategory("");
+    setSelectedBrand("");
+    setShortDescription("");
+    setFullDescription("");
+    setPrice("");
+    setDiscountPrice("");
+    setQuantity("");
+    setReferralFee("");
+    setReferralPersonLimit("");
+    setProductImages([]);
+    setErrors({
+      productName: "",
+      category: "",
+      brand: "",
+      shortDescription: "",
+      fullDescription: "",
+      price: "",
+      coupon: "",
+      availableLocation: "",
+      deliveryLocation: "",
+      productImages: "",
+      quantity: "",
+      referralFee: "",
+      referralPersonLimit: "",
+    });
+    setVariantTypes([]);
+    setVariantSizes([]);
+    setUseDefaultVariantPricing(true);
+    setVariantDetailData(null);
+    setHasVariants(false);
+    setLoyaltyPoints(false);
+    setProductVideo(null);
+    setExistingImages([]);
+  };
+
   // Create/Update product mutation
   const createProductMutation = useMutation({
     mutationFn: (formData: FormData) => {
-      if (editMode && initialProductData?.product_info?.id && selectedStore?.id) {
-        return updateSellerProduct(selectedStore.id, initialProductData.product_info.id, formData);
+      const storeId = selectedStore?.store_id || selectedStore?.id;
+      if (editMode && initialProductData?.product_info?.id && storeId) {
+        return updateSellerProduct(storeId, initialProductData.product_info.id, formData);
       }
       return createProduct(formData);
     },
@@ -66,12 +179,12 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     mutationFn: uploadBulkProductsCSV,
     onSuccess: () => {
       showToast('Products uploaded successfully!', 'success');
-      
+
       // Reset the file input
       setUploadedFile(null);
       const fileInput = document.getElementById('csvFileInput') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-      
+
       // Invalidate and refetch products data
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['sellerProducts'] });
@@ -88,29 +201,29 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     onSuccess: (response) => {
       try {
         const templateData = response.data;
-        
+
         // Create CSV content from template data
         const headers = templateData.headers.join(',');
         const sampleRow = Object.values(templateData.sample_row).join(',');
-        
+
         const csvContent = `${headers}\n${sampleRow}`;
-        
+
         // Create and download CSV file
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement('a');
         link.href = url;
         link.download = 'product_bulk_template.csv';
         link.style.display = 'none';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // Clean up
         URL.revokeObjectURL(url);
-        
+
         showToast('CSV template downloaded successfully', 'success');
       } catch (error) {
         console.error('Error processing CSV template:', error);
@@ -123,84 +236,13 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     }
   });
 
-  // Form field states
-  const [productName, setProductName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
-  const [fullDescription, setFullDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [discountPrice, setDiscountPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [referralFee, setReferralFee] = useState("");
-  const [referralPersonLimit, setReferralPersonLimit] = useState("");
-  const [selectedVarient, setSelectedVarient] = useState("");
-  const [selectedCoupon, setSelectedCoupon] = useState("");
-  const [loyaltyPoints, setLoyaltyPoints] = useState(false);
-  const [hasVariants, setHasVariants] = useState(false);
-  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
-  const [showAddDeliveryModal, setShowAddDeliveryModal] = useState(false);
-  
-  // Variant states
-  const [variants, setVariants] = useState<Array<{
-    id?: number;
-    sku?: string;
-    color?: string;
-    size?: string;
-    price?: string;
-    discount_price?: string;
-    stock?: string;
-    images?: File[];
-  }>>([]);
-  const [informationTag1, setInformationTag1] = useState("");
-  const [informationTag2, setInformationTag2] = useState("");
-  const [informationTag3, setInformationTag3] = useState("");
-  const [selectedAvailableLocation, setSelectedAvailableLocation] =
-    useState("");
-  const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState("");
-
-  // File upload states
-  const [productVideo, setProductVideo] = useState<File | null>(null);
-  const [productImages, setProductImages] = useState<File[]>([]);
-  const [existingImages, setExistingImages] = useState<Array<{id: string, url: string, path: string}>>([]);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [dropdownStates, setDropdownStates] = useState({
-    category: false,
-    brand: false,
-    varient: false,
-    coupon: false,
-    availableLocation: false,
-    deliveryLocation: false,
-  });
-
-  // Error state for validation
-  const [errors, setErrors] = useState({
-    productName: "",
-    category: "",
-    brand: "",
-    shortDescription: "",
-    fullDescription: "",
-    price: "",
-    varient: "",
-    coupon: "",
-    availableLocation: "",
-    deliveryLocation: "",
-    productImages: "",
-    quantity: "",
-    referralFee: "",
-    referralPersonLimit: "",
-  });
-
   // Populate form with initial data when in edit mode
   useEffect(() => {
     if (editMode && initialProductData) {
       const productInfo = initialProductData.product_info;
       const variantsData = initialProductData.variants || [];
       const imagesData = initialProductData.images || [];
-      
+
       if (productInfo) {
         setProductName(productInfo.name || "");
         setSelectedCategory(productInfo.category_id?.toString() || "");
@@ -214,7 +256,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         setReferralPersonLimit((productInfo.referral_person_limit ?? "").toString());
         setHasVariants(productInfo.has_variants || false);
         setLoyaltyPoints(productInfo.loyalty_points_applicable || false);
-        
+
         // Set existing images data
         if (imagesData.length > 0) {
           setExistingImages(imagesData.map((img: any) => ({
@@ -223,19 +265,35 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
             path: img.path || img.url || "",
           })));
         }
-        
+
         // Set variants data
         if (variantsData.length > 0) {
-          setVariants(variantsData.map((variant: any) => ({
-            id: variant.id,
-            sku: variant.sku || "",
-            color: variant.color || "",
-            size: variant.size || "",
-            price: variant.price?.toString() || "",
-            discount_price: variant.discount_price?.toString() || "",
-            stock: variant.stock?.toString() || "",
-            images: variant.images || [],
-          })));
+          const sizes: string[] = [];
+          const details: any = { color: {}, size: {} };
+          let hasCustomPricing = false;
+
+          variantsData.forEach((variant: any) => {
+            if (variant.size) {
+              sizes.push(variant.size);
+              details.size[variant.size] = {
+                price: variant.price?.toString() || "",
+                compare: variant.discount_price?.toString() || "",
+                images: variant.images?.map((img: any) => ({
+                  uri: img.url || img.path,
+                })) || []
+              };
+
+              // Check if pricing differs from main product
+              if (variant.price != productInfo.price || variant.discount_price != productInfo.discount_price) {
+                hasCustomPricing = true;
+              }
+            }
+          });
+
+          setVariantSizes(sizes);
+          setVariantDetailData(details);
+          setUseDefaultVariantPricing(!hasCustomPricing);
+          setHasVariants(true);
         }
       }
     }
@@ -244,7 +302,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   // Extract categories and brands from API data
   const categories = categoriesData?.data || [];
   const brands = brandsData?.data || [];
-  const varients = ["16GB", "32GB", "64GB"];
   const coupons = ["BLACKFRIDAY", "CYBERMONDAY", "NEWYEAR"];
 
   // Cleanup object URLs on component unmount
@@ -274,7 +331,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     setDropdownStates({
       category: false,
       brand: false,
-      varient: false,
       coupon: false,
       availableLocation: false,
       deliveryLocation: false,
@@ -291,16 +347,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     closeAllDropdowns();
   };
 
-  const handleVarientSelect = (varient: string) => {
-    setSelectedVarient(varient);
-    closeAllDropdowns();
-  };
-
   const handleCouponSelect = (coupon: string) => {
     setSelectedCoupon(coupon);
     closeAllDropdowns();
   };
-
 
   // File upload handlers
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -342,14 +392,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       fullDescription:
         fullDescription.trim() === "" ? "Full description is required" : "",
       price: price.trim() === "" ? "Price is required" : "",
-      varient: "",
       coupon: "",
-      availableLocation:
-        selectedAvailableLocation === ""
-          ? "Available location is required"
-          : "",
-      deliveryLocation:
-        selectedDeliveryLocation === "" ? "Delivery location is required" : "",
+      availableLocation: "",
+      deliveryLocation: "",
       productImages:
         (existingImages.length + productImages.length) < 3 ? "At least 3 images are required" : "",
       quantity: "",
@@ -389,34 +434,39 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     try {
       // Create FormData for the API
       const formData = new FormData();
-      
+
+      // Add _method field for Laravel PUT request compatibility (when editing)
+      if (editMode) {
+        formData.append('_method', 'PUT');
+      }
+
       // Add required fields according to backend validation
-      formData.append('store_id', selectedStore?.id?.toString() || '');
+      formData.append('store_id', (selectedStore?.store_id || selectedStore?.id)?.toString() || '');
       formData.append('name', productName);
       formData.append('description', fullDescription);
       formData.append('price', price);
       // Quantity (nullable, default to 0 if empty)
       formData.append('quantity', quantity.trim() === '' ? '0' : quantity);
-      
+
       // Add category_id
       if (selectedCategory) {
         formData.append('category_id', selectedCategory);
       } else {
         formData.append('category_id', '1'); // Default category
       }
-      
+
       if (selectedBrand) {
         formData.append('brand', selectedBrand);
       }
-      
+
       if (fullDescription) {
         formData.append('description', fullDescription);
       }
-      
+
       if (price) {
         formData.append('price', price);
       }
-      
+
       if (discountPrice) {
         formData.append('discount_price', discountPrice);
       }
@@ -428,28 +478,31 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       if (referralPersonLimit.trim() !== '') {
         formData.append('referral_person_limit', referralPersonLimit);
       }
-      
+
       // Add status (nullable field)
       formData.append('status', 'draft'); // Default to draft
-      
+
       // Add video file (nullable)
       if (productVideo) {
         formData.append('video', productVideo);
       }
-      
+
       // Add coupon code if selected (nullable)
       if (selectedCoupon) {
         formData.append('coupon_code', selectedCoupon);
       }
-      
+
       // Add discount if applicable (nullable)
       if (discountPrice) {
         formData.append('discount', discountPrice);
       }
-      
+
       // Add loyalty points (boolean)
       formData.append('loyality_points_applicable', loyaltyPoints.toString());
-      
+
+      // Add has_variants (boolean) - required field
+      formData.append('has_variants', hasVariants.toString());
+
       // Add existing image IDs (for edit mode)
       if (editMode && existingImages.length > 0) {
         existingImages.forEach((image, index) => {
@@ -457,108 +510,62 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
           formData.append(`existing_images[${index}][url]`, image.url);
         });
       }
-      
+
       // Add new image files (array)
       productImages.forEach((image, index) => {
         formData.append(`images[${index}]`, image);
       });
-      
+
       // Add variants (array) - only if has_variants is true
-      if (hasVariants && variants.length > 0) {
-        variants.forEach((variant, index) => {
-          if (variant.id) formData.append(`variants[${index}][id]`, variant.id.toString());
-          if (variant.sku) formData.append(`variants[${index}][sku]`, variant.sku);
-          if (variant.color) formData.append(`variants[${index}][color]`, variant.color);
-          if (variant.size) formData.append(`variants[${index}][size]`, variant.size);
-          if (variant.price) formData.append(`variants[${index}][price]`, variant.price);
-          if (variant.discount_price) formData.append(`variants[${index}][discount_price]`, variant.discount_price);
-          if (variant.stock) formData.append(`variants[${index}][stock]`, variant.stock);
-          
-          // Add variant images if any
-          if (variant.images && variant.images.length > 0) {
-            variant.images.forEach((image, imgIndex) => {
-              formData.append(`variants[${index}][images][${imgIndex}]`, image);
-            });
-          }
-        });
+      if (hasVariants && variantSizes.length > 0) {
+        // If using default pricing, create variants based on sizes with default price
+        if (useDefaultVariantPricing) {
+          variantSizes.forEach((size, index) => {
+            const sku = `${productName.trim()}-${size}`;
+            formData.append(`variants[${index}][sku]`, sku);
+            formData.append(`variants[${index}][size]`, size);
+            formData.append(`variants[${index}][price]`, price);
+            if (discountPrice) {
+              formData.append(`variants[${index}][discount_price]`, discountPrice);
+            }
+            formData.append(`variants[${index}][stock]`, quantity || '100');
+
+            // Use main product images for variants if needed, or leave empty to inherit
+          });
+        } else if (variantDetailData) {
+          // Use custom variant details
+          let variantIndex = 0;
+          Object.entries(variantDetailData.size).forEach(([size, sizeData]) => {
+            if (variantSizes.includes(size)) {
+              const sku = `${productName.trim()}-${size}`;
+              formData.append(`variants[${variantIndex}][sku]`, sku);
+              formData.append(`variants[${variantIndex}][size]`, size);
+              formData.append(`variants[${variantIndex}][price]`, sizeData.price || price);
+              formData.append(`variants[${variantIndex}][discount_price]`, sizeData.compare || discountPrice || '');
+              formData.append(`variants[${variantIndex}][stock]`, quantity || '100');
+
+              // Add variant images
+              if (sizeData.images && sizeData.images.length > 0) {
+                sizeData.images.forEach((image) => {
+                  if (image.fileObject) {
+                    formData.append(`variants[${variantIndex}][images][]`, image.fileObject);
+                  }
+                });
+              }
+              variantIndex++;
+            }
+          });
+        }
       }
 
       // Call the mutation
       await createProductMutation.mutateAsync(formData);
-      
+
     } catch (error) {
       console.error("Error creating product:", error);
       alert("Error creating product. Please try again.");
       setIsSubmitting(false);
     }
-  };
-
-  // Reset form function
-  const resetForm = () => {
-    setProductName("");
-    setSelectedCategory("");
-    setSelectedBrand("");
-    setShortDescription("");
-    setFullDescription("");
-    setPrice("");
-    setDiscountPrice("");
-    setQuantity("");
-    setReferralFee("");
-    setReferralPersonLimit("");
-    setSelectedVarient("");
-    setSelectedCoupon("");
-    setLoyaltyPoints(false);
-    setHasVariants(false);
-    setVariants([]);
-    setInformationTag1("");
-    setInformationTag2("");
-    setInformationTag3("");
-    setSelectedAvailableLocation("");
-    setSelectedDeliveryLocation("");
-    setProductVideo(null);
-    setProductImages([]);
-    setErrors({
-      productName: "",
-      category: "",
-      brand: "",
-      shortDescription: "",
-      fullDescription: "",
-      price: "",
-      varient: "",
-      coupon: "",
-      availableLocation: "",
-      deliveryLocation: "",
-      productImages: "",
-      quantity: "",
-      referralFee: "",
-      referralPersonLimit: "",
-    });
-  };
-
-  // Variant management functions
-  const addVariant = () => {
-    setVariants([...variants, {
-      sku: '',
-      color: '',
-      size: '',
-      price: '',
-      discount_price: '',
-      stock: '',
-      images: []
-    }]);
-  };
-
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index));
-  };
-
-  const updateVariant = (index: number, field: string, value: string | File[]) => {
-    const updatedVariants = [...variants];
-    updatedVariants[index] = {
-      ...updatedVariants[index],
-      [field]: value
-    };
-    setVariants(updatedVariants);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -738,14 +745,68 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   placeholder="Enter product name"
-                  className={`border rounded-2xl p-5 ${
-                    errors.productName ? "border-red-500" : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.productName ? "border-red-500" : "border-[#989898]"
+                    }`}
                 />
                 {errors.productName && (
                   <p className="text-red-500 text-sm mt-1">
                     {errors.productName}
                   </p>
+                )}
+              </div>
+
+              {/* Variants Section */}
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-lg">Product Variants</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Has Variants?</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasVariants}
+                        onChange={(e) => setHasVariants(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E53E3E]"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {hasVariants && (
+                  <div className="border border-[#989898] rounded-2xl p-5">
+                    {variantSizes.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{variantSizes.length} variants configured</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddVariantModal(true)}
+                            className="text-[#E53E3E] hover:underline"
+                          >
+                            Edit Variants
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {variantSizes.map(size => (
+                            <span key={size} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                              Size: {size}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddVariantModal(true)}
+                          className="bg-black text-white px-6 py-2 rounded-xl hover:bg-gray-800 transition-colors"
+                        >
+                          Add Variant
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -756,9 +817,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 </label>
                 <div className="relative">
                   <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${
-                      errors.category ? "border-red-500" : "border-[#989898]"
-                    }`}
+                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${errors.category ? "border-red-500" : "border-[#989898]"
+                      }`}
                     onClick={() => toggleDropdown("category")}
                   >
                     <div
@@ -766,12 +826,11 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                         selectedCategory ? "text-black" : "text-[#00000080]"
                       }
                     >
-                      {selectedCategory || "Select Category"}
+                      {categories.find((c: any) => c.id.toString() === selectedCategory)?.title || "Select Category"}
                     </div>
                     <div
-                      className={`transform transition-transform duration-200 ${
-                        dropdownStates.category ? "rotate-90" : ""
-                      }`}
+                      className={`transform transition-transform duration-200 ${dropdownStates.category ? "rotate-90" : ""
+                        }`}
                     >
                       <img src={images?.rightarrow} alt="arrow" />
                     </div>
@@ -807,9 +866,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 <label className="block text-lg mb-2">Brand</label>
                 <div className="relative">
                   <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${
-                      errors.brand ? "border-red-500" : "border-[#989898]"
-                    }`}
+                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${errors.brand ? "border-red-500" : "border-[#989898]"
+                      }`}
                     onClick={() => toggleDropdown("brand")}
                   >
                     <div
@@ -820,9 +878,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                       {selectedBrand || "Select Brand"}
                     </div>
                     <div
-                      className={`transform transition-transform duration-200 ${
-                        dropdownStates.brand ? "rotate-90" : ""
-                      }`}
+                      className={`transform transition-transform duration-200 ${dropdownStates.brand ? "rotate-90" : ""
+                        }`}
                     >
                       <img src={images?.rightarrow} alt="arrow" />
                     </div>
@@ -864,11 +921,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   value={shortDescription}
                   onChange={(e) => setShortDescription(e.target.value)}
                   placeholder="Type description"
-                  className={`border rounded-2xl p-5 ${
-                    errors.shortDescription
-                      ? "border-red-500"
-                      : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.shortDescription
+                    ? "border-red-500"
+                    : "border-[#989898]"
+                    }`}
                 />
                 {errors.shortDescription && (
                   <p className="text-red-500 text-sm mt-1">
@@ -887,11 +943,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   onChange={(e) => setFullDescription(e.target.value)}
                   placeholder="Add full description"
                   rows={4}
-                  className={`border rounded-2xl p-5 ${
-                    errors.fullDescription
-                      ? "border-red-500"
-                      : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.fullDescription
+                    ? "border-red-500"
+                    : "border-[#989898]"
+                    }`}
                 />
                 {errors.fullDescription && (
                   <p className="text-red-500 text-sm mt-1">
@@ -910,9 +965,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="Type Price"
-                  className={`border rounded-2xl p-5 ${
-                    errors.price ? "border-red-500" : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.price ? "border-red-500" : "border-[#989898]"
+                    }`}
                 />
                 {errors.price && (
                   <p className="text-red-500 text-sm mt-1">{errors.price}</p>
@@ -945,9 +999,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   value={quantity}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuantity(e.currentTarget.value)}
                   placeholder="Enter stock quantity"
-                  className={`border rounded-2xl p-5 ${
-                    errors.quantity ? "border-red-500" : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.quantity ? "border-red-500" : "border-[#989898]"
+                    }`}
                 />
                 {errors.quantity && (
                   <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
@@ -967,9 +1020,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   value={referralFee}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReferralFee(e.currentTarget.value)}
                   placeholder="Enter referral fee"
-                  className={`border rounded-2xl p-5 ${
-                    errors.referralFee ? "border-red-500" : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.referralFee ? "border-red-500" : "border-[#989898]"
+                    }`}
                 />
                 {errors.referralFee && (
                   <p className="text-red-500 text-sm mt-1">{errors.referralFee}</p>
@@ -988,9 +1040,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   value={referralPersonLimit}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReferralPersonLimit(e.currentTarget.value)}
                   placeholder="Enter person limit"
-                  className={`border rounded-2xl p-5 ${
-                    errors.referralPersonLimit ? "border-red-500" : "border-[#989898]"
-                  }`}
+                  className={`border rounded-2xl p-5 ${errors.referralPersonLimit ? "border-red-500" : "border-[#989898]"
+                    }`}
                 />
                 {errors.referralPersonLimit && (
                   <p className="text-red-500 text-sm mt-1">{errors.referralPersonLimit}</p>
@@ -999,58 +1050,14 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
               <div className="mt-5 text-md underline text-[#E53E3E] cursor-pointer">
                 Add Wholesale prices
               </div>
-              {/* Varient Dropdown */}
-              <div className="mt-5">
-                <label className="block text-lg mb-2">Add Variant</label>
-                <div className="relative">
-                  <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${
-                      errors.varient ? "border-red-500" : "border-[#989898]"
-                    }`}
-                    onClick={() => toggleDropdown("varient")}
-                  >
-                    <div
-                      className={
-                        selectedVarient ? "text-black" : "text-[#00000080]"
-                      }
-                    >
-                      {selectedVarient || "Add New description"}
-                    </div>
-                    <div
-                      className={`transform transition-transform duration-200 ${
-                        dropdownStates.varient ? "rotate-90" : ""
-                      }`}
-                    >
-                      <img src={images?.rightarrow} alt="arrow" />
-                    </div>
-                  </div>
 
-                  {dropdownStates.varient && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {varients.map((varient, index) => (
-                        <div
-                          key={index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleVarientSelect(varient)}
-                        >
-                          {varient}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {errors.varient && (
-                  <p className="text-red-500 text-sm mt-1">{errors.varient}</p>
-                )}
-              </div>
               {/* Coupon Code Dropdown */}
               <div className="mt-5">
                 <label className="block text-lg mb-2">Add Coupon Code</label>
                 <div className="relative">
                   <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${
-                      errors.coupon ? "border-red-500" : "border-[#989898]"
-                    }`}
+                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${errors.coupon ? "border-red-500" : "border-[#989898]"
+                      }`}
                     onClick={() => toggleDropdown("coupon")}
                   >
                     <div
@@ -1061,9 +1068,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                       {selectedCoupon || "Choose coupon code"}
                     </div>
                     <div
-                      className={`transform transition-transform duration-200 ${
-                        dropdownStates.coupon ? "rotate-90" : ""
-                      }`}
+                      className={`transform transition-transform duration-200 ${dropdownStates.coupon ? "rotate-90" : ""
+                        }`}
                     >
                       <img src={images?.rightarrow} alt="arrow" />
                     </div>
@@ -1142,11 +1148,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 </label>
                 <div className="relative">
                   <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${
-                      errors.availableLocation
-                        ? "border-red-500"
-                        : "border-[#989898]"
-                    }`}
+                    className="flex items-center justify-between w-full p-5 border border-[#989898] rounded-2xl cursor-pointer transition-colors"
                     onClick={() => setShowAddAddressModal(true)}
                   >
                     <div
@@ -1164,11 +1166,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   </div>
 
                 </div>
-                {errors.availableLocation && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.availableLocation}
-                  </p>
-                )}
               </div>
 
               {/* Delivery locations Dropdown */}
@@ -1177,14 +1174,13 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full text-white py-4 rounded-xl font-medium transition-all ${
-                    isSubmitting
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-[#E53E3E] cursor-pointer hover:bg-red-600"
-                  }`}
+                  className={`w-full text-white py-4 rounded-xl font-medium transition-all ${isSubmitting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#E53E3E] cursor-pointer hover:bg-red-600"
+                    }`}
                 >
-                  {isSubmitting 
-                    ? (editMode ? "Updating Product..." : "Creating Product...") 
+                  {isSubmitting
+                    ? (editMode ? "Updating Product..." : "Creating Product...")
                     : (editMode ? "Update Product" : "Post Product")
                   }
                 </button>
@@ -1273,11 +1269,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   type="button"
                   onClick={handleBulkUpload}
                   disabled={!uploadedFile || isUploading || bulkUploadMutation.isPending}
-                  className={`w-full text-white rounded-xl py-4 font-medium transition-all ${
-                    !uploadedFile || isUploading || bulkUploadMutation.isPending
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-[#000] cursor-pointer hover:bg-gray-800"
-                  }`}
+                  className={`w-full text-white rounded-xl py-4 font-medium transition-all ${!uploadedFile || isUploading || bulkUploadMutation.isPending
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#000] cursor-pointer hover:bg-gray-800"
+                    }`}
                 >
                   {isUploading || bulkUploadMutation.isPending ? "Processing CSV..." : "Upload bulk Products"}
                 </button>
@@ -1305,6 +1300,20 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
           setShowAddDeliveryModal(false);
           // You can add logic here to update the selected delivery location
         }}
+      />
+      <AddVariantModal
+        isOpen={showAddVariantModal}
+        onClose={() => setShowAddVariantModal(false)}
+        variantTypes={variantTypes}
+        setVariantTypes={setVariantTypes}
+        variantSizes={variantSizes}
+        setVariantSizes={setVariantSizes}
+        useDefaultVariantPricing={useDefaultVariantPricing}
+        setUseDefaultVariantPricing={setUseDefaultVariantPricing}
+        variantDetailData={variantDetailData}
+        setVariantDetailData={setVariantDetailData}
+        defaultPrice={price}
+        defaultDiscountPrice={discountPrice}
       />
     </div>
   );

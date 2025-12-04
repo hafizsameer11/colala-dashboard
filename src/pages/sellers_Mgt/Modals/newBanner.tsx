@@ -10,9 +10,9 @@ interface NewBannerProps {
   isLoading?: boolean;
 }
 
-const NewBanner: React.FC<NewBannerProps> = ({ 
-  isOpen, 
-  onClose, 
+const NewBanner: React.FC<NewBannerProps> = ({
+  isOpen,
+  onClose,
   editingBanner,
   onCreateBanner,
   onUpdateBanner,
@@ -88,9 +88,8 @@ const NewBanner: React.FC<NewBannerProps> = ({
       newErrors.bannerFile = "Please upload a banner image or video";
     }
 
-    if (!bannerLink.trim()) {
-      newErrors.bannerLink = "Please enter a banner link";
-    } else if (!isValidUrl(bannerLink)) {
+    // Banner link is optional, but if provided, must be a valid URL
+    if (bannerLink.trim() && !isValidUrl(bannerLink)) {
       newErrors.bannerLink = "Please enter a valid URL";
     }
 
@@ -123,7 +122,9 @@ const NewBanner: React.FC<NewBannerProps> = ({
       if (bannerFile) {
         formData.append("image", bannerFile);
       }
-      formData.append("link", bannerLink);
+      if (bannerLink.trim()) {
+        formData.append("link", bannerLink);
+      }
 
       if (editingBanner && onUpdateBanner) {
         onUpdateBanner(editingBanner.id, formData);
@@ -236,7 +237,7 @@ const NewBanner: React.FC<NewBannerProps> = ({
 
             <div className="flex flex-col gap-3 mt-5">
               <label htmlFor="bannerLink" className="text-xl font-medium">
-                Banner Link
+                Banner Link (Optional)
               </label>
               <input
                 type="text"
@@ -246,9 +247,8 @@ const NewBanner: React.FC<NewBannerProps> = ({
                   setBannerLink(e.target.value);
                   setErrors((prev) => ({ ...prev, bannerLink: "" }));
                 }}
-                className={`border rounded-xl p-5 ${
-                  errors.bannerLink ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`border rounded-xl p-5 ${errors.bannerLink ? "border-red-500" : "border-[#989898]"
+                  }`}
                 placeholder="Enter Banner link"
               />
               {errors.bannerLink && (
@@ -262,11 +262,10 @@ const NewBanner: React.FC<NewBannerProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full py-4 text-white rounded-xl transition-colors ${
-                  isSubmitting
+                className={`w-full py-4 text-white rounded-xl transition-colors ${isSubmitting
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[#E53E3E] hover:bg-[#d63333] cursor-pointer"
-                }`}
+                  }`}
               >
                 {isSubmitting ? "Saving..." : (editingBanner ? "Update Banner" : "Upload Banner")}
               </button>

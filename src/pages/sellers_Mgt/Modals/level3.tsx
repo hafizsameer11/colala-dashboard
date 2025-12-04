@@ -120,7 +120,7 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
 
   const handleDeliveryPricingSaved = (pricingData: { state: string; lga: string; deliveryFee: string; isFreeDelivery: boolean }) => {
     // Update the selected delivery pricing to show that pricing was added
-    const pricingText = pricingData.isFreeDelivery 
+    const pricingText = pricingData.isFreeDelivery
       ? `Free delivery for ${pricingData.state}, ${pricingData.lga}`
       : `${pricingData.deliveryFee} for ${pricingData.state}, ${pricingData.lga}`;
     setSelecteddeliveryPricing(pricingText);
@@ -171,19 +171,20 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
-    if (!selectedbusinessTypes) {
-      newErrors.businessType =
-        "Please select if your business has a physical store";
-    }
-    if (!selectedstoreAddress) {
-      newErrors.storeAddress = "Please select a store address";
-    }
-    if (!selecteddeliveryPricing) {
-      newErrors.deliveryPricing = "Please select delivery pricing";
-    }
-    if (!selectedapprovalStatus) {
-      newErrors.approvalStatus = "Please select approval status";
-    }
+    // Validation logic removed to make fields optional
+    // if (!selectedbusinessTypes) {
+    //   newErrors.businessType =
+    //     "Please select if your business has a physical store";
+    // }
+    // if (!selectedstoreAddress) {
+    //   newErrors.storeAddress = "Please select a store address";
+    // }
+    // if (!selecteddeliveryPricing) {
+    //   newErrors.deliveryPricing = "Please select delivery pricing";
+    // }
+    // if (!selectedapprovalStatus) {
+    //   newErrors.approvalStatus = "Please select approval status";
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -284,9 +285,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
           </label>
           <div className="relative">
             <div
-              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
-                errors.businessType ? "border-red-500" : "border-[#989898]"
-              }`}
+              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${errors.businessType ? "border-red-500" : "border-[#989898]"
+                }`}
               onClick={() => toggleDropdown("businessType")}
             >
               <div
@@ -297,9 +297,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 {selectedbusinessTypes || "Select option"}
               </div>
               <div
-                className={`transform transition-transform duration-200 ${
-                  dropdownStates.businessType ? "rotate-90" : ""
-                }`}
+                className={`transform transition-transform duration-200 ${dropdownStates.businessType ? "rotate-90" : ""
+                  }`}
               >
                 <img src={images?.rightarrow} alt="arrow" />
               </div>
@@ -364,9 +363,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
           </label>
           <div className="relative">
             <div
-              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
-                errors.storeAddress ? "border-red-500" : "border-[#989898]"
-              }`}
+              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${errors.storeAddress ? "border-red-500" : "border-[#989898]"
+                }`}
               onClick={handlestoreAddressClick}
             >
               <div
@@ -385,15 +383,14 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
             <p className="text-red-500 text-sm mt-1">{errors.storeAddress}</p>
           )}
         </div>
-        <div className="mt-5">
+        {/* <div className="mt-5">
           <label htmlFor="store" className="text-lg font-semibold">
             Add Delivery Pricing
           </label>
           <div className="relative">
             <div
-              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
-                errors.deliveryPricing ? "border-red-500" : "border-[#989898]"
-              }`}
+              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${errors.deliveryPricing ? "border-red-500" : "border-[#989898]"
+                }`}
               onClick={handledeliveryPricingClick}
             >
               <div
@@ -413,7 +410,7 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
               {errors.deliveryPricing}
             </p>
           )}
-        </div>
+        </div> */}
         <div className="mt-5">
           <div className="text-lg">
             Select a color that suits your brand and your store shall be
@@ -424,19 +421,17 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
               {brandColors.slice(0, 6).map((color, index) => (
                 <div
                   key={index}
-                  className={`w-15 h-15 rounded-full cursor-pointer transition-all duration-200 ${
-                    selectedBrandColor === color
-                      ? "border-4 border-black"
-                      : "hover:border-2 hover:border-gray-300"
-                  }`}
+                  className={`w-15 h-15 rounded-full cursor-pointer transition-all duration-200 ${selectedBrandColor === color
+                    ? "border-4 border-black"
+                    : "hover:border-2 hover:border-gray-300"
+                    }`}
                   onClick={() => handleBrandColorSelect(color)}
                 >
                   <div
-                    className={`w-full h-full rounded-full ${
-                      selectedBrandColor === color
-                        ? "border-2 border-white"
-                        : ""
-                    }`}
+                    className={`w-full h-full rounded-full ${selectedBrandColor === color
+                      ? "border-2 border-white"
+                      : ""
+                      }`}
                     style={{ backgroundColor: color }}
                   ></div>
                 </div>
@@ -446,19 +441,17 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
               {brandColors.slice(6).map((color, index) => (
                 <div
                   key={index + 6}
-                  className={`w-15 h-15 rounded-full cursor-pointer transition-all duration-200 ${
-                    selectedBrandColor === color
-                      ? "border-4 border-black"
-                      : "hover:border-2 hover:border-gray-300"
-                  }`}
+                  className={`w-15 h-15 rounded-full cursor-pointer transition-all duration-200 ${selectedBrandColor === color
+                    ? "border-4 border-black"
+                    : "hover:border-2 hover:border-gray-300"
+                    }`}
                   onClick={() => handleBrandColorSelect(color)}
                 >
                   <div
-                    className={`w-full h-full rounded-full ${
-                      selectedBrandColor === color
-                        ? "border-2 border-white"
-                        : ""
-                    }`}
+                    className={`w-full h-full rounded-full ${selectedBrandColor === color
+                      ? "border-2 border-white"
+                      : ""
+                      }`}
                     style={{ backgroundColor: color }}
                   ></div>
                 </div>
@@ -472,9 +465,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
           </label>
           <div className="relative">
             <div
-              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
-                errors.approvalStatus ? "border-red-500" : "border-[#989898]"
-              }`}
+              className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${errors.approvalStatus ? "border-red-500" : "border-[#989898]"
+                }`}
               onClick={() => toggleDropdown("approvalStatus")}
             >
               <div
@@ -485,9 +477,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 {selectedapprovalStatus || "Change Approval Status"}
               </div>
               <div
-                className={`transform transition-transform duration-200 ${
-                  dropdownStates.approvalStatus ? "rotate-90" : ""
-                }`}
+                className={`transform transition-transform duration-200 ${dropdownStates.approvalStatus ? "rotate-90" : ""
+                  }`}
               >
                 <img src={images?.rightarrow} alt="arrow" />
               </div>
@@ -523,9 +514,8 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
             type="submit"
             onClick={handleProceed}
             disabled={isLoading}
-            className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             {isLoading ? 'Processing...' : 'Proceed'}
           </button>

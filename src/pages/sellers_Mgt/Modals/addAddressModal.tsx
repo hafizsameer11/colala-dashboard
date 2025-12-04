@@ -81,7 +81,13 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
   });
 
   // Sample data
-  const states = ["Lagos", "Abuja", "Rivers", "Kano"];
+  const states = [
+    "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
+    "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",
+    "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi",
+    "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun",
+    "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+  ];
   const lgas = ["Ikeja", "Lekki", "Victoria Island", "Surulere"];
   const timeOptions = [
     "12:00 AM",
@@ -300,9 +306,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
             </label>
             <div className="relative">
               <div
-                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${
-                  errors.state ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${errors.state ? "border-red-500" : "border-[#989898]"
+                  }`}
                 onClick={() => toggleDropdown("state")}
               >
                 <div
@@ -311,9 +316,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                   {selectedState || "Select State"}
                 </div>
                 <div
-                  className={`transform transition-transform duration-200 ${
-                    dropdownStates.state ? "rotate-90" : ""
-                  }`}
+                  className={`transform transition-transform duration-200 ${dropdownStates.state ? "rotate-90" : ""
+                    }`}
                 >
                   <img src={images?.rightarrow} alt="arrow" />
                 </div>
@@ -345,9 +349,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
             </label>
             <div className="relative">
               <div
-                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${
-                  errors.lga ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`w-full border p-4 rounded-lg text-base flex flex-row justify-between items-center cursor-pointer ${errors.lga ? "border-red-500" : "border-[#989898]"
+                  }`}
                 onClick={() => toggleDropdown("lga")}
               >
                 <div
@@ -356,9 +359,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                   {selectedLga || "Select LGA"}
                 </div>
                 <div
-                  className={`transform transition-transform duration-200 ${
-                    dropdownStates.lga ? "rotate-90" : ""
-                  }`}
+                  className={`transform transition-transform duration-200 ${dropdownStates.lga ? "rotate-90" : ""
+                    }`}
                 >
                   <img src={images?.rightarrow} alt="arrow" />
                 </div>
@@ -422,9 +424,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.mondayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.mondayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.mondayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -464,9 +465,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.mondayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.mondayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.mondayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -514,9 +514,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.tuesdayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.tuesdayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.tuesdayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -557,9 +556,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.tuesdayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.tuesdayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.tuesdayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -607,9 +605,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.wednesdayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.wednesdayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.wednesdayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -650,9 +647,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.wednesdayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.wednesdayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.wednesdayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -702,9 +698,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.thursdayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.thursdayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.thursdayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -745,9 +740,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.thursdayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.thursdayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.thursdayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -795,9 +789,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.fridayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.fridayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.fridayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -836,9 +829,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.fridayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.fridayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.fridayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -886,9 +878,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.saturdayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.saturdayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.saturdayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -929,9 +920,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.saturdayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.saturdayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.saturdayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -979,9 +969,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.sundayFrom || "From"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.sundayFrom ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.sundayFrom ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -1020,9 +1009,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         {timeSelections.sundayTo || "To"}
                       </div>
                       <div
-                        className={`transform transition-transform duration-200 ${
-                          dropdownStates.sundayTo ? "rotate-90" : ""
-                        }`}
+                        className={`transform transition-transform duration-200 ${dropdownStates.sundayTo ? "rotate-90" : ""
+                          }`}
                       >
                         <img
                           src={images?.rightarrow}
@@ -1052,9 +1040,8 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
           </div>
 
           <div
-            className={`mt-5 flex flex-row gap-3 items-center p-2 rounded ${
-              checked ? "bg-[#E53E3E]" : "bg-transparent"
-            }`}
+            className={`mt-5 flex flex-row gap-3 items-center p-2 rounded ${checked ? "bg-[#E53E3E]" : "bg-transparent"
+              }`}
           >
             <input
               type="checkbox"

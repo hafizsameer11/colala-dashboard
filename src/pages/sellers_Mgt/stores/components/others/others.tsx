@@ -71,7 +71,7 @@ const Others = () => {
 
   // Update coupon mutation
   const updateCouponMutation = useMutation({
-    mutationFn: ({ couponId, couponData }: { couponId: string | number; couponData: any }) => 
+    mutationFn: ({ couponId, couponData }: { couponId: string | number; couponData: any }) =>
       updateSellerCoupon(storeId!, couponId, couponData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sellerCoupons', storeId] });
@@ -119,7 +119,7 @@ const Others = () => {
   console.log('Loyalty Settings Data:', loyaltySettings);
   console.log('Loyalty Customers Data:', loyaltyCustomers);
   console.log('Total Points Balance:', totalPointsBalance);
-  
+
   // Log individual customer data for debugging
   if (loyaltyCustomers.length > 0) {
     console.log('Sample customer data:', loyaltyCustomers[0]);
@@ -458,8 +458,8 @@ const Others = () => {
                       >
                         <div className="flex flex-row gap-2 items-center">
                           <div>
-                            <img 
-                              className="w-12 h-12 rounded-full object-cover" 
+                            <img
+                              className="w-12 h-12 rounded-full object-cover"
                               src={getImageUrl(customer.profile_picture)}
                               alt={customer.name || "Customer"}
                               onError={(e) => {
@@ -503,71 +503,11 @@ const Others = () => {
                 user's email and you can add a unique password for each use
               </div>
               <div className="text-xl font-medium">Users</div>
-              <div
-                className="flex flex-row justify-between p-2 rounded-2xl"
-                style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-              >
-                <div className="flex flex-row gap-2 items-center">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium">abcdef@gmail.com</div>
-                    <div className="font-bold text-[#E53E3E]">Admin</div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-4">
-                  <div className="border border-[#B8B8B8] rounded-xl p-3">
-                    <img src={images.edit1} alt="" />
-                  </div>
-                  <div className="border border-[#B8B8B8] rounded-xl p-3">
-                    <img src={images.delete1} alt="" />
-                  </div>
-                </div>
-              </div>
-              <div
-                className="flex flex-row justify-between p-2 rounded-2xl"
-                style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-              >
-                <div className="flex flex-row gap-2 items-center">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium">abcdef@gmail.com</div>
-                    <div className="font-bold text-[#E53E3E]">Admin</div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-4">
-                  <div className="border border-[#B8B8B8] rounded-xl p-3">
-                    <img src={images.edit1} alt="" />
-                  </div>
-                  <div className="border border-[#B8B8B8] rounded-xl p-3">
-                    <img src={images.delete1} alt="" />
-                  </div>
-                </div>
-              </div>
-              <div
-                className="flex flex-row justify-between p-2 rounded-2xl"
-                style={{ boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)" }}
-              >
-                <div className="flex flex-row gap-2 items-center">
-                  <div>
-                    <img className="w-12 h-12" src={images.sasha} alt="" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <div className="font-medium">abcdef@gmail.com</div>
-                    <div className="font-bold text-[#E53E3E]">Admin</div>
-                  </div>
-                </div>
-                <div className="flex flex-row gap-4">
-                  <div className="border border-[#B8B8B8] rounded-xl p-3">
-                    <img src={images.edit1} alt="" />
-                  </div>
-                  <div className="border border-[#B8B8B8] rounded-xl p-3">
-                    <img src={images.delete1} alt="" />
-                  </div>
-                </div>
+
+              {/* Empty state - no users from API yet */}
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="text-gray-400 text-lg mb-2">No users with access</div>
+                <div className="text-gray-500 text-sm">Click "Add New User" to grant access to your account</div>
               </div>
             </div>
           </div>

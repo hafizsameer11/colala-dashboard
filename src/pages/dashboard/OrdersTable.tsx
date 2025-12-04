@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 interface Order {
   id: string | number;
@@ -37,15 +38,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [selectAll, setSelectAll] = useState(false);
 
   // Helper function to normalize order data
-  const normalizeOrder = (order: Order): Order => {
-    // Handle both snake_case and camelCase for status_color
-    // Check the raw order object for status_color (could be in either format)
-    const orderWithStatusColor = order as Order & { statusColor?: string };
-    const rawStatusColor = order.status_color || orderWithStatusColor.statusColor;
-    const statusColor = rawStatusColor && typeof rawStatusColor === 'string' && rawStatusColor.trim() !== '' 
-      ? rawStatusColor.trim() 
+  const normalizeOrder = (order: any): Order => {
+    // Extract status_color from the raw order object
+    // API sends it as "status_color" (snake_case), handle both formats
+    // Access it directly from the raw object to ensure we get it
+    const rawStatusColor = (order && typeof order === 'object')
+      ? (order.status_color || order.statusColor || order['status_color'])
       : undefined;
-    
+
+    // Clean and validate status_color
+    let statusColor: string | undefined = undefined;
+    if (rawStatusColor !== undefined && rawStatusColor !== null) {
+      const colorStr = String(rawStatusColor).trim();
+      if (colorStr !== "" && colorStr !== "undefined" && colorStr !== "null") {
+        statusColor = colorStr;
+      }
+    }
+
     return {
       id: order.id,
       storeName: order.store_name || order.storeName || 'Unknown Store',
@@ -54,7 +63,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       price: order.price || '₦0.00',
       orderDate: order.order_date || order.orderDate || 'Unknown Date',
       status: order.status || 'Unknown Status',
-      status_color: statusColor, // Preserve status_color from API
+      status_color: statusColor, // Preserve status_color from API - this is critical!
     };
   };
 
@@ -127,11 +136,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
     setSelectedRows(newSelectedRows);
     setSelectAll(newSelectedRows.length === filteredOrders.length);
-    
+
     // Call parent functions directly
     onRowSelect?.(newSelectedRows);
     if (onSelectedOrdersChange) {
-      const selectedOrders = filteredOrders.filter(order => 
+      const selectedOrders = filteredOrders.filter(order =>
         newSelectedRows.includes(String(order.id))
       );
       onSelectedOrdersChange(selectedOrders);
@@ -150,7 +159,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   // Map status_color from API to CSS classes
   const getStatusColorStyle = (statusColor?: string): string | null => {
     if (!statusColor || statusColor.trim() === "") return null;
-    
+
     const colorLower = statusColor.toLowerCase().trim();
     switch (colorLower) {
       case "gray":
@@ -166,55 +175,70 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         return "bg-[#E53E3E1A] text-[#E53E3E] border border-[#E53E3E]";
       case "orange":
         return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]";
+      case "brown":
+        return "bg-[#8B45131A] text-[#8B4513] border border-[#8B4513]";
       default:
         return null;
     }
   };
 
   const getStatusStyle = (status: Order["status"], statusColor?: string): string => {
-    // Normalize status for comparison
-    const statusLower = status?.toLowerCase().trim() || "";
-    
-    // First, prioritize status_color from API if available and valid
-    // This is the primary source of truth for styling
-    if (statusColor && typeof statusColor === 'string') {
-      const trimmedColor = statusColor.trim().toLowerCase();
-      if (trimmedColor !== "" && trimmedColor !== "undefined" && trimmedColor !== "null") {
-        const colorStyle = getStatusColorStyle(trimmedColor);
-        if (colorStyle) {
-          return colorStyle;
+    // CRITICAL: Always prioritize status_color from API - it's the source of truth
+    // EXCEPTION: If the API returns "gray" or "grey", we might want to override it 
+    // because it's often used as a default for statuses that should have color (like accepted/paid)
+
+    // Check if status_color exists and is valid
+    if (statusColor !== undefined && statusColor !== null && statusColor !== "") {
+      const colorStr = String(statusColor).trim().toLowerCase();
+
+      // Only proceed if it's a non-empty string and not "undefined" or "null"
+      if (colorStr !== "" && colorStr !== "undefined" && colorStr !== "null") {
+        // If it's NOT gray/grey, use it immediately. 
+        // If it IS gray, we'll fall through to the status check to see if we have a better specific color.
+        if (colorStr !== "gray" && colorStr !== "grey") {
+          const colorStyle = getStatusColorStyle(colorStr);
+          if (colorStyle) {
+            return colorStyle;
+          }
         }
       }
     }
-    
-    // Fallback to status-based styling if status_color is not available or invalid
-    // Handle statuses with underscores and variations (check these first before switch)
+
+    // Fallback: Use status-based styling
+    const statusLower = status?.toLowerCase().trim() || "";
+
+    // Handle statuses with underscores and variations
     if (statusLower.includes("pending_acceptance") || statusLower === "pending_acceptance" || statusLower === "pending acceptance") {
-      return "bg-gray-100 text-gray-600 border border-gray-300";
+      return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]"; // Orange/Yellow for pending acceptance
     }
     if (statusLower.includes("out_for_delivery") || statusLower === "out_for_delivery" || statusLower === "out for delivery") {
       return "bg-[#1E90FF1A] text-[#1E90FF] border border-[#1E90FF]"; // Blue for out_for_delivery
     }
     if (statusLower === "accepted" || (statusLower.includes("accepted") && !statusLower.includes("pending"))) {
-      return "bg-gray-100 text-gray-600 border border-gray-300";
+      return "bg-[#0080001A] text-[#008000] border border-[#008000]"; // Green for accepted
     }
     if (statusLower === "paid" || statusLower.includes("paid")) {
-      return "bg-gray-100 text-gray-600 border border-gray-300";
+      return "bg-[#0080001A] text-[#008000] border border-[#008000]"; // Green for paid
     }
-    
+    if (statusLower === "delivered") {
+      return "bg-[#8000801A] text-[#800080] border border-[#800080]"; // Purple for delivered
+    }
+
     // Handle standard statuses
     switch (statusLower) {
       case "placed":
         return "bg-[#E53E3E1A] text-[#E53E3E] border border-[#E53E3E]";
       case "pending":
-        return "bg-gray-100 text-gray-600 border border-gray-300";
-      case "delivered":
-        return "bg-[#8000801A] text-[#800080] border border-[#800080]";
+        return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]"; // Orange/Yellow for pending
       case "completed":
         return "bg-[#0080001A] text-[#008000] border border-[#008000]";
       case "disputed":
         return "bg-[#FFA5001A] text-[#FFA500] border border-[#FFA500]";
       default:
+        // If we fell through to here and had a gray color from API, use it now
+        if (statusColor && (statusColor.toLowerCase() === "gray" || statusColor.toLowerCase() === "grey")) {
+          return "bg-gray-100 text-gray-600 border border-gray-300";
+        }
         // Default to grey if status is unknown
         return "bg-gray-100 text-gray-600 border border-gray-300";
     }
@@ -265,9 +289,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             {filteredOrders.map((order, index) => (
               <tr
                 key={order.id}
-                className={`border-t border-[#E5E5E5] transition-colors ${
-                  index === filteredOrders.length - 1 ? "" : "border-b"
-                }`}
+                className={`border-t border-[#E5E5E5] transition-colors ${index === filteredOrders.length - 1 ? "" : "border-b"
+                  }`}
               >
                 <td className="p-4 text-center">
                   <input
@@ -287,7 +310,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   {order.productName}
                 </td>
                 <td className="p-4 text-[14px] font-semibold text-black text-center">
-                  {order.price}
+                  {formatCurrency(order.price)}
                 </td>
                 <td className="p-4 text-[14px] text-black text-center">
                   {order.orderDate}
@@ -319,7 +342,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           </tbody>
         </table>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -89,18 +89,19 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
     if (!formData.businessType) {
       newErrors.businessType = "Business type is required";
     }
-    if (!formData.ninNumber.trim()) {
-      newErrors.ninNumber = "NIN number is required";
-    }
-    if (!formData.cacNumber.trim()) {
-      newErrors.cacNumber = "CAC number is required";
-    }
-    if (!formData.ninSlip) {
-      newErrors.ninSlip = "NIN slip is required";
-    }
-    if (!formData.cacCertificate) {
-      newErrors.cacCertificate = "CAC certificate is required";
-    }
+    // Validation logic removed to make fields optional
+    // if (!formData.ninNumber.trim()) {
+    //   newErrors.ninNumber = "NIN number is required";
+    // }
+    // if (!formData.cacNumber.trim()) {
+    //   newErrors.cacNumber = "CAC number is required";
+    // }
+    // if (!formData.ninSlip) {
+    //   newErrors.ninSlip = "NIN slip is required";
+    // }
+    // if (!formData.cacCertificate) {
+    //   newErrors.cacCertificate = "CAC certificate is required";
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -168,9 +169,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 value={formData.businessName}
                 onChange={handleInputChange}
                 placeholder="Enter Business Name"
-                className={`w-full mt-3 border p-5 rounded-2xl text-lg ${
-                  errors.businessName ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`w-full mt-3 border p-5 rounded-2xl text-lg ${errors.businessName ? "border-red-500" : "border-[#989898]"
+                  }`}
                 required
               />
               {errors.businessName && (
@@ -185,9 +185,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
               </label>
               <div className="relative">
                 <div
-                  className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${
-                    errors.businessType ? "border-red-500" : "border-[#989898]"
-                  }`}
+                  className={`w-full border p-5 rounded-2xl text-lg flex flex-row justify-between items-center mt-3 cursor-pointer ${errors.businessType ? "border-red-500" : "border-[#989898]"
+                    }`}
                   onClick={toggleDropdown}
                 >
                   <div
@@ -198,9 +197,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                     {selectedbusinessTypes || "Select Business type"}
                   </div>
                   <div
-                    className={`transform transition-transform duration-200 ${
-                      isDropdownOpen ? "rotate-90" : ""
-                    }`}
+                    className={`transform transition-transform duration-200 ${isDropdownOpen ? "rotate-90" : ""
+                      }`}
                   >
                     <img src={images.rightarrow} alt="" />
                   </div>
@@ -228,7 +226,7 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
             </div>
             <div className="mt-5">
               <label htmlFor="ninNumber" className="text-lg font-semibold">
-                NIN Number
+                NIN Number <span className="text-gray-400 text-sm font-normal">(Optional)</span>
               </label>
               <input
                 type="text"
@@ -237,10 +235,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 value={formData.ninNumber}
                 onChange={handleInputChange}
                 placeholder="Enter NIN Number"
-                className={`w-full mt-3 border p-5 rounded-2xl text-lg ${
-                  errors.ninNumber ? "border-red-500" : "border-[#989898]"
-                }`}
-                required
+                className={`w-full mt-3 border p-5 rounded-2xl text-lg ${errors.ninNumber ? "border-red-500" : "border-[#989898]"
+                  }`}
               />
               {errors.ninNumber && (
                 <p className="text-red-500 text-sm mt-1">{errors.ninNumber}</p>
@@ -248,7 +244,7 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
             </div>
             <div className="mt-5">
               <label htmlFor="cacNumber" className="text-lg font-semibold">
-                CAC Number
+                CAC Number <span className="text-gray-400 text-sm font-normal">(Optional)</span>
               </label>
               <input
                 type="text"
@@ -257,10 +253,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 value={formData.cacNumber}
                 onChange={handleInputChange}
                 placeholder="Enter CAC Number"
-                className={`w-full mt-3 border p-5 rounded-2xl text-lg ${
-                  errors.cacNumber ? "border-red-500" : "border-[#989898]"
-                }`}
-                required
+                className={`w-full mt-3 border p-5 rounded-2xl text-lg ${errors.cacNumber ? "border-red-500" : "border-[#989898]"
+                  }`}
               />
               {errors.cacNumber && (
                 <p className="text-red-500 text-sm mt-1">{errors.cacNumber}</p>
@@ -268,7 +262,7 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
             </div>
             <div className="mt-5">
               <label htmlFor="ninSlip" className="text-lg font-semibold">
-                Upload NIN Slip
+                Upload NIN Slip <span className="text-gray-400 text-sm font-normal">(Optional)</span>
               </label>
               <input
                 type="file"
@@ -282,9 +276,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 className="hidden"
               />
               <div
-                className={`flex flex-col mt-3 border w-full rounded-2xl p-10 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  errors.ninSlip ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`flex flex-col mt-3 border w-full rounded-2xl p-10 cursor-pointer hover:bg-gray-50 transition-colors ${errors.ninSlip ? "border-red-500" : "border-[#989898]"
+                  }`}
                 onClick={() => ninSlipInputRef.current?.click()}
               >
                 <div className="flex justify-center items-center">
@@ -310,7 +303,7 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
             </div>
             <div className="mt-5">
               <label htmlFor="cacSlip" className="text-lg font-semibold">
-                Upload CAC Certificate
+                Upload CAC Certificate <span className="text-gray-400 text-sm font-normal">(Optional)</span>
               </label>
               <input
                 type="file"
@@ -324,9 +317,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 className="hidden"
               />
               <div
-                className={`flex flex-col mt-3 border w-full rounded-2xl p-10 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  errors.cacCertificate ? "border-red-500" : "border-[#989898]"
-                }`}
+                className={`flex flex-col mt-3 border w-full rounded-2xl p-10 cursor-pointer hover:bg-gray-50 transition-colors ${errors.cacCertificate ? "border-red-500" : "border-[#989898]"
+                  }`}
                 onClick={() => cacCertificateInputRef.current?.click()}
               >
                 <div className="flex justify-center items-center">
@@ -363,9 +355,8 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${
-                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`bg-[#E53E3E] rounded-2xl px-24 py-4 cursor-pointer text-white text-lg font-semibold hover:bg-red-600 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
               >
                 {isLoading ? 'Processing...' : 'Proceed'}
               </button>

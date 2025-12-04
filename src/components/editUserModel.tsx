@@ -1,7 +1,23 @@
 import images from "../constants/images";
 import React, { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { updateUser } from "../utils/mutations/users";
+import { getUserAddresses } from "../utils/queries/users";
+
+interface Address {
+  id: number;
+  label?: string;
+  phone?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zipcode?: string;
+  is_default?: boolean;
+  created_at?: string;
+  formatted_date?: string;
+}
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -16,6 +32,14 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
   
   const queryClient = useQueryClient();
 
+  // Fetch user addresses
+  const { data: addressesData, isLoading: isLoadingAddresses, error: addressesError } = useQuery({
+    queryKey: ['userAddresses', userData?.user_info?.id],
+    queryFn: () => getUserAddresses(userData?.user_info?.id),
+    enabled: !!userData?.user_info?.id && activeTab === "address",
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: updateUser,
@@ -24,6 +48,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
       queryClient.invalidateQueries({ queryKey: ['allUsers'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersStats'] });
       queryClient.invalidateQueries({ queryKey: ['userDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['userAddresses'] });
       onClose();
     },
     onError: (error: any) => {
@@ -522,66 +547,125 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                 {!showAddAddressForm ? (
                   // Show existing addresses
                   <>
-                    <div className="bg-white border border-[#CDCDCD] rounded-2xl p-4">
-                      {/* Address Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            Address 1
-                          </h3>
-                          <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
-                            Default Address
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
-                            Edit
-                          </button>
-                          <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
-                            Delete
-                          </button>
-                        </div>
+                    {isLoadingAddresses ? (
+                      // Loading State
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+                        <p className="text-gray-600 text-sm">Loading addresses...</p>
                       </div>
-
-                      {/* Address Details */}
-                      <div className="space-y-3">
-                        {/* Phone Number */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Phone number
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            {userData?.user_info?.phone || 'N/A'}
-                          </p>
-                        </div>
-
-                        {/* State and Local Government */}
-                        <div className="flex flex-row gap-10">
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              State
-                            </label>
-                            <p className="text-gray-800 font-medium">{userData?.user_info?.state || 'N/A'}</p>
-                          </div>
-                          <div>
-                            <label className="text-gray-500 text-sm block mb-1">
-                              Local Government
-                            </label>
-                            <p className="text-gray-800 font-medium">N/A</p>
-                          </div>
-                        </div>
-
-                        {/* Full Address */}
-                        <div>
-                          <label className="text-gray-500 text-sm block mb-1">
-                            Full Address
-                          </label>
-                          <p className="text-gray-800 font-medium">
-                            {userData?.store_info?.store_location || 'N/A'}
-                          </p>
-                        </div>
+                    ) : addressesError ? (
+                      // Error State
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-600 text-sm">
+                          Error loading addresses. Please try again.
+                        </p>
                       </div>
-                    </div>
+                    ) : addressesData?.data?.addresses && addressesData.data.addresses.length > 0 ? (
+                      // Addresses List
+                      <div className="space-y-4">
+                        {addressesData.data.addresses.map((address: Address, index: number) => (
+                          <div key={address.id || index} className="bg-white border border-[#CDCDCD] rounded-2xl p-4">
+                            {/* Address Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-semibold text-gray-800">
+                                  {address.label || `Address ${index + 1}`}
+                                </h3>
+                                {address.is_default && (
+                                  <span className="bg-[#FF000033] text-[#E53E3E] border border-[#E53E3E] px-3 py-1 rounded-lg text-sm font-medium">
+                                    Default Address
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <button className="bg-[#E53E3E] text-white px-7 py-2 rounded-full hover:bg-red-600 transition-colors font-medium cursor-pointer">
+                                  Edit
+                                </button>
+                                <button className="text-red-500 hover:text-red-700 transition-colors font-medium cursor-pointer">
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Address Details */}
+                            <div className="space-y-3">
+                              {/* Phone Number */}
+                              <div>
+                                <label className="text-gray-500 text-sm block mb-1">
+                                  Phone number
+                                </label>
+                                <p className="text-gray-800 font-medium">
+                                  {address.phone || 'N/A'}
+                                </p>
+                              </div>
+
+                              {/* State and City */}
+                              <div className="flex flex-row gap-10">
+                                <div>
+                                  <label className="text-gray-500 text-sm block mb-1">
+                                    State
+                                  </label>
+                                  <p className="text-gray-800 font-medium">
+                                    {address.state || 'N/A'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="text-gray-500 text-sm block mb-1">
+                                    City
+                                  </label>
+                                  <p className="text-gray-800 font-medium">
+                                    {address.city || 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Full Address */}
+                              <div>
+                                <label className="text-gray-500 text-sm block mb-1">
+                                  Full Address
+                                </label>
+                                <p className="text-gray-800 font-medium">
+                                  {address.line1 || 'N/A'}
+                                  {address.line2 && `, ${address.line2}`}
+                                  {address.zipcode && ` - ${address.zipcode}`}
+                                </p>
+                              </div>
+
+                              {/* Country */}
+                              {address.country && (
+                                <div>
+                                  <label className="text-gray-500 text-sm block mb-1">
+                                    Country
+                                  </label>
+                                  <p className="text-gray-800 font-medium">
+                                    {address.country}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Created Date */}
+                              {address.formatted_date && (
+                                <div>
+                                  <label className="text-gray-500 text-sm block mb-1">
+                                    Added on
+                                  </label>
+                                  <p className="text-gray-800 font-medium text-sm">
+                                    {address.formatted_date}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      // Empty State
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                        <p className="text-gray-600 text-sm mb-4">
+                          No saved addresses found for this user.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="mt-6">
                       <button
@@ -634,10 +718,43 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                             required
                           >
                             <option value="">Select State</option>
-                            <option value="Lagos">Lagos</option>
-                            <option value="Abuja">Abuja</option>
+                            <option value="Abia">Abia</option>
+                            <option value="Adamawa">Adamawa</option>
+                            <option value="Akwa Ibom">Akwa Ibom</option>
+                            <option value="Anambra">Anambra</option>
+                            <option value="Bauchi">Bauchi</option>
+                            <option value="Bayelsa">Bayelsa</option>
+                            <option value="Benue">Benue</option>
+                            <option value="Borno">Borno</option>
+                            <option value="Cross River">Cross River</option>
+                            <option value="Delta">Delta</option>
+                            <option value="Ebonyi">Ebonyi</option>
+                            <option value="Edo">Edo</option>
+                            <option value="Ekiti">Ekiti</option>
+                            <option value="Enugu">Enugu</option>
+                            <option value="Gombe">Gombe</option>
+                            <option value="Imo">Imo</option>
+                            <option value="Jigawa">Jigawa</option>
+                            <option value="Kaduna">Kaduna</option>
                             <option value="Kano">Kano</option>
-                            {/* Add more states as needed */}
+                            <option value="Katsina">Katsina</option>
+                            <option value="Kebbi">Kebbi</option>
+                            <option value="Kogi">Kogi</option>
+                            <option value="Kwara">Kwara</option>
+                            <option value="Lagos">Lagos</option>
+                            <option value="Nasarawa">Nasarawa</option>
+                            <option value="Niger">Niger</option>
+                            <option value="Ogun">Ogun</option>
+                            <option value="Ondo">Ondo</option>
+                            <option value="Osun">Osun</option>
+                            <option value="Oyo">Oyo</option>
+                            <option value="Plateau">Plateau</option>
+                            <option value="Rivers">Rivers</option>
+                            <option value="Sokoto">Sokoto</option>
+                            <option value="Taraba">Taraba</option>
+                            <option value="Yobe">Yobe</option>
+                            <option value="Zamfara">Zamfara</option>
+                            <option value="Abuja">Federal Capital Territory (Abuja)</option>
                           </select>
                           <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                             <svg

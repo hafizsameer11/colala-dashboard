@@ -86,8 +86,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                 {isCartView
                   ? "Product Cart"
                   : isProductDetails
-                  ? "Product details"
-                  : "Order Details"}
+                    ? "Product details"
+                    : "Order Details"}
               </h2>
             </div>
             <button
@@ -107,11 +107,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
               <div className="flex p-1 gap-4 border border-[#989898] rounded-lg w-[335px]">
                 <button
                   onClick={() => setActiveTab("track order")}
-                  className={`px-6 py-2 rounded-lg font-medium cursor-pointer ${
-                    activeTab === "track order"
+                  className={`px-6 py-2 rounded-lg font-medium cursor-pointer ${activeTab === "track order"
                       ? "bg-[#E53E3E] text-white "
                       : "bg-transparent text-[#00000080]"
-                  }`}
+                    }`}
                 >
                   Track Order
                 </button>
@@ -120,11 +119,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                     setActiveTab("full order details");
                     setIsProductDetails(false);
                   }}
-                  className={`px-6 py-2 rounded-lg font-medium cursor-pointer ${
-                    activeTab === "full order details"
+                  className={`px-6 py-2 rounded-lg font-medium cursor-pointer ${activeTab === "full order details"
                       ? "bg-red-500 text-white"
                       : "bg-transparent text-[#00000080]"
-                  }`}
+                    }`}
                 >
                   Full Order Details
                 </button>
