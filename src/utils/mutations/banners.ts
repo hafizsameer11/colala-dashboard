@@ -21,7 +21,8 @@ export const updateBanner = async (bannerId: number | string, formData: FormData
 
   const url = API_ENDPOINTS.BANNERS.Update(bannerId);
   
-  return await apiCall(url, 'PUT', formData, token);
+  // Backend expects POST for updates
+  return await apiCall(url, 'POST', formData, token);
 };
 
 export const deleteBanner = async (bannerId: number | string) => {

@@ -95,18 +95,8 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
     formData.append('title', data.title || 'Banner');
     formData.append('link', data.link);
     
-    // Parse audience data - it comes as comma-separated string from the modal
-    const audienceUserIds = data.audience ? data.audience.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id)) : [];
-    
-    if (audienceUserIds.length > 0) {
-      formData.append('audience_type', 'specific');
-      // Append each user ID separately for FormData
-      audienceUserIds.forEach((userId: number) => {
-        formData.append('target_user_ids[]', userId.toString());
-      });
-    } else {
-      formData.append('audience_type', 'all');
-    }
+    // Set audience type to 'all' since audience selection is removed
+    formData.append('audience_type', 'all');
     
     formData.append('position', 'top'); // Default position
     

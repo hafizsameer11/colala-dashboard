@@ -1,40 +1,54 @@
-import React, { useState } from "react";
-import SelectAudience from "./selectaudience";
+import React, { useEffect, useState } from "react";
 import images from "../../../../constants/images";
+
+interface EditingBanner {
+  id: number | string;
+  link?: string;
+}
 
 interface NewBannerProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: BannerFormData) => void;
+  onUpdate?: (bannerId: number | string, formData: FormData) => void;
   isLoading?: boolean;
+  editingBanner?: EditingBanner | null;
 }
 
 interface BannerFormData {
   image: File | null;
-  audience: string;
   link: string;
 }
 
-const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoading = false }) => {
+const NewBanner: React.FC<NewBannerProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  onUpdate,
+  isLoading = false,
+  editingBanner = null,
+}) => {
   const [formData, setFormData] = useState<BannerFormData>({
     image: null,
-    audience: "",
-    link: "",
+    link: editingBanner?.link || "",
   });
 
-  const [selectedAudience, setSelectedAudience] = useState("Select audience");
-  const [isSelectAudienceModalOpen, setIsSelectAudienceModalOpen] =
-    useState(false);
+  // Sync form when editing banner changes
+  useEffect(() => {
+    setFormData({
+      image: null,
+      link: editingBanner?.link || "",
+    });
+    setErrors({});
+  }, [editingBanner]);
+
   const [errors, setErrors] = useState<{
     image?: string;
-    audience?: string;
     link?: string;
   }>({});
 
   const resetForm = () => {
-    setFormData({ image: null, audience: "", link: "" });
-    setSelectedAudience("Select audience");
-    setIsSelectAudienceModalOpen(false);
+    setFormData({ image: null, link: "" });
     setErrors({});
   };
 
@@ -50,29 +64,13 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
     setErrors((prev) => ({ ...prev, image: undefined }));
   };
 
-  const handleAudienceSelect = (selectedUsers: string[]) => {
-    const audienceText =
-      selectedUsers.length > 0
-        ? `${selectedUsers.length} users selected`
-        : "Select audience";
-    setSelectedAudience(audienceText);
-    setFormData((prev) => ({ ...prev, audience: selectedUsers.join(", ") }));
-    setErrors((prev) => ({ ...prev, audience: undefined }));
-    setIsSelectAudienceModalOpen(false);
-  };
-
   const validate = () => {
-    const newErrors: { image?: string; audience?: string; link?: string } = {};
-    if (!formData.image) newErrors.image = "Please choose an image.";
-    if (!formData.audience) newErrors.audience = "Please select an audience.";
-    if (!formData.link) newErrors.link = "Please add a link.";
-    else {
-      try {
-        new URL(formData.link);
-      } catch {
-        newErrors.link =
-          "Please provide a valid URL (e.g., https://example.com).";
-      }
+    const newErrors: { image?: string; link?: string } = {};
+    if (!editingBanner && !formData.image) {
+      newErrors.image = "Please choose an image.";
+    }
+    if (!formData.link || !formData.link.trim()) {
+      newErrors.link = "Please add a link.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -81,7 +79,15 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    onSubmit?.(formData);
+    // Editing: send FormData to update
+    if (editingBanner && onUpdate) {
+      const fd = new FormData();
+      if (formData.link) fd.append("link", formData.link);
+      if (formData.image) fd.append("image", formData.image);
+      onUpdate(editingBanner.id, fd);
+    } else {
+      onSubmit?.(formData);
+    }
     resetForm();
     onClose();
   };
@@ -108,7 +114,9 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
         {/* Header */}
         <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">New Banner</h2>
+            <h2 className="text-lg font-bold">
+              {editingBanner ? "Edit Banner" : "New Banner"}
+            </h2>
             <div className="flex flex-row items-center gap-3">
               <button
                 onClick={handleClose}
@@ -128,6 +136,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
             <div>
               <label className="block text-xl font-medium text-[#000] mb-2">
                 Image
+                {editingBanner ? " (leave empty to keep existing)" : ""}
               </label>
 
               <div
@@ -208,53 +217,13 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
               )}
             </div>
 
-            {/* Audience Selection */}
-            <div>
-              <label className="block text-xl font-medium text-[#000] mb-2">
-                Audience
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsSelectAudienceModalOpen(true)}
-                className={`w-full p-5 border rounded-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left bg-white flex items-center justify-between ${
-                  errors.audience ? "border-red-400" : "border-gray-300"
-                }`}
-              >
-                <span
-                  className={
-                    selectedAudience === "Select audience"
-                      ? "text-gray-400"
-                      : "text-gray-900"
-                  }
-                >
-                  {selectedAudience}
-                </span>
-                <svg
-                  className="w-4 h-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              {errors.audience && (
-                <p className="mt-2 text-sm text-red-500">{errors.audience}</p>
-              )}
-            </div>
-
             {/* Link Field */}
             <div>
               <label className="block text-xl font-medium text-[#000] mb-2">
                 Link
               </label>
               <input
-                type="url"
+                type="text"
                 name="link"
                 value={formData.link}
                 onChange={handleInputChange}
@@ -272,7 +241,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
             <button
               type="submit"
               className="w-full py-4 mt-2 bg-[#E53E3E] text-white rounded-xl hover:bg-[#d32f2f] transition-colors font-medium cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={!formData.image || !formData.audience || !formData.link || isLoading}
+              disabled={!formData.image || !formData.link || isLoading}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -286,13 +255,6 @@ const NewBanner: React.FC<NewBannerProps> = ({ isOpen, onClose, onSubmit, isLoad
           </form>
         </div>
       </div>
-
-      {/* Select Audience Modal */}
-      <SelectAudience
-        isOpen={isSelectAudienceModalOpen}
-        onClose={() => setIsSelectAudienceModalOpen(false)}
-        onApply={handleAudienceSelect}
-      />
     </div>
   );
 };

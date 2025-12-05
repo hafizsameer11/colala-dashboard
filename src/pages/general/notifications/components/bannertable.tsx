@@ -32,6 +32,8 @@ interface BannerTableProps {
   error?: any;
   currentPage?: number;
   onPageChange?: (page: number) => void;
+  onEditBanner?: (banner: BannerData) => void;
+  onDeleteBanner?: (bannerId: number) => void;
 }
 
 const BannerTable: React.FC<BannerTableProps> = ({
@@ -42,6 +44,8 @@ const BannerTable: React.FC<BannerTableProps> = ({
   error,
   currentPage = 1,
   onPageChange,
+  onEditBanner,
+  onDeleteBanner,
 }) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
@@ -101,10 +105,8 @@ const BannerTable: React.FC<BannerTableProps> = ({
     onRowSelect?.(newSelected);
   };
 
-  const handleEdit = (id: number) =>
-    console.log("Edit clicked for banner:", id);
-  const handleDelete = (id: number) =>
-    console.log("Delete clicked for banner:", id);
+  const handleEdit = (banner: BannerData) => onEditBanner?.(banner);
+  const handleDelete = (id: number) => onDeleteBanner?.(id);
 
   if (isLoading) {
     return (
@@ -219,7 +221,7 @@ const BannerTable: React.FC<BannerTableProps> = ({
                       </div>
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => handleEdit(banner.id)}
+                          onClick={() => handleEdit(banner)}
                           className="border border-[#989898] rounded-xl p-2 "
                         >
                           <img

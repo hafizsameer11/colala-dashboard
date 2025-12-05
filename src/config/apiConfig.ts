@@ -366,7 +366,7 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/banners", // GET
     Create: API_DOMAIN + "/admin/banners", // POST
     Details: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // GET
-    Update: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // PUT
+    Update: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // POST (backend expects POST)
     Delete: (id: number | string) => `${API_DOMAIN}/admin/banners/${id}`, // DELETE
     Analytics: API_DOMAIN + "/admin/banners/analytics", // GET
     Active: API_DOMAIN + "/banners/active", // GET (public)

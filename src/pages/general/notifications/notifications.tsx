@@ -3,19 +3,24 @@ import { useState } from "react";
 import NotificationsFilters from "./components/notificationsfilters";
 import NotificationTable from "./components/notificationtable";
 import BannerTable from "./components/bannertable";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getNotifications } from "../../../utils/queries/notifications";
 import { getBanners } from "../../../utils/queries/banners";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
+import { deleteBanner, updateBanner } from "../../../utils/mutations/banners";
+import NewBanner from "./components/newbanner";
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState("Notification");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 500);
+  const [isEditBannerModalOpen, setIsEditBannerModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<any | null>(null);
+  const queryClient = useQueryClient();
 
   // Fetch notifications data
   const { data: notificationsData, isLoading: isLoadingNotifications, error: notificationsError } = useQuery({
@@ -36,6 +41,45 @@ const Notifications = () => {
   const currentData = activeTab === "Notification" ? notificationsData : bannersData;
   const isLoading = activeTab === "Notification" ? isLoadingNotifications : isLoadingBanners;
   const error = activeTab === "Notification" ? notificationsError : bannersError;
+
+  // Banner mutations
+  const deleteBannerMutation = useMutation({
+    mutationFn: (bannerId: number | string) => deleteBanner(bannerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['banners'] });
+    },
+    onError: (err) => {
+      console.error("Error deleting banner:", err);
+    },
+  });
+
+  const updateBannerMutation = useMutation({
+    mutationFn: ({ bannerId, formData }: { bannerId: number | string; formData: FormData }) =>
+      updateBanner(bannerId, formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['banners'] });
+      setIsEditBannerModalOpen(false);
+      setEditingBanner(null);
+    },
+    onError: (err) => {
+      console.error("Error updating banner:", err);
+    },
+  });
+
+  const handleEditBanner = (banner: any) => {
+    setEditingBanner(banner);
+    setIsEditBannerModalOpen(true);
+  };
+
+  const handleDeleteBanner = (bannerId: number) => {
+    if (window.confirm("Are you sure you want to delete this banner?")) {
+      deleteBannerMutation.mutate(bannerId);
+    }
+  };
+
+  const handleUpdateBanner = (bannerId: number | string, formData: FormData) => {
+    updateBannerMutation.mutate({ bannerId, formData });
+  };
 
   return (
     <>
@@ -132,12 +176,26 @@ const Notifications = () => {
                   currentPage={currentPage}
                   onPageChange={setCurrentPage}
                   onRowSelect={(ids) => console.log("Selected IDs:", ids)}
+                  onEditBanner={handleEditBanner}
+                  onDeleteBanner={handleDeleteBanner}
                 />
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Edit Banner Modal */}
+      <NewBanner
+        isOpen={isEditBannerModalOpen}
+        onClose={() => {
+          setIsEditBannerModalOpen(false);
+          setEditingBanner(null);
+        }}
+        editingBanner={editingBanner}
+        onUpdate={handleUpdateBanner}
+        isLoading={updateBannerMutation.isPending}
+      />
     </>
   );
 };
