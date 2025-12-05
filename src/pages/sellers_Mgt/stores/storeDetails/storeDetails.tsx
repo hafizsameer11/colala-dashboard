@@ -67,10 +67,12 @@ const StoreDetails: React.FC = () => {
         categories: d.store_info?.categories || [],
         isActive: !!d.user_info?.is_active,
         isVerified: !!d.user_info?.is_verified,
-        createdAt: d.user_info?.created_at || 'N/A',
+        createdAt: d.user_info?.account_creation || d.user_info?.created_at || 'N/A',
+        created_at: d.user_info?.account_creation || d.user_info?.created_at || 'N/A',
         lastLogin: d.user_info?.last_login || 'N/A',
+        last_login: d.user_info?.last_login || 'N/A',
         location: d.user_info?.location || 'N/A',
-        username: d.user_info?.username || 'N/A',
+        username: d.user_info?.username || d.user_info?.user_name || 'N/A',
         stats: d.statistics || null,
         recentActivities: d.recent_activities || [],
       };
@@ -139,7 +141,15 @@ const StoreDetails: React.FC = () => {
       case "Transactions":
         return <Transaction />;
       case "Social Feed":
-        return <SocialFeed />;
+        return (
+          <>
+            {/* @ts-ignore ensure props pass-through for SocialFeed */}
+            <SocialFeed
+              storeUserId={storeId!}
+              storePostStoreId={sellerDetails?.data?.store_info?.id}
+            />
+          </>
+        );
       case "Products":
         return <Products />;
       case "Announcements":

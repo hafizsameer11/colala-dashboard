@@ -10,12 +10,10 @@ interface NewPostProps {
 interface PostData {
   media: File[];
   description: string;
-  storeLink: string;
 }
 
 const NewPost: React.FC<NewPostProps> = ({ isOpen, onClose, onSubmit }) => {
   const [description, setDescription] = useState("");
-  const [storeLink, setStoreLink] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +57,6 @@ const NewPost: React.FC<NewPostProps> = ({ isOpen, onClose, onSubmit }) => {
     const postData: PostData = {
       media: selectedFiles,
       description: description.trim(),
-      storeLink: storeLink.trim(),
     };
 
     if (onSubmit) {
@@ -68,7 +65,6 @@ const NewPost: React.FC<NewPostProps> = ({ isOpen, onClose, onSubmit }) => {
 
     // Reset form
     setDescription("");
-    setStoreLink("");
     setSelectedFiles([]);
     setPreviewUrls([]);
 
@@ -183,22 +179,6 @@ const NewPost: React.FC<NewPostProps> = ({ isOpen, onClose, onSubmit }) => {
                 placeholder="Type a description..."
                 rows={4}
                 className="border border-[#989898] w-full rounded-xl p-5 resize-none focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
-              />
-            </div>
-
-            {/* Store Link Input */}
-            <div className="flex flex-col gap-3 mt-3">
-              <label htmlFor="storeLink" className="text-xl font-semibold">
-                Store Link
-              </label>
-              <input
-                type="text"
-                name="storeLink"
-                id="storeLink"
-                value={storeLink}
-                onChange={(e) => setStoreLink(e.target.value)}
-                placeholder="Enter store link"
-                className="border border-[#989898] w-full rounded-xl p-5"
               />
             </div>
 

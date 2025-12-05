@@ -374,6 +374,11 @@ const API_ENDPOINTS = {
     TrackClick: (id: number | string) => `${API_DOMAIN}/banners/${id}/click`, // POST
   },
 
+  // SOCIAL / STORE POSTS
+  STORE_POSTS: {
+    Create: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/posts`, // POST
+  },
+
   // RATINGS & REVIEWS
   RATINGS_REVIEWS: {
     Summary: API_DOMAIN + "/admin/ratings-reviews/summary", // GET

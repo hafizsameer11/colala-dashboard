@@ -508,7 +508,9 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
             <div className="flex flex-col sm:flex-row p-3 sm:p-4 md:p-5 gap-6 sm:gap-10 md:gap-14">
               <div className="flex flex-col gap-3 sm:gap-5">
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Name</span>
-                <span className="text-white text-sm sm:text-base">{userData.userName || userData.full_name}</span>
+                <span className="text-white text-sm sm:text-base">
+                  {userData.userName || userData.full_name || 'N/A'}
+                </span>
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Email</span>
                 <span className="text-white text-sm sm:text-base break-words">{userData.email}</span>
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">
@@ -520,15 +522,21 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Location</span>
                 <span className="text-white text-sm sm:text-base">{userData.location ?? 'N/A'}</span>
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Last Login</span>
-                <span className="text-white text-sm sm:text-base">{userData.last_login || 'N/A'}</span>
+                <span className="text-white text-sm sm:text-base">
+                  {userData.last_login || (userData as any).lastLogin || 'N/A'}
+                </span>
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">
                   Account Creation
                 </span>
-                <span className="text-white text-sm sm:text-base">{userData.created_at || 'N/A'}</span>
+                <span className="text-white text-sm sm:text-base">
+                  {userData.created_at || (userData as any).createdAt || 'N/A'}
+                </span>
               </div>
               <div className="flex flex-col gap-3 sm:gap-5">
                 <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Username</span>
-                <span className="text-white text-sm sm:text-base">{userData.username ?? 'N/A'}</span>
+                <span className="text-white text-sm sm:text-base">
+                  {userData.username ?? (userData as any).user_name ?? 'N/A'}
+                </span>
                 {/* <span className="text-[#FFFFFF80] text-[16px]">
                   Loyalty Points
                 </span>

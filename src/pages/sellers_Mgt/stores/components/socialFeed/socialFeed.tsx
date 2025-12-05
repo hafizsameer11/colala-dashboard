@@ -4,25 +4,60 @@ import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
 import SocialFeedTable from "./socialFeedTable";
 import NewPost from "../../../Modals/newPost";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSellerSocialFeed } from "../../../../../utils/queries/users";
+import { createStorePost } from "../../../../../utils/mutations/posts";
+import { useToast } from "../../../../../contexts/ToastContext";
 
-const SocialFeed = () => {
+interface SocialFeedProps {
+  storeUserId?: string | number; // user id (seller) for fetching feed
+  storePostStoreId?: string | number; // store id for creating posts
+}
+
+function SocialFeed({ storeUserId, storePostStoreId }: SocialFeedProps) {
   const [activeTab, setActiveTab] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const { storeId } = useParams<{ storeId: string }>();
+  const { storeId: routeStoreId } = useParams<{ storeId: string }>();
+  const feedUserId = storeUserId ?? routeStoreId;
+  const postStoreId = storePostStoreId ?? routeStoreId;
   const tabs = ["All", "My Posts"];
   const [showModal, setShowModal] = useState(false);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: socialFeedData, isLoading, error } = useQuery({
-    queryKey: ['sellerSocialFeed', storeId, currentPage],
-    queryFn: () => getSellerSocialFeed(storeId!, currentPage),
-    enabled: !!storeId,
+    queryKey: ['sellerSocialFeed', feedUserId, currentPage],
+    queryFn: () => getSellerSocialFeed(feedUserId!, currentPage),
+    enabled: !!feedUserId,
     staleTime: 2 * 60 * 1000,
   });
 
   const posts = socialFeedData?.data?.data || [];
   const pagination = socialFeedData?.data;
+
+  const createPostMutation = useMutation({
+    mutationFn: (formData: FormData) => createStorePost(postStoreId!, formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerSocialFeed'] });
+      showToast("Post created successfully", "success");
+      setShowModal(false);
+    },
+    onError: (err: any) => {
+      console.error("Error creating post:", err);
+      showToast(err?.data?.message || err?.message || "Failed to create post", "error");
+    },
+  });
+
+  const handleCreatePost = (postData: { media: File[]; description: string }) => {
+    const fd = new FormData();
+    if (postData.description) fd.append("body", postData.description);
+    // default visibility public
+    fd.append("visibility", "public");
+    postData.media.forEach((file, index) => {
+      fd.append("media[]", file, file.name);
+    });
+    createPostMutation.mutate(fd);
+  };
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
@@ -166,7 +201,7 @@ const SocialFeed = () => {
           error={error}
           pagination={pagination}
           onPageChange={setCurrentPage}
-          userId={storeId}
+          userId={feedUserId}
         />
       </div>
 
@@ -174,6 +209,7 @@ const SocialFeed = () => {
       <NewPost
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        onSubmit={handleCreatePost}
       />
     </div>
   );
