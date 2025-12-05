@@ -259,6 +259,7 @@ const API_ENDPOINTS = {
     Details: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/details`, // GET
     UpdateStatus: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/kyc-status`, // PUT
     UpdateLevel: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/level`, // PUT
+    Delete: (storeId: number | string) => `${API_DOMAIN}/admin/stores-delete/${storeId}`, // POST
   },
 
 

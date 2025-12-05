@@ -131,9 +131,17 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         return (
           <div className="">
             {isLoading ? (
-              <div className="text-center py-8">Loading product details...</div>
+              <div className="flex flex-col justify-center items-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+                <p className="text-gray-600 text-sm">Loading product details...</p>
+              </div>
             ) : error ? (
-              <div className="text-center py-8 text-red-500">Failed to load product details</div>
+              <div className="flex flex-col justify-center items-center py-16">
+                <div className="text-red-500 text-center">
+                  <p className="text-lg font-semibold mb-2">Failed to load product details</p>
+                  <p className="text-sm text-gray-600">Please try again later</p>
+                </div>
+              </div>
             ) : (
               <>
                 {/* Video Section */}

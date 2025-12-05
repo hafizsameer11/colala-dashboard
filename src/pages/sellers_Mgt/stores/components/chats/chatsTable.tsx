@@ -117,7 +117,9 @@ const ChatsTable: React.FC<OrdersTableProps> = ({
             {isLoading ? (
               <tr><td colSpan={6} className="p-6 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E] mx-auto"></div></td></tr>
             ) : error ? (
-              <tr><td colSpan={6} className="p-6 text-center text-red-500">Failed to load chats</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-red-500">
+                {(error as any)?.data?.message || (error as any)?.message || 'Failed to load chats'}
+              </td></tr>
             ) : normalizedChats.length === 0 ? (
               <tr><td colSpan={6} className="p-6 text-center text-gray-500">No chats</td></tr>
             ) : normalizedChats.map((chat, index) => (

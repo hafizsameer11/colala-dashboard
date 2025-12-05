@@ -1,51 +1,145 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../constants/images";
-import { getAllUsers } from "../../../../utils/queries/users";
+import { getAllUsers, deleteAllUser } from "../../../../utils/queries/users";
+import { useToast } from "../../../../contexts/ToastContext";
 
 interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
+  user: User;
+  onUserDeleted?: (userId: string) => void;
 }
 
-const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect }) => {
+const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, user, onUserDeleted }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
-  const DotsActions = ["Block user", "Ban user"];
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string | number) => deleteAllUser(userId),
+    onSuccess: () => {
+      showToast('User deleted successfully', 'success');
+      setShowDeleteConfirm(false);
+      
+      // Invalidate all user-related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['usersList'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['buyerUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allUsersStats'] });
+      
+      // Notify parent component about deleted user
+      onUserDeleted?.(user.id);
+    },
+    onError: (error: any) => {
+      console.error('Delete user error:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete user';
+      showToast(errorMessage, 'error');
+      setShowDeleteConfirm(false);
+    },
+  });
+
+  const handleDropdownAction = (action: string) => {
+    setIsDotsDropdownOpen(false);
+    
+    if (action === 'Delete user') {
+      setShowDeleteConfirm(true);
+    }
+    
+    onActionSelect?.(action);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteUserMutation.mutate(user.id);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+  };
+
+  const DotsActions = ["Block user", "Ban user", "Delete user"];
   const actionIcons: Record<string, string> = {
     "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
+    "Delete user": "/assets/layout/ban.svg",
   };
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsDotsDropdownOpen((s) => !s)}
-        className="w-10 h-10 cursor-pointer"
-      >
-        <img src={images.dots} alt="Dots" />
-      </button>
+    <>
+      <div className="relative">
+        <button
+          onClick={() => setIsDotsDropdownOpen((s) => !s)}
+          className="w-10 h-10 cursor-pointer"
+        >
+          <img src={images.dots} alt="Dots" />
+        </button>
 
-      {isDotsDropdownOpen && (
-        <div className="absolute z-10 mt-2 right-5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
-          {DotsActions.map((action) => (
-            <button
-              key={action}
-              onClick={() => {
-                setIsDotsDropdownOpen(false);
-                onActionSelect?.(action);
-                console.log("Selected Dots action:", action);
-              }}
-              className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
-                action === "Ban user" ? "text-[#FF0000]" : "text-black"
-              } cursor-pointer font-medium`}
-            >
-              <img src={actionIcons[action]} alt="" className="w-4 h-4" />
-              <span>{action}</span>
-            </button>
-          ))}
+        {isDotsDropdownOpen && (
+          <div className="absolute z-10 mt-2 right-5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
+            {DotsActions.map((action) => (
+              <button
+                key={action}
+                onClick={() => handleDropdownAction(action)}
+                disabled={deleteUserMutation.isPending}
+                className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
+                  action === "Ban user" || action === "Delete user" ? "text-[#FF0000]" : "text-black"
+                } font-medium ${
+                  deleteUserMutation.isPending
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'cursor-pointer'
+                }`}
+              >
+                <img src={actionIcons[action]} alt="" className="w-4 h-4" />
+                <span>
+                  {action === 'Delete user' && deleteUserMutation.isPending ? 'Processing...' : action}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <img src={images.error} alt="Warning" className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete User</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <span className="font-semibold">{user.userName}</span>? This will permanently delete the user account and all associated data.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={deleteUserMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleteUserMutation.isPending}
+                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${
+                  deleteUserMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
+                }`}
+              >
+                {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
@@ -81,7 +175,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const navigate = useNavigate();
 
   // Helper function to construct proper image URL
-  const getImageUrl = (profilePicture: string | null) => {
+  const getImageUrl = (profilePicture: string | null | undefined) => {
     if (!profilePicture) return "/assets/layout/admin.png";
     return `https://colala.hmstech.xyz/storage/${profilePicture}`;
   };
@@ -247,7 +341,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
                 <td className="p-3 text-left flex items-center justify-start gap-2">
                   <img
-                    src={getImageUrl(user.userImage)}
+                    src={getImageUrl(user.userImage || null)}
                     alt="User"
                     className="w-8 h-8 rounded-full object-cover"
                     onError={(e) => {
@@ -271,9 +365,15 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   </div>
                   <div>
                     <DotsDropdown
+                      user={user}
                       onActionSelect={(action) =>
                         console.log(`Action ${action} for user ${user.id}`)
                       }
+                      onUserDeleted={(userId) => {
+                        // Remove from selected rows if it was selected
+                        setSelectedRows(prev => prev.filter(id => id !== userId));
+                        // The query will be invalidated by the mutation in DotsDropdown
+                      }}
                     />
                   </div>
                 </td>

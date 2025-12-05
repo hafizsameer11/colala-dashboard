@@ -323,40 +323,42 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
           )}
         </div>
 
-        <div className="mt-5 ">
-          <label htmlFor="videoOfStore" className="text-lg font-semibold">
-            Upload 1 minute video of your store
-          </label>
-          <div className="flex flex-col mt-3 border w-full rounded-2xl p-10 cursor-pointer hover:bg-gray-50 transition-colors border-[#989898] ">
-            <input
-              type="file"
-              id="videoOfStore"
-              accept="video/mp4,video/mp3,video/*"
-              className="hidden"
-              onChange={handleVideoUpload}
-            />
-            <label
-              htmlFor="videoOfStore"
-              className="cursor-pointer w-full h-full flex flex-col items-center"
-            >
-              <div className="flex justify-center items-center">
-                <img
-                  className="max-w-full max-h-32 object-contain"
-                  src={images.cam}
-                  alt=""
-                />
-              </div>
-              <div className="flex justify-center items-center mt-2 text-[#00000080] text-sm">
-                {selectedVideo
-                  ? selectedVideo.name
-                  : "Upload 1 minute video of your store"}
-              </div>
+        {selectedbusinessTypes === "Yes" && (
+          <div className="mt-5 ">
+            <label htmlFor="videoOfStore" className="text-lg font-semibold">
+              Upload 1 minute video of your store
             </label>
+            <div className="flex flex-col mt-3 border w-full rounded-2xl p-10 cursor-pointer hover:bg-gray-50 transition-colors border-[#989898] ">
+              <input
+                type="file"
+                id="videoOfStore"
+                accept="video/mp4,video/mp3,video/*"
+                className="hidden"
+                onChange={handleVideoUpload}
+              />
+              <label
+                htmlFor="videoOfStore"
+                className="cursor-pointer w-full h-full flex flex-col items-center"
+              >
+                <div className="flex justify-center items-center">
+                  <img
+                    className="max-w-full max-h-32 object-contain"
+                    src={images.cam}
+                    alt=""
+                  />
+                </div>
+                <div className="flex justify-center items-center mt-2 text-[#00000080] text-sm">
+                  {selectedVideo
+                    ? selectedVideo.name
+                    : "Upload 1 minute video of your store"}
+                </div>
+              </label>
+            </div>
+            {errors.video && (
+              <p className="text-red-500 text-sm mt-1">{errors.video}</p>
+            )}
           </div>
-          {errors.video && (
-            <p className="text-red-500 text-sm mt-1">{errors.video}</p>
-          )}
-        </div>
+        )}
         <div className="mt-5">
           <label htmlFor="store" className="text-lg font-semibold">
             Add Store Addresses

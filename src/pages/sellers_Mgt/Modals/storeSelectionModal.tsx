@@ -87,14 +87,16 @@ const StoreSelectionModal: React.FC<StoreSelectionModalProps> = ({
         {/* Content */}
         <div className="overflow-y-auto max-h-96">
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
-              <span className="ml-3 text-gray-600">Loading stores...</span>
+            <div className="flex flex-col justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+              <p className="text-gray-600 text-sm">Loading stores...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-12">
-              <div className="text-red-500 mb-4">Failed to load stores</div>
-              <div className="text-sm text-gray-500 mb-4">Error: {error.message}</div>
+            <div className="flex flex-col justify-center items-center py-16">
+              <div className="text-red-500 text-center">
+                <p className="text-lg font-semibold mb-2">Failed to load stores</p>
+                <p className="text-sm text-gray-600">Please try again later</p>
+              </div>
               <button
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"

@@ -142,12 +142,16 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, userId, chatId
         {/* Content */}
         <div className="pr-5 pl-5 mt-3">
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+            <div className="flex flex-col justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+              <p className="text-gray-600 text-sm">Loading chat details...</p>
             </div>
           ) : error ? (
-            <div className="flex justify-center items-center h-64 text-red-500">
-              Failed to load chat details
+            <div className="flex flex-col justify-center items-center h-64">
+              <div className="text-red-500 text-center">
+                <p className="text-lg font-semibold mb-2">Failed to load chat details</p>
+                <p className="text-sm text-gray-600">Please try again later</p>
+              </div>
             </div>
           ) : (
             <>

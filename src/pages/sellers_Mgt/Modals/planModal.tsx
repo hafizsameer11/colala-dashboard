@@ -59,12 +59,16 @@ const PlansModal: React.FC<PlansModalProps> = ({
               /* Subscription Details Display */
               <div className="mt-5">
                 {isLoading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="text-lg">Loading subscription details...</div>
+                  <div className="flex flex-col justify-center items-center py-16">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+                    <p className="text-gray-600 text-sm">Loading subscription details...</p>
                   </div>
                 ) : error ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="text-lg text-red-500">Error loading subscription details</div>
+                  <div className="flex flex-col justify-center items-center py-16">
+                    <div className="text-red-500 text-center">
+                      <p className="text-lg font-semibold mb-2">Error loading subscription details</p>
+                      <p className="text-sm text-gray-600">Please try again later</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-6">

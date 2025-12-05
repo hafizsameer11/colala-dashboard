@@ -1185,6 +1185,40 @@ export const updateStoreLevel = async (storeId: number | string, level: number, 
 };
 
 /**
+ * Delete store (deactivate by setting visibility to 0)
+ */
+export const deleteStore = async (storeId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_STORES.Delete(storeId), 'POST', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete store API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete user (buyer only)
+ */
+export const deleteUser = async (userId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.BUYER_USERS.Delete(userId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete user API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get admin social feed posts
  */
 export const getAdminSocialFeed = async (page: number = 1) => {
@@ -1303,6 +1337,24 @@ export const getAllUsersStats = async () => {
     return response;
   } catch (error) {
     console.error('All users stats API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete user (all users - buyers and sellers)
+ * Note: Cannot delete users with existing orders or transactions
+ */
+export const deleteAllUser = async (userId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Delete(userId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete all user API call error:', error);
     throw error;
   }
 };

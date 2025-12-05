@@ -5,6 +5,7 @@ import images from "../../../constants/images";
 import { useToast } from "../../../contexts/ToastContext";
 import { apiCall } from "../../../utils/customApiCall";
 import Cookies from "js-cookie";
+import { deleteStore } from "../../../utils/queries/users";
 
 // Seller-specific API functions
 const toggleSellerBlock = async (sellerId: string | number, action: 'block' | 'unblock') => {
@@ -53,6 +54,7 @@ interface DotsDropdownProps {
 
 const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onStoreDeleted }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -102,6 +104,31 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
     },
   });
 
+  // Delete store mutation
+  const deleteStoreMutation = useMutation({
+    mutationFn: (storeId: string | number) => deleteStore(storeId),
+    onSuccess: () => {
+      showToast('Store deactivated successfully', 'success');
+      setShowDeleteConfirm(false);
+      
+      // Invalidate all store-related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['adminStores'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+      queryClient.invalidateQueries({ queryKey: ['sellers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerStats'] });
+      
+      // Notify parent component about deleted store
+      onStoreDeleted?.(store.id);
+    },
+    onError: (error) => {
+      console.error('Delete store error:', error);
+      showToast('Failed to delete store', 'error');
+      setShowDeleteConfirm(false);
+    },
+  });
+
   const handleDropdownAction = (action: string) => {
     setIsDotsDropdownOpen(false);
     
@@ -118,62 +145,115 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
       if (window.confirm('Are you sure you want to remove this seller? This action cannot be undone.')) {
         removeSellerMutation.mutate(store.id);
       }
+    } else if (action === 'Delete store') {
+      setShowDeleteConfirm(true);
     }
     
     onActionSelect?.(action);
   };
 
-  const DotsActions = ["Block user", "Ban user"];
+  const handleConfirmDelete = () => {
+    deleteStoreMutation.mutate(store.storeId);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+  };
+
+  const DotsActions = ["Block user", "Ban user", "Delete store"];
   const actionIcons: Record<string, string> = {
     "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
+    "Delete store": "/assets/layout/ban.svg",
   };
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsDotsDropdownOpen((s) => !s)}
-        className="w-10 h-10 cursor-pointer"
-      >
-        <img src={images.dots} alt="Dots" />
-      </button>
-      {isDotsDropdownOpen && (
-        <div className="absolute z-10 mt-2 right-5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
-          {DotsActions.map((action) => (
-            <button
-              key={action}
-              onClick={() => handleDropdownAction(action)}
-              disabled={toggleBlockMutation.isPending || removeSellerMutation.isPending}
-              className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
-                action === "Ban user" ? "text-[#FF0000]" : "text-black"
-              } font-medium ${
-                toggleBlockMutation.isPending || removeSellerMutation.isPending 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'cursor-pointer'
-              }`}
-            >
-              <img
-                src={actionIcons[action]}
-                alt={`${action} icon`}
-                className="w-4 h-4"
-              />
-              <span>
-                {action === 'Block user' && toggleBlockMutation.isPending ? 'Processing...' :
-                 action === 'Ban user' && removeSellerMutation.isPending ? 'Processing...' :
-                 action === 'Block user' && !store.isActive ? 'Unblock Seller' :
-                 action === 'Block user' ? 'Block Seller' :
-                 action}
-              </span>
-            </button>
-          ))}
+    <>
+      <div className="relative">
+        <button
+          onClick={() => setIsDotsDropdownOpen((s) => !s)}
+          className="w-10 h-10 cursor-pointer"
+        >
+          <img src={images.dots} alt="Dots" />
+        </button>
+        {isDotsDropdownOpen && (
+          <div className="absolute z-10 mt-2 right-5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
+            {DotsActions.map((action) => (
+              <button
+                key={action}
+                onClick={() => handleDropdownAction(action)}
+                disabled={toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending}
+                className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
+                  action === "Ban user" || action === "Delete store" ? "text-[#FF0000]" : "text-black"
+                } font-medium ${
+                  toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'cursor-pointer'
+                }`}
+              >
+                <img
+                  src={actionIcons[action]}
+                  alt={`${action} icon`}
+                  className="w-4 h-4"
+                />
+                <span>
+                  {action === 'Block user' && toggleBlockMutation.isPending ? 'Processing...' :
+                   action === 'Ban user' && removeSellerMutation.isPending ? 'Processing...' :
+                   action === 'Delete store' && deleteStoreMutation.isPending ? 'Processing...' :
+                   action === 'Block user' && !store.isActive ? 'Unblock Seller' :
+                   action === 'Block user' ? 'Block Seller' :
+                   action}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delete Store Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <img src={images.error} alt="Warning" className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Store</h3>
+                <p className="text-sm text-gray-500">This action will deactivate the store</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <span className="font-semibold">{store.storeName}</span>? This will permanently deactivate the store and set its visibility to 0.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={deleteStoreMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleteStoreMutation.isPending}
+                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${
+                  deleteStoreMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
+                }`}
+              >
+                {deleteStoreMutation.isPending ? 'Deleting...' : 'Delete Store'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
 interface StoreApi {
   id: number;
+  store_id: number;
   store_name: string;
   email: string;
   phone: string;
@@ -190,6 +270,7 @@ interface StoreApi {
 
 interface Store {
   id: string;
+  storeId: string;
   storeName: string;
   email: string;
   phoneNumber: string;
@@ -249,6 +330,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
   const stores = useMemo(() => {
     return users.map((u) => ({
       id: u.id.toString(),
+      storeId: u.store_id?.toString() || u.id.toString(),
       storeName: u.store_name || u.full_name || 'No Store',
       email: u.email,
       phoneNumber: u.phone,

@@ -232,14 +232,18 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
           {/* Tab Content */}
           <div className="">
             {isLoading && (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-gray-500">Loading order details...</div>
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+                <p className="text-gray-600 text-sm">Loading order details...</p>
               </div>
             )}
 
             {error && (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-red-500">Error loading order details. Please try again.</div>
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="text-red-500 text-center">
+                  <p className="text-lg font-semibold mb-2">Error loading order details</p>
+                  <p className="text-sm text-gray-600">Please try again later</p>
+                </div>
               </div>
             )}
 

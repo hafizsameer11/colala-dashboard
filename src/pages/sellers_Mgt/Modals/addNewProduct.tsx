@@ -85,7 +85,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const [dropdownStates, setDropdownStates] = useState({
     category: false,
     brand: false,
-    coupon: false,
     availableLocation: false,
     deliveryLocation: false,
   });
@@ -302,7 +301,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   // Extract categories and brands from API data
   const categories = categoriesData?.data || [];
   const brands = brandsData?.data || [];
-  const coupons = ["BLACKFRIDAY", "CYBERMONDAY", "NEWYEAR"];
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -331,7 +329,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     setDropdownStates({
       category: false,
       brand: false,
-      coupon: false,
       availableLocation: false,
       deliveryLocation: false,
     });
@@ -347,10 +344,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     closeAllDropdowns();
   };
 
-  const handleCouponSelect = (coupon: string) => {
-    setSelectedCoupon(coupon);
-    closeAllDropdowns();
-  };
 
   // File upload handlers
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,7 +389,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       availableLocation: "",
       deliveryLocation: "",
       productImages:
-        (existingImages.length + productImages.length) < 3 ? "At least 3 images are required" : "",
+        (existingImages.length + productImages.length) < 1 ? "At least 1 image is required" : "",
       quantity: "",
       referralFee: "",
       referralPersonLimit: "",
@@ -622,7 +615,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
             <form onSubmit={handleSubmit}>
               <div className="flex flex-col gap-2">
                 <div className="text-lg">
-                  Upload at least 1 Video of your product
+                  Upload Video of your product (Optional)
                 </div>
                 <div className="flex gap-3 flex-wrap">
                   {productVideo ? (
@@ -659,7 +652,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
               </div>
               <div className="flex flex-col gap-2 mt-5">
                 <div className="text-lg">
-                  Upload at least 3 clear pictures of your product
+                  Upload at least 1 clear picture of your product
                 </div>
                 <div className="flex gap-3 flex-wrap">
                   {/* Display existing images */}
@@ -714,8 +707,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                     </div>
                   ))}
 
-                  {/* Show upload button if total images (existing + new) < 3 */}
-                  {(existingImages.length + productImages.length) < 3 && (
+                  {/* Show upload button if total images (existing + new) < 1 */}
+                  {(existingImages.length + productImages.length) < 1 && (
                     <div className="border border-[#CDCDCD] rounded-2xl justify-center items-center w-24 h-24 relative cursor-pointer flex flex-col">
                       <input
                         type="file"
@@ -1047,48 +1040,25 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                   <p className="text-red-500 text-sm mt-1">{errors.referralPersonLimit}</p>
                 )}
               </div>
-              <div className="mt-5 text-md underline text-[#E53E3E] cursor-pointer">
+              {/* <div className="mt-5 text-md underline text-[#E53E3E] cursor-pointer">
                 Add Wholesale prices
-              </div>
+              </div> */}
 
-              {/* Coupon Code Dropdown */}
-              <div className="mt-5">
-                <label className="block text-lg mb-2">Add Coupon Code</label>
-                <div className="relative">
-                  <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${errors.coupon ? "border-red-500" : "border-[#989898]"
-                      }`}
-                    onClick={() => toggleDropdown("coupon")}
-                  >
-                    <div
-                      className={
-                        selectedCoupon ? "text-black" : "text-[#00000080]"
-                      }
-                    >
-                      {selectedCoupon || "Choose coupon code"}
-                    </div>
-                    <div
-                      className={`transform transition-transform duration-200 ${dropdownStates.coupon ? "rotate-90" : ""
-                        }`}
-                    >
-                      <img src={images?.rightarrow} alt="arrow" />
-                    </div>
-                  </div>
-
-                  {dropdownStates.coupon && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {coupons.map((coupon, index) => (
-                        <div
-                          key={index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleCouponSelect(coupon)}
-                        >
-                          {coupon}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Coupon Code Input */}
+              <div className="mt-5 flex flex-col gap-2">
+                <label htmlFor="couponCode" className="text-lg">
+                  Add Coupon Code
+                </label>
+                <input
+                  type="text"
+                  name="couponCode"
+                  id="couponCode"
+                  value={selectedCoupon}
+                  onChange={(e) => setSelectedCoupon(e.target.value)}
+                  placeholder="Enter coupon code"
+                  className={`border rounded-2xl p-5 ${errors.coupon ? "border-red-500" : "border-[#989898]"
+                    }`}
+                />
                 {errors.coupon && (
                   <p className="text-red-500 text-sm mt-1">{errors.coupon}</p>
                 )}

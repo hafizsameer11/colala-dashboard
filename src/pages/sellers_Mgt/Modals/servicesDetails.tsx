@@ -68,18 +68,19 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
       case "Product Details":
         if (isLoading) {
           return (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
-              <span className="ml-3 text-gray-600">Loading service details...</span>
+            <div className="flex flex-col justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E53E3E] mb-4"></div>
+              <p className="text-gray-600 text-sm">Loading service details...</p>
             </div>
           );
         }
 
         if (error || !realServiceData) {
           return (
-            <div className="flex justify-center items-center py-8">
-              <div className="text-center text-red-500">
-                <p className="text-sm">Error loading service details</p>
+            <div className="flex flex-col justify-center items-center py-16">
+              <div className="text-red-500 text-center">
+                <p className="text-lg font-semibold mb-2">Error loading service details</p>
+                <p className="text-sm text-gray-600">Please try again later</p>
               </div>
             </div>
           );

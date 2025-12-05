@@ -335,7 +335,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
               <th className="p-3 text-center font-semibold">Phone No</th>
               <th className="p-3 text-center font-semibold">Wallet Balance</th>
               <th className="p-3 text-center font-semibold">Actions</th>
-              <th className="p-3 text-left font-semibold">Other</th>
+              {/* <th className="p-3 text-left font-semibold">Other</th> */}
             </tr>
           </thead>
           <tbody>
@@ -399,11 +399,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
                     Transactions
                   </button>
                 </td>
-                <td className="p-3">
+                {/* <td className="p-3">
                   <DotsDropdown
                     onActionSelect={(action) => handleIndividualAction(user.id, action)}
                   />
-                </td>
+                </td> */}
               </tr>
             ))
             )}
