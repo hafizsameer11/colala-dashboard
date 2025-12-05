@@ -9,6 +9,7 @@ import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import AddUserModal from "../../../components/addUserModel";
 import { getAllUsersStats } from "../../../utils/queries/users";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
@@ -18,6 +19,7 @@ const AllUsers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [userRole, setUserRole] = useState<"buyer" | "seller">("buyer");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -47,15 +49,15 @@ const AllUsers = () => {
   const tabs: Tab[] = ["All", "Buyers", "Sellers"];
 
   const TabButtons = () => (
-    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
+              isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
             }`}
           >
             {tab}
@@ -90,10 +92,15 @@ const AllUsers = () => {
     setShowAddUserModal(false);
   };
 
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1);
+  };
+
   return (
     <>
-      <PageHeader title="All Users" />
-      <div className="p-5">
+      <PageHeader title="All Users" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <div className="p-3 sm:p-4 md:p-5">
         {isLoadingStats ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
@@ -182,40 +189,38 @@ const AllUsers = () => {
             <p className="text-sm">Error loading user statistics</p>
           </div>
         )}
-        <div className="mt-5 flex flex-row justify-between">
-          <div className="flex gap-2">
-            <div>
+        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+            <div className="overflow-x-auto">
               <TabButtons />
             </div>
             <div>
               <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
             </div>
           </div>
-          <div className="flex flex-row gap-2">
-            <div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button 
                 onClick={handleAddNewBuyer}
-                className="bg-black text-white cursor-pointer px-4 py-3.5 rounded-2xl hover:bg-gray-800 transition-colors duration-200"
+                className="bg-black text-white cursor-pointer px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl hover:bg-gray-800 transition-colors duration-200 text-sm sm:text-base whitespace-nowrap"
               >
                 Add New Buyer
               </button>
-            </div>
-            <div>
               <button 
                 onClick={handleAddNewSeller}
-                className="bg-[#E53E3E] text-white cursor-pointer px-4 py-3.5 rounded-2xl hover:bg-red-600 transition-colors duration-200"
+                className="bg-[#E53E3E] text-white cursor-pointer px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl hover:bg-red-600 transition-colors duration-200 text-sm sm:text-base whitespace-nowrap"
               >
                 Add New Seller
               </button>
             </div>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <input
                 type="text"
                 placeholder="Search"
                 value={searchInput}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(e: any) => setSearchInput(e.target.value)}
-                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg

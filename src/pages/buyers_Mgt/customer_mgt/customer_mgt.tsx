@@ -55,7 +55,11 @@ const customer_mgt = () => {
     setSelectedUsers(users);
   };
 
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+
   const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1);
     console.log("Period changed to:", period);
   };
 
@@ -76,10 +80,10 @@ const customer_mgt = () => {
 
   return (
     <>
-      <PageHeader title="User Management" onPeriodChange={handlePeriodChange} />
+      <PageHeader title="User Management" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
 
       <div className="bg-[#F5F5F5]">
-        <div className="p-5">
+        <div className="p-3 sm:p-4 md:p-5">
           {/* ========================================================================
               USER STATISTICS CARDS
           ======================================================================== */}
@@ -116,8 +120,8 @@ const customer_mgt = () => {
             </StatCardGrid>
           )}
 
-          <div className="mt-5">
-            <div className="flex flex-row justify-between">
+          <div className="mt-4 sm:mt-5">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
               <div>
                 <BulkActionDropdown 
                   onActionSelect={handleBulkActionSelect}
@@ -126,23 +130,23 @@ const customer_mgt = () => {
                   dataType="users"
                 />
               </div>
-              <div className="flex flex-row gap-5">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:gap-5">
                 <div>
                   <button
                     onClick={() => setShowModal(true)}
-                    className="bg-[#E53E3E] text-white px-5 py-3.5 rounded-lg cursor-pointer text-center"
+                    className="bg-[#E53E3E] text-white px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-lg cursor-pointer text-center text-sm sm:text-base w-full sm:w-auto whitespace-nowrap"
                   >
                     Add new user
                   </button>
                 </div>
-                <div>
+                <div className="w-full sm:w-auto">
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Search"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)} // <-- controlled input
-                      className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                      className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                     />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg

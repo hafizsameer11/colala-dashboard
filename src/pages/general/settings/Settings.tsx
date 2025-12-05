@@ -505,12 +505,12 @@ const AllUsers = () => {
         />
       ) : activeTab === "Admin Management" ? (
         <>
-          <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 md:p-6 bg-white border-b border-t border-[#787878] gap-3 sm:gap-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
         {/* Main Tabs Group */}
-        <div className="flex items-center bg-white border border-[#989898] rounded-lg p-2 ">
+        <div className="flex items-center bg-white border border-[#989898] rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
           {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
             (tab) => {
               const isActive = activeTab === tab;
@@ -518,7 +518,7 @@ const AllUsers = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                  className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
                     isActive
                       ? "bg-[#E53E3E] text-white"
                       : "text-gray-700 hover:text-gray-900"
@@ -579,30 +579,30 @@ const AllUsers = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 bg-gray-50 min-h-screen">
+          <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-4">
               {/* Admin Management Content */}
               {activeTab === "Admin Management" && (
                 <>
-                  <div className="flex flex-row justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
                     {/* Card 1 - Total Users */}
                     <div
-                      className="flex flex-row rounded-2xl  "
+                      className="flex flex-row rounded-2xl flex-1 min-w-0"
                       style={{
                         boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
                       }}
                     >
-                      <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-                        <img className="w-9 h-9" src={images.Users} alt="" />
+                      <div className="bg-[#E53E3E] rounded-l-2xl p-4 sm:p-5 md:p-7 flex justify-center items-center">
+                        <img className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9" src={images.Users} alt="" />
                       </div>
-                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                        <span className="font-semibold text-[15px]">
+                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                        <span className="font-semibold text-xs sm:text-sm md:text-[15px]">
                           Total Users
                         </span>
-                        <span className="font-semibold text-2xl">
+                        <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                           {usersLoading ? "..." : usersData?.data?.statistics?.total_users || 0}
                         </span>
-                        <span className="text-[#00000080] text-[13px] ">
+                        <span className="text-[#00000080] text-[10px] sm:text-xs md:text-[13px]">
                           <span className="text-[#1DB61D]">+5%</span> increase
                           from last month
                         </span>
@@ -611,22 +611,22 @@ const AllUsers = () => {
 
                     {/* Card 2 - Active Users */}
                     <div
-                      className="flex flex-row rounded-2xl"
+                      className="flex flex-row rounded-2xl flex-1 min-w-0"
                       style={{
                         boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
                       }}
                     >
-                      <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-                        <img className="w-9 h-9" src={images.Users} alt="" />
+                      <div className="bg-[#E53E3E] rounded-l-2xl p-4 sm:p-5 md:p-7 flex justify-center items-center">
+                        <img className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9" src={images.Users} alt="" />
                       </div>
-                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                        <span className="font-semibold text-[15px]">
+                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                        <span className="font-semibold text-xs sm:text-sm md:text-[15px]">
                           Active Users
                         </span>
-                        <span className="font-semibold text-2xl">
+                        <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                           {usersLoading ? "..." : usersData?.data?.statistics?.active_users || 0}
                         </span>
-                        <span className="text-[#00000080] text-[13px] ">
+                        <span className="text-[#00000080] text-[10px] sm:text-xs md:text-[13px]">
                           <span className="text-[#1DB61D]">+5%</span> increase
                           from last month
                         </span>
@@ -635,50 +635,50 @@ const AllUsers = () => {
 
                     {/* Card 3 - Buyers */}
                     <div
-                      className="flex flex-row rounded-2xl"
+                      className="flex flex-row rounded-2xl flex-1 min-w-0"
                       style={{
                         boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
                       }}
                     >
-                      <div className="bg-[#E53E3E] rounded-l-2xl p-7 flex justify-center items-center ">
-                        <img className="w-9 h-9" src={images.Users} alt="" />
+                      <div className="bg-[#E53E3E] rounded-l-2xl p-4 sm:p-5 md:p-7 flex justify-center items-center">
+                        <img className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9" src={images.Users} alt="" />
                       </div>
-                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                        <span className="font-semibold text-[15px]">
+                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                        <span className="font-semibold text-xs sm:text-sm md:text-[15px]">
                           Buyers
                         </span>
-                        <span className="font-semibold text-2xl">
+                        <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                           {usersLoading ? "..." : usersData?.data?.statistics?.buyer_users || 0}
                         </span>
-                        <span className="text-[#00000080] text-[13px] ">
+                        <span className="text-[#00000080] text-[10px] sm:text-xs md:text-[13px]">
                           <span className="text-[#1DB61D]">+5%</span> increase
                           from last month
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-5 flex flex-row justify-between">
+                  <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
                     <div className="flex gap-2">
                       <div>
                         <DropdownComponent />
                       </div>
                     </div>
-                    <div className="flex flex-row gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <div>
                         <button
                           onClick={handleOpenModal}
-                          className="bg-[#E53E3E] text-white cursor-pointer px-6 py-3.5 rounded-xl"
+                          className="bg-[#E53E3E] text-white cursor-pointer px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl text-sm sm:text-base w-full sm:w-auto"
                         >
                           Add New
                         </button>
                       </div>
-                      <div className="relative">
+                      <div className="relative w-full sm:w-auto">
                         <input
                           type="text"
                           placeholder="Search"
                           value={search} // <- NEW
                           onChange={(e) => setSearch(e.target.value)} // <- NEW
-                          className="pl-12 pr-6 py-3 border border-[#00000080] rounded-lg text-[15px] w-[267px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                          className="pl-12 pr-6 py-2.5 sm:py-3 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[220px] md:w-[267px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <svg
@@ -733,12 +733,12 @@ const AllUsers = () => {
         </>
       ) : activeTab === "General" ? (
         <>
-          <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 md:p-6 bg-white border-b border-t border-[#787878] gap-3 sm:gap-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
-              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2 ">
+              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
                 {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
@@ -746,7 +746,7 @@ const AllUsers = () => {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                        className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
                           isActive
                             ? "bg-[#E53E3E] text-white"
                             : "text-gray-700 hover:text-gray-900"
@@ -807,13 +807,13 @@ const AllUsers = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 bg-gray-50 min-h-screen">
+          <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto">
-              <div className="mt-8 bg-white border border-gray-300 rounded-2xl p-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">
+              <div className="mt-4 sm:mt-6 md:mt-8 bg-white border border-gray-300 rounded-2xl p-4 sm:p-5 md:p-6">
+                <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">
                   General Settings
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-sm sm:text-base text-gray-600">
                   General settings will be implemented here.
                 </p>
               </div>
@@ -822,12 +822,12 @@ const AllUsers = () => {
         </>
       ) : activeTab === "FAQs" ? (
         <>
-          <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 md:p-6 bg-white border-b border-t border-[#787878] gap-3 sm:gap-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
-              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2">
+              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
                 {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
@@ -835,7 +835,7 @@ const AllUsers = () => {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                        className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
                           isActive
                             ? "bg-[#E53E3E] text-white"
                             : "text-gray-700 hover:text-gray-900"
@@ -896,20 +896,20 @@ const AllUsers = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 bg-gray-50 min-h-screen">
+          <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-4">
               {/* FAQ Content */}
               {activeTab === "FAQs" && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* FAQ Tabs - Styled like the image */}
-                  <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2 w-57">
+                  <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-fit">
                     {["All", "Buyers", "Sellers"].map((tab) => {
                       const isActive = faqActiveTab === tab;
                       return (
                         <button
                           key={tab}
                           onClick={() => setFaqActiveTab(tab)}
-                          className={`px-4 py-2 font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
                             isActive
                               ? "bg-[#E53E3E] text-white"
                               : "text-gray-700 hover:text-gray-900 bg-transparent"
@@ -1195,12 +1195,12 @@ const AllUsers = () => {
         </>
       ) : activeTab === "Terms" ? (
         <>
-          <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 md:p-6 bg-white border-b border-t border-[#787878] gap-3 sm:gap-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
-              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2">
+              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
                 {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
@@ -1208,7 +1208,7 @@ const AllUsers = () => {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                        className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
                           isActive
                             ? "bg-[#E53E3E] text-white"
                             : "text-gray-700 hover:text-gray-900"
@@ -1269,25 +1269,25 @@ const AllUsers = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 bg-gray-50 min-h-screen">
+          <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto">
               {/* Terms Content */}
               {activeTab === "Terms" && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                      <h2 className="text-lg font-medium text-gray-900">
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+                      <h2 className="text-base sm:text-lg font-medium text-gray-900">
                         Terms & Policies
                       </h2>
                     </div>
 
                     {isLoadingTerms ? (
-                      <div className="flex justify-center items-center py-12">
+                      <div className="flex justify-center items-center py-8 sm:py-12">
                         <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mr-2"></div>
-                        <span className="text-gray-600">Loading terms...</span>
+                        <span className="text-sm sm:text-base text-gray-600">Loading terms...</span>
                       </div>
                     ) : (
-                      <div className="p-6 space-y-6">
+                      <div className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
                         {/* Buyer Section */}
                         <div className="space-y-4">
                           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">

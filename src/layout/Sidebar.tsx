@@ -82,7 +82,10 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
                 icon={x.icon}
                 sub={x.sublinks}
                 isActiveCheck={activeLink === x.link}
-                onClick={() => setActiveLink(x.link)}
+                onClick={() => {
+                  setActiveLink(x.link);
+                  setMobileOpen(false); // Close mobile menu on navigation
+                }}
                 menuStatus={menuOpen}
               />
             </li>
@@ -102,7 +105,10 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
                 icon={x.icon}
                 sub={x.sublinks}
                 isActiveCheck={activeLink === x.link}
-                onClick={() => setActiveLink(x.link)}
+                onClick={() => {
+                  setActiveLink(x.link);
+                  setMobileOpen(false); // Close mobile menu on navigation
+                }}
                 menuStatus={menuOpen}
               />
             </li>
@@ -121,7 +127,10 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
                 icon={x.icon}
                 sub={x.sublinks}
                 isActiveCheck={activeLink === x.link}
-                onClick={() => setActiveLink(x.link)}
+                onClick={() => {
+                  setActiveLink(x.link);
+                  setMobileOpen(false); // Close mobile menu on navigation
+                }}
                 menuStatus={menuOpen}
               />
             </li>
@@ -141,7 +150,10 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
                 icon={x.icon}
                 sub={x.sublinks}
                 isActiveCheck={activeLink === x.link}
-                onClick={() => setActiveLink(x.link)}
+                onClick={() => {
+                  setActiveLink(x.link);
+                  setMobileOpen(false); // Close mobile menu on navigation
+                }}
                 menuStatus={menuOpen}
               />
             </li>

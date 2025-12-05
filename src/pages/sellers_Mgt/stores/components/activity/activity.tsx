@@ -450,20 +450,20 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
   return (
     <>
       <div className="">
-        <div className="flex flex-row">
-          <div className="flex flex-col ">
-            <div className="bg-[#FF6B6B] w-[350px] text-white flex flex-col rounded-tl-2xl p-5 gap-6">
-              <span className="text-xl font-normal">
+        <div className="flex flex-col lg:flex-row">
+          <div className="flex flex-col w-full lg:w-auto">
+            <div className="bg-[#FF6B6B] w-full lg:w-[350px] text-white flex flex-col rounded-tl-2xl lg:rounded-bl-none rounded-tr-2xl lg:rounded-tr-none p-4 sm:p-5 gap-4 sm:gap-6">
+              <span className="text-lg sm:text-xl font-normal">
                 Shopping Wallet Balance
               </span>
-              <span className="text-4xl font-semibold">
+              <span className="text-2xl sm:text-3xl md:text-4xl font-semibold">
                 {userData.walletBalance || 'N0'}
               </span>
-              <div className="flex flex-row gap-5 ">
+              <div className="flex flex-row gap-3 sm:gap-5">
                 <div>
                   <button
                     onClick={handleTopUp}
-                    className="bg-white rounded-2xl px-6 py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="bg-white rounded-2xl px-4 sm:px-6 py-1.5 sm:py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer text-sm sm:text-base"
                   >
                     Topup
                   </button>
@@ -471,64 +471,64 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
                 <div>
                   <button
                     onClick={handleWithdraw}
-                    className="bg-white rounded-2xl px-6 py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="bg-white rounded-2xl px-4 sm:px-6 py-1.5 sm:py-2 text-black hover:bg-gray-50 transition-colors cursor-pointer text-sm sm:text-base"
                   >
                     Withdraw
                   </button>
                 </div>
               </div>
             </div>
-            <div className="bg-[#731313] text-white rounded-bl-2xl p-5 flex flex-col gap-5 w-[350px]">
-              <span className="text-xl font-normal">Escrow Wallet Balance</span>
-              <span className="text-4xl font-semibold">{userData.escrowBalance || 'N0'}</span>
+            <div className="bg-[#731313] text-white rounded-bl-2xl lg:rounded-tl-none rounded-br-2xl lg:rounded-br-none p-4 sm:p-5 flex flex-col gap-4 sm:gap-5 w-full lg:w-[350px]">
+              <span className="text-lg sm:text-xl font-normal">Escrow Wallet Balance</span>
+              <span className="text-2xl sm:text-3xl md:text-4xl font-semibold">{userData.escrowBalance || 'N0'}</span>
             </div>
           </div>
           <div
-            className="bg-[#E53E3E] flex flex-row w-full rounded-r-2xl gap-5 "
+            className="bg-[#E53E3E] flex flex-col lg:flex-row w-full rounded-r-2xl lg:rounded-tl-none rounded-tr-2xl lg:rounded-tr-2xl gap-3 sm:gap-5"
             style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
           >
-            <div className=" flex flex-col">
+            <div className="flex flex-col items-center lg:items-start">
               <div>
                 <img
-                  className="w-20 h-20 ml-5 mt-10 rounded-full object-cover"
+                  className="w-16 h-16 sm:w-20 sm:h-20 ml-0 lg:ml-5 mt-5 lg:mt-10 rounded-full object-cover"
                   src={userData.profileImage || userData.profile_picture || images.admin}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = images.admin; }}
                   alt="Profile"
                 />
               </div>
               {(userData.isVerified || userData.is_verified === 1) && (
-                <div className="flex flex-row rounded-full text-[#E53E3E] items-center p-2 gap-3 mt-2 ml-2.5 bg-white ">
-                  <div>Verified</div>
+                <div className="flex flex-row rounded-full text-[#E53E3E] items-center p-2 gap-3 mt-2 ml-0 lg:ml-2.5 bg-white">
+                  <div className="text-xs sm:text-sm">Verified</div>
                   <div>
-                    <img src={images.verified} alt="" />
+                    <img src={images.verified} alt="" className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
               )}
             </div>
-            <div className=" flex flex-row p-5 gap-14">
-              <div className="flex flex-col gap-5">
-                <span className="text-[#FFFFFF80] text-[16px]">Name</span>
-                <span className="text-white">{userData.userName || userData.full_name}</span>
-                <span className="text-[#FFFFFF80] text-[16px]">Email</span>
-                <span className="text-white">{userData.email}</span>
-                <span className="text-[#FFFFFF80] text-[16px]">
+            <div className="flex flex-col sm:flex-row p-3 sm:p-4 md:p-5 gap-6 sm:gap-10 md:gap-14">
+              <div className="flex flex-col gap-3 sm:gap-5">
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Name</span>
+                <span className="text-white text-sm sm:text-base">{userData.userName || userData.full_name}</span>
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Email</span>
+                <span className="text-white text-sm sm:text-base break-words">{userData.email}</span>
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">
                   Phone Number
                 </span>
-                <span className="text-white">{userData.phoneNumber || userData.phone}</span>
+                <span className="text-white text-sm sm:text-base">{userData.phoneNumber || userData.phone}</span>
               </div>
-              <div className="flex flex-col gap-5">
-                <span className="text-[#FFFFFF80] text-[16px]">Location</span>
-                <span className="text-white">{userData.location ?? 'N/A'}</span>
-                <span className="text-[#FFFFFF80] text-[16px]">Last Login</span>
-                <span className="text-white">{userData.last_login || 'N/A'}</span>
-                <span className="text-[#FFFFFF80] text-[16px]">
+              <div className="flex flex-col gap-3 sm:gap-5">
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Location</span>
+                <span className="text-white text-sm sm:text-base">{userData.location ?? 'N/A'}</span>
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Last Login</span>
+                <span className="text-white text-sm sm:text-base">{userData.last_login || 'N/A'}</span>
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">
                   Account Creation
                 </span>
-                <span className="text-white">{userData.created_at || 'N/A'}</span>
+                <span className="text-white text-sm sm:text-base">{userData.created_at || 'N/A'}</span>
               </div>
-              <div className="flex flex-col gap-5">
-                <span className="text-[#FFFFFF80] text-[16px]">Username</span>
-                <span className="text-white">{userData.username ?? 'N/A'}</span>
+              <div className="flex flex-col gap-3 sm:gap-5">
+                <span className="text-[#FFFFFF80] text-sm sm:text-[16px]">Username</span>
+                <span className="text-white text-sm sm:text-base">{userData.username ?? 'N/A'}</span>
                 {/* <span className="text-[#FFFFFF80] text-[16px]">
                   Loyalty Points
                 </span>
@@ -541,10 +541,10 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
                     View Details
                   </span>
                 </div> */}
-                <div className="flex flex-row mt-10 gap-2">
+                <div className="flex flex-row mt-5 sm:mt-10 gap-2">
                   <div>
                     <img
-                      className="w-10 h-10 cursor-pointer"
+                      className="w-8 h-8 sm:w-10 sm:h-10 cursor-pointer"
                       src={images.edit}
                       alt=""
                       onClick={() => setShowEditModal(true)}
@@ -552,7 +552,7 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
                   </div>
                   <div>
                     <img
-                      className="w-10 h-10 cursor-pointer"
+                      className="w-8 h-8 sm:w-10 sm:h-10 cursor-pointer"
                       src={images.bell}
                       alt=""
                       onClick={handleBellClick}
@@ -566,8 +566,8 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
             </div>
           </div>
         </div>
-        <div className="flex flex-row mt-5 gap-5">
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
+        <div className="flex flex-col sm:flex-row mt-4 sm:mt-5 gap-3 sm:gap-5">
+          <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm">
             <div>Today</div>
             <div>
               <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />

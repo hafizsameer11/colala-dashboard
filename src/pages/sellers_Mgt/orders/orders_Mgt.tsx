@@ -8,6 +8,7 @@ import { getAdminOrders, getSellerOrders, updateOrderStatus } from "../../../uti
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LatestOrders from "./latestOrders";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -22,6 +23,7 @@ const OrdersMgt = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
   const debouncedSearch = useDebouncedValue(search, 450);
   const location = useLocation();
 
@@ -103,15 +105,15 @@ const OrdersMgt = () => {
 
   const TabButtons = () => {
     return (
-      <div className="flex items-center border border-[#989898] rounded-lg p-2 w-fit bg-white">
+      <div className="flex items-center border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-                isActive ? "px-8 bg-[#E53E3E] text-white" : "px-2.5 text-black"
+              className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
+                isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-2.5 text-black"
               }`}
             >
               {tab}
@@ -126,10 +128,18 @@ const OrdersMgt = () => {
     console.log("Bulk action selected in Orders:", action);
   };
 
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1);
+  };
+
+  // Filter orders by period
+  const filteredOrders = filterByPeriod(orders, selectedPeriod, ['order_date', 'created_at', 'date']);
+
   return (
     <>
-      <PageHeader title="Orders Management - Stores" />
-      <div className="p-5">
+      <PageHeader title="Orders Management - Stores" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <div className="p-3 sm:p-4 md:p-5">
         {/* Debug Panel - Remove this after testing */}
        
       
@@ -159,30 +169,32 @@ const OrdersMgt = () => {
             subtitle="Successfully completed orders"
           />
         </StatCardGrid>
-        <div className="mt-5 flex flex-row gap-2">
-          <div>
-            <TabButtons />
-          </div>
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
-            <div>Today</div>
+        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row gap-2 sm:gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
+            <div className="overflow-x-auto w-full sm:w-auto">
+              <TabButtons />
+            </div>
+            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm">
+              <div>Today</div>
+              <div>
+                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+              </div>
+            </div>
             <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={filteredOrders}
+                dataType="orders"
+              />
             </div>
           </div>
-          <div>
-            <BulkActionDropdown 
-              onActionSelect={handleBulkActionSelect}
-              orders={orders}
-              dataType="orders"
-            />
-          </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch((e.target as any).value)}
-              className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+              className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[200px] md:w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
@@ -207,7 +219,7 @@ const OrdersMgt = () => {
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
             searchTerm={debouncedSearch}
-            orders={orders}
+            orders={filteredOrders}
             isLoading={isLoading}
             error={error}
             pagination={pagination}

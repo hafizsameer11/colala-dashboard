@@ -39,15 +39,15 @@ const Orders: React.FC = () => {
 
   const TabButtons = () => {
     return (
-      <div className="flex items-center border border-[#989898] rounded-lg p-2 w-fit bg-white">
+      <div className="flex items-center border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-                isActive ? "px-8 bg-[#E53E3E] text-white" : "px-2.5 text-black"
+              className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
+                isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-2.5 text-black"
               }`}
             >
               {tab}

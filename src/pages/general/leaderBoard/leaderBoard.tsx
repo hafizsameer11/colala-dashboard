@@ -118,17 +118,17 @@ const LeaderBoard = () => {
   return (
     <>
       <PageHeader title="Seller Leaderboard" />
-      <div className="p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         {/* Period Selector */}
-        <div className="mb-6 flex justify-center">
-          <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+        <div className="mb-4 sm:mb-6 flex justify-center">
+          <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
             {(['today', 'weekly', 'monthly', 'all'] as const).map((period) => {
               const isActive = selectedPeriod === period;
               return (
                 <button
                   key={period}
                   onClick={() => setSelectedPeriod(period)}
-                  className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+                  className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
                     }`}
                 >
                   {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -156,60 +156,60 @@ const LeaderBoard = () => {
         {!isLoading && !error && (
           <>
             {/* Leaderboard Podium */}
-            <div className="flex justify-evenly items-end gap-6 mb-8">
+            <div className="flex flex-col sm:flex-row justify-center sm:justify-evenly items-center sm:items-end gap-4 sm:gap-6 mb-6 sm:mb-8">
               {/* 2nd Place */}
-              <div className="flex flex-col items-center">
-                <div className="bg-[#C0C0C0] rounded-t-[50px] rounded-[10px] pt-1 pb-2 text-center min-h-[200px] w-[367px] flex flex-col justify-between shadow-lg">
-                  <div className="text-3xl font-bold ">2nd</div>
+              <div className="flex flex-col items-center w-full sm:w-auto">
+                <div className="bg-[#C0C0C0] rounded-t-[50px] rounded-[10px] pt-1 pb-2 text-center min-h-[180px] sm:min-h-[200px] w-full max-w-[280px] sm:w-[280px] md:w-[367px] flex flex-col justify-between shadow-lg">
+                  <div className="text-2xl sm:text-3xl font-bold">2nd</div>
                   <div className="flex flex-col items-center">
                     <img
                       src={topThree[1] ? getImageUrl(topThree[1].profile_image) : images.bella}
                       alt={topThree[1]?.store_name || "Store"}
-                      className="w-23 h-23 rounded-full mb-4"
+                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-23 md:h-23 rounded-full mb-3 sm:mb-4"
                       onError={(e) => {
                         e.currentTarget.src = images.admin;
                       }}
                     />
-                    <h3 className=" text-base mb-2">{topThree[1]?.store_name || "No Store"}</h3>
-                    <p className="text-lg font-medium">{topThree[1]?.total_points || 0} points</p>
+                    <h3 className="text-sm sm:text-base mb-1 sm:mb-2 px-2 truncate w-full">{topThree[1]?.store_name || "No Store"}</h3>
+                    <p className="text-base sm:text-lg font-medium">{topThree[1]?.total_points || 0} points</p>
                   </div>
                 </div>
               </div>
 
               {/* 1st Place */}
-              <div className="flex flex-col items-center">
-                <div className="bg-[#FFD700] rounded-t-[50px] rounded-[10px] p-8 text-center min-h-[240px] w-[367px] flex flex-col justify-between shadow-lg">
-                  <div className="text-3xl font-bold mb-3">1st</div>
+              <div className="flex flex-col items-center w-full sm:w-auto order-first sm:order-none">
+                <div className="bg-[#FFD700] rounded-t-[50px] rounded-[10px] p-4 sm:p-6 md:p-8 text-center min-h-[200px] sm:min-h-[240px] w-full max-w-[280px] sm:w-[280px] md:w-[367px] flex flex-col justify-between shadow-lg">
+                  <div className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3">1st</div>
                   <div className="flex flex-col items-center">
                     <img
                       src={topThree[0] ? getImageUrl(topThree[0].profile_image) : images.sasha}
                       alt={topThree[0]?.store_name || "Store"}
-                      className="w-28 h-28 rounded-full mb-4"
+                      className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full mb-3 sm:mb-4"
                       onError={(e) => {
                         e.currentTarget.src = images.admin;
                       }}
                     />
-                    <h3 className=" text-base mb-2">{topThree[0]?.store_name || "No Store"}</h3>
-                    <p className="text-xl font-medium">{topThree[0]?.total_points || 0} points</p>
+                    <h3 className="text-sm sm:text-base mb-1 sm:mb-2 px-2 truncate w-full">{topThree[0]?.store_name || "No Store"}</h3>
+                    <p className="text-lg sm:text-xl font-medium">{topThree[0]?.total_points || 0} points</p>
                   </div>
                 </div>
               </div>
 
               {/* 3rd Place */}
-              <div className="flex flex-col items-center">
-                <div className="bg-[#CE8946] rounded-t-[50px] rounded-[10px] p-[2px] text-center min-h-[160px] w-[367px] flex flex-col justify-between shadow-lg">
-                  <div className="text-3xl font-bold">3rd</div>
+              <div className="flex flex-col items-center w-full sm:w-auto">
+                <div className="bg-[#CE8946] rounded-t-[50px] rounded-[10px] p-[2px] text-center min-h-[140px] sm:min-h-[160px] w-full max-w-[280px] sm:w-[280px] md:w-[367px] flex flex-col justify-between shadow-lg">
+                  <div className="text-2xl sm:text-3xl font-bold">3rd</div>
                   <div className="flex flex-col items-center">
                     <img
                       src={topThree[2] ? getImageUrl(topThree[2].profile_image) : images.jennifer}
                       alt={topThree[2]?.store_name || "Store"}
-                      className="w-18 h-18 rounded-full mb-4"
+                      className="w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full mb-3 sm:mb-4"
                       onError={(e) => {
                         e.currentTarget.src = images.admin;
                       }}
                     />
-                    <h3 className=" text-base mb-1">{topThree[2]?.store_name || "No Store"}</h3>
-                    <p className="text-base font-medium mb-1">{topThree[2]?.total_points || 0} points</p>
+                    <h3 className="text-sm sm:text-base mb-1 px-2 truncate w-full">{topThree[2]?.store_name || "No Store"}</h3>
+                    <p className="text-sm sm:text-base font-medium mb-1">{topThree[2]?.total_points || 0} points</p>
                   </div>
                 </div>
               </div>
@@ -218,13 +218,13 @@ const LeaderBoard = () => {
             {/* All Users Table */}
             <div className="">
               {/* Header with Bulk Action and Search */}
-              <div className="mt-5 flex flex-row justify-between">
+              <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
                 <div className="flex flex-row items-center gap-2">
                   <div>
                     <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
                   </div>
                 </div>
-                <div>
+                <div className="w-full sm:w-auto">
                   <div>
                     <div className="relative">
                       <input
@@ -232,7 +232,7 @@ const LeaderBoard = () => {
                         placeholder="Search"
                         value={searchInput}
                         onChange={handleSearchInputChange}
-                        className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                        className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg
@@ -254,16 +254,16 @@ const LeaderBoard = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border-[0.3px] border-[#989898] mt-5">
-                <div className="p-5 ">
-                  <h2 className="text-lg font-semibold text-gray-900">All Users</h2>
+              <div className="bg-white rounded-2xl shadow-sm border-[0.3px] border-[#989898] mt-4 sm:mt-5">
+                <div className="p-3 sm:p-4 md:p-5">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">All Users</h2>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[800px]">
                     <thead className="bg-[#F2F2F2]">
                       <tr>
-                        <th className="p-3 text-left">
+                        <th className="p-2 sm:p-3 text-left">
                           <input
                             type="checkbox"
                             className="rounded w-4 h-4 border-gray-300"
@@ -271,25 +271,25 @@ const LeaderBoard = () => {
                             checked={allVisibleSelected}
                           />
                         </th>
-                        <th className="p-3 text-left font-normal text-black">
+                        <th className="p-2 sm:p-3 text-left font-normal text-black text-xs sm:text-sm">
                           Store Name
                         </th>
-                        <th className="p-3 text-left font-normal text-black">
+                        <th className="p-2 sm:p-3 text-left font-normal text-black text-xs sm:text-sm">
                           Position
                         </th>
-                        <th className="p-3 text-left font-normal text-black">
+                        <th className="p-2 sm:p-3 text-left font-normal text-black text-xs sm:text-sm">
                           Total Points
                         </th>
-                        <th className="p-3 text-left font-normal text-black">
+                        <th className="p-2 sm:p-3 text-left font-normal text-black text-xs sm:text-sm">
                           Orders
                         </th>
-                        <th className="p-3 text-left font-normal text-black">
+                        <th className="p-2 sm:p-3 text-left font-normal text-black text-xs sm:text-sm">
                           Followers
                         </th>
-                        <th className="p-3 text-left font-normal text-black">
+                        <th className="p-2 sm:p-3 text-left font-normal text-black text-xs sm:text-sm">
                           Revenue
                         </th>
-                        <th className="p-3 text-center font-normal text-black">
+                        <th className="p-2 sm:p-3 text-center font-normal text-black text-xs sm:text-sm">
                           Other
                         </th>
                       </tr>
@@ -298,7 +298,7 @@ const LeaderBoard = () => {
                     <tbody className="divide-y divide-gray-200">
                       {filteredUsers.map((store: Store, index: number) => (
                         <tr key={store.store_id} className="hover:bg-gray-50">
-                          <td className="p-4 ">
+                          <td className="p-2 sm:p-3 md:p-4">
                             <input
                               type="checkbox"
                               className="rounded w-4 h-4 border-gray-300"
@@ -308,38 +308,38 @@ const LeaderBoard = () => {
                         }
                             />
                           </td>
-                          <td className="p-4 ">
+                          <td className="p-2 sm:p-3 md:p-4">
                             <div className="flex items-center">
                               <img
                                 src={getImageUrl(store.profile_image)}
                                 alt={store.store_name}
-                                className="h-10 w-10 rounded-full mr-3"
+                                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full mr-2 sm:mr-3"
                                 onError={(e) => {
                                   e.currentTarget.src = images.admin;
                                 }}
                               />
-                              <span className="text-gray-900">{store.store_name}</span>
+                              <span className="text-xs sm:text-sm text-gray-900 truncate">{store.store_name}</span>
                             </div>
                           </td>
-                          <td className="p-4 font-bold text-gray-900">
+                          <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
                             {index + 1}
                           </td>
-                          <td className="p-4 font-bold text-gray-900">
+                          <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
                             {store.total_points?.toLocaleString() || 0}
                           </td>
-                          <td className="p-4 font-bold text-gray-900">
+                          <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
                             {store.orders_count?.toLocaleString() || 0}
                           </td>
-                          <td className="p-4 font-bold text-gray-900">
+                          <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
                             {store.followers_count?.toLocaleString() || 0}
                           </td>
-                          <td className="p-4 font-bold text-gray-900">
+                          <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
                             ₦{store.total_revenue?.toLocaleString() || 0}
                           </td>
-                      <td className="px-6 py-3 flex justify-center">
+                      <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 flex justify-center">
                         <button 
                           onClick={() => handleStoreDetails(store)}
-                          className="px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-red-600 transition-colors cursor-pointer"
+                          className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-red-600 transition-colors cursor-pointer text-xs sm:text-sm"
                         >
                           Store Details
                         </button>

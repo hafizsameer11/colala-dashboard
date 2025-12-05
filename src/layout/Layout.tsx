@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import Sidebar from "./Sidebar";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Profile from "./components/Profile";
 
 const Layout: React.FC = () => {
   // const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+  const location = useLocation();
+  
+  // Use location.pathname directly as key - React Router will handle updates
+  // No need for separate state that could cause issues
 
   return (
     <div className="flex bg-theme-light">
@@ -43,7 +47,7 @@ const Layout: React.FC = () => {
             </div>
           </div>
           <div className="bg-gray-100">
-            <Outlet />
+            <Outlet key={location.pathname} />
           </div>
         </div>
       </div>

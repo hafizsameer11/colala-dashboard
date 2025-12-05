@@ -20,7 +20,7 @@ const AllReferral = () => {
   return (
     <>
       <PageHeader title="Referrals" />
-      <div className="p-5">
+      <div className="p-3 sm:p-4 md:p-5">
         {/* Statistics Cards */}
         {isLoading ? (
           <div className="flex justify-center items-center py-8">

@@ -264,11 +264,11 @@ const SocialFeed = () => {
     <>
       <div>
         <PageHeader title="Social Feed" />
-        <div className="p-5 flex flex-row gap-5">
+        <div className="p-3 sm:p-4 md:p-5 flex flex-col lg:flex-row gap-4 sm:gap-5">
           <div className="flex flex-col flex-1">
-            <div className="flex flex-row justify-between items-center">
-              <div className="flex flex-row gap-1.5">
-                <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-1.5 w-full sm:w-auto">
+                <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
                   <div>Today</div>
                   <div>
                     <img
@@ -278,10 +278,10 @@ const SocialFeed = () => {
                     />
                   </div>
                 </div>
-                <div className="relative" ref={storeDropdownRef}>
+                <div className="relative w-full sm:w-auto" ref={storeDropdownRef}>
                   <button
                     onClick={() => setIsStoreDropdownOpen((o) => !o)}
-                    className="flex flex-row items-center justify-between gap-3 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer w-48 min-w-[12rem]"
+                    className="flex flex-row items-center justify-between gap-3 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer w-full sm:w-48 sm:min-w-[12rem] text-xs sm:text-sm"
                   >
                     <div className="truncate text-left flex-1">
                       {selectedStore || "Store Name"}
@@ -350,14 +350,14 @@ const SocialFeed = () => {
                 </div>
               </div>
 
-              <div className="ml-8">
+              <div className="ml-0 sm:ml-8 w-full sm:w-auto">
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[300px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                    className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[250px] md:w-[300px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
@@ -378,13 +378,13 @@ const SocialFeed = () => {
               </div>
             </div>
             <div
-              className="flex flex-col w-full border-[#989898] border rounded-2xl mt-5"
+              className="flex flex-col w-full border-[#989898] border rounded-2xl mt-4 sm:mt-5"
               style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
             >
-              <div className="rounded-t-2xl bg-[#F2F2F2] p-4 text-xl font-medium">
+              <div className="rounded-t-2xl bg-[#F2F2F2] p-3 sm:p-4 text-lg sm:text-xl font-medium">
                 Social Feed
               </div>
-              <div className="flex flex-col bg-white rounded-b-2xl p-5 gap-5">
+              <div className="flex flex-col bg-white rounded-b-2xl p-3 sm:p-4 md:p-5 gap-4 sm:gap-5">
                 {isLoadingPosts ? (
                   <div className="text-center text-gray-500 py-10">
                     Loading posts...
@@ -397,11 +397,11 @@ const SocialFeed = () => {
                   filteredPosts.map((post) => (
                     <div key={post.id} className="flex flex-col gap-5">
                       {/* Header row */}
-                      <div className="flex flex-row justify-between">
+                      <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
                         <div className="flex gap-2">
                           <div>
                             <img
-                              className="w-15 h-15 rounded-full object-cover"
+                              className="w-12 h-12 sm:w-15 sm:h-15 rounded-full object-cover"
                               src={post.avatar}
                               alt=""
                               onError={(e) => {
@@ -410,17 +410,17 @@ const SocialFeed = () => {
                             />
                           </div>
                           <div className="flex flex-col justify-center">
-                            <div className="font-medium text-lg ">
+                            <div className="font-medium text-base sm:text-lg">
                               {post.storeName}
                             </div>
-                            <div className="text-[#000000B2] text-md">
+                            <div className="text-[#000000B2] text-sm sm:text-md">
                               {post.location} {post.timeAgo}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center">
                           <button
-                            className="bg-[#E53E3E] px-4 py-3 cursor-pointer rounded-xl text-white font-medium "
+                            className="bg-[#E53E3E] px-3 sm:px-4 py-2 sm:py-3 cursor-pointer rounded-xl text-white font-medium text-sm sm:text-base w-full sm:w-auto"
                             onClick={() => handleShowDetails(parseInt(post.id))}
                           >
                             View Post
@@ -462,7 +462,7 @@ const SocialFeed = () => {
                       ) : null}
 
                       {/* Caption */}
-                      <div className="bg-[#F0F0F0] rounded-xl p-5 text-xl font-normal">
+                      <div className="bg-[#F0F0F0] rounded-xl p-3 sm:p-4 md:p-5 text-base sm:text-lg md:text-xl font-normal">
                         {post.text}
                       </div>
 
@@ -515,15 +515,15 @@ const SocialFeed = () => {
               </div>
             </div>
           </div>
-          <div className="flex flex-col flex-1 gap-5">
+          <div className="flex flex-col flex-1 gap-4 sm:gap-5">
             <div
               className="flex flex-col h-fit rounded-2xl border border-[#989898]"
               style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
             >
-              <div className="bg-[#F2F2F2] text-xl font-medium p-4 rounded-t-2xl">
+              <div className="bg-[#F2F2F2] text-lg sm:text-xl font-medium p-3 sm:p-4 rounded-t-2xl">
                 Stats
               </div>
-              <div className="flex bg-white p-5 flex-col gap-5 rounded-b-2xl">
+              <div className="flex bg-white p-3 sm:p-4 md:p-5 flex-col gap-4 sm:gap-5 rounded-b-2xl">
                 <StatCardGrid columns={2}>
                   <StatCard
                     icon={images.feed1}
@@ -552,16 +552,16 @@ const SocialFeed = () => {
               className="flex flex-col rounded-2xl border border-[#989898]"
               style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}
             >
-              <div className="bg-[#F2F2F2] text-xl font-medium p-4 rounded-t-2xl">
+              <div className="bg-[#F2F2F2] text-lg sm:text-xl font-medium p-3 sm:p-4 rounded-t-2xl">
                 Comments
               </div>
-              <div className="bg-white p-5 rounded-b-2xl flex flex-col gap-3 ">
+              <div className="bg-white p-3 sm:p-4 md:p-5 rounded-b-2xl flex flex-col gap-2 sm:gap-3">
                 {allComments.length > 0 ? (
                   allComments.map((comment, index) => (
                     <div key={index} className="flex flex-row gap-2 border border-[#DDDDDD] rounded-xl p-2">
                       <div>
                         <img
-                          className="w-12 h-12 rounded-full object-cover"
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
                           src={getImageUrl(comment.profile_picture)}
                           alt={comment.user_name || "User"}
                           onError={(e) => {
@@ -569,19 +569,19 @@ const SocialFeed = () => {
                           }}
                         />
                       </div>
-                      <div className="flex flex-col justify-center flex-1">
-                        <div className="font-medium text-md">
+                      <div className="flex flex-col justify-center flex-1 min-w-0">
+                        <div className="font-medium text-sm sm:text-md break-words">
                           {comment.body || comment.comment || "No comment text"}{" "}
                           <span>
                             <button
-                              className="text-[#E53E3E] font-bold cursor-pointer"
+                              className="text-[#E53E3E] font-bold cursor-pointer text-xs sm:text-sm"
                               onClick={() => handleShowDetails(comment.postId)}
                             >
                               View Comment
                             </button>
                           </span>
                         </div>
-                        <div className="text-[#000000B2] text-[12px]">
+                        <div className="text-[#000000B2] text-[10px] sm:text-[12px]">
                           {comment.user_name || comment.storeName || "Unknown User"}
                         </div>
                       </div>

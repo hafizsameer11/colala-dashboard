@@ -8,6 +8,8 @@ import OrdersTable from "./OrdersTable";
 import PageHeader from "../../components/PageHeader";
 import { getDashboardData } from "../../utils/queries/dashboard";
 import ChatsModel from "../general/chats/components/chatmodel";
+import OrderDetails from "../sellers_Mgt/Modals/orderDetails";
+import { filterByPeriod } from "../../utils/periodFilter";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -92,6 +94,10 @@ const Dashboard = () => {
     isUnread?: boolean;
   } | null>(null);
 
+  // Order details modal state
+  const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | number | undefined>(undefined);
+
   // ============================================================================
   // API DATA FETCHING
   // ============================================================================
@@ -164,10 +170,14 @@ const Dashboard = () => {
     setSelectedOrders(orders);
   };
 
+  // Period filter state
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+
   /**
    * Handle period change for dashboard data
    */
   const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
     console.log("Period changed to:", period);
   };
 
@@ -195,6 +205,22 @@ const Dashboard = () => {
   const closeChatModal = () => {
     setIsChatOpen(false);
     setSelectedChat(null);
+  };
+
+  /**
+   * Open order details modal
+   */
+  const handleViewOrderDetails = (orderId: string | number) => {
+    setSelectedOrderId(String(orderId));
+    setIsOrderDetailsOpen(true);
+  };
+
+  /**
+   * Close order details modal
+   */
+  const closeOrderDetailsModal = () => {
+    setIsOrderDetailsOpen(false);
+    setSelectedOrderId(undefined);
   };
 
   // Search input change handler (typed to avoid DOM lib dependency issues)
@@ -351,7 +377,7 @@ const Dashboard = () => {
    */
   const TabButtons = useCallback(() => {
     return (
-      <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+      <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
         {ORDER_FILTER_TABS.map((tab) => {
           const isActive = activeTab === tab;
           return (
@@ -365,11 +391,11 @@ const Dashboard = () => {
                 }
               }}
               disabled={isTabChanging}
-              className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer select-none ${isActive
-                  ? "px-8 bg-[#E53E3E] text-white"
+              className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer select-none whitespace-nowrap ${isActive
+                  ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white"
                   : isTabChanging
-                    ? "px-4 text-gray-400 cursor-not-allowed"
-                    : "px-4 text-black hover:bg-gray-100 active:bg-gray-200"
+                    ? "px-2 sm:px-3 md:px-4 text-gray-400 cursor-not-allowed"
+                    : "px-2 sm:px-3 md:px-4 text-black hover:bg-gray-100 active:bg-gray-200"
                 }`}
               style={{
                 pointerEvents: 'auto',
@@ -425,19 +451,19 @@ const Dashboard = () => {
     <>
       <PageHeader title="Dashboard" onPeriodChange={handlePeriodChange} />
 
-      <div className="bg-[#F5F5F5] p-5">
+      <div className="bg-[#F5F5F5] p-3 sm:p-4 md:p-5">
         {/* ========================================================================
             STATISTICS CARDS SECTION
         ======================================================================== */}
-        <div className="flex flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
 
           {/* Buyer App Statistics */}
-          <div className="border border-[#989898] rounded-2xl flex-1">
-            <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
+          <div className="border border-[#989898] rounded-2xl flex-1 w-full">
+            <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-3 sm:p-4 md:p-5">
               <span>
-                <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
+                <img className="w-4 h-4 sm:w-5 sm:h-5" src={images.analyticsIcon} alt="" />
               </span>
-              <span className="font-semibold text-[16px]">Buyer App Statistics</span>
+              <span className="font-semibold text-sm sm:text-base md:text-[16px]">Buyer App Statistics</span>
             </div>
 
             <div className="flex flex-col bg-white p-5 rounded-b-2xl gap-3">
@@ -508,28 +534,28 @@ const Dashboard = () => {
           </div>
 
           {/* Seller App Statistics */}
-          <div className="border border-[#989898] rounded-2xl flex-1">
-            <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-5">
+          <div className="border border-[#989898] rounded-2xl flex-1 w-full">
+            <div className="flex flex-row items-center gap-2 bg-[#F2F2F2] rounded-t-2xl p-3 sm:p-4 md:p-5">
               <span>
-                <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
+                <img className="w-4 h-4 sm:w-5 sm:h-5" src={images.analyticsIcon} alt="" />
               </span>
-              <span className="font-semibold text-[16px]">Seller App Statistics</span>
+              <span className="font-semibold text-sm sm:text-base md:text-[16px]">Seller App Statistics</span>
             </div>
 
-            <div className="flex flex-col bg-white p-5 rounded-b-2xl gap-3">
+            <div className="flex flex-col bg-white p-3 sm:p-4 md:p-5 rounded-b-2xl gap-3">
               {/* First Row: Total Users & Total Orders */}
-              <div className="flex flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {/* Total Users Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#470434] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.Users} alt="" />
+                <div className="flex flex-row rounded-2xl flex-1" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#470434] rounded-l-2xl p-3 sm:p-4 md:p-5 flex justify-center items-center">
+                    <img className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" src={images.Users} alt="" />
                   </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Total Users</span>
-                    <span className="font-semibold text-2xl">
+                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                    <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Users</span>
+                    <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                       {dashboardData?.data?.seller_stats?.total_users?.value || 0}
                     </span>
-                    <span className="text-[#00000080] text-[10px]">
+                    <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
                         +{dashboardData?.data?.seller_stats?.total_users?.increase || 0}%
                       </span> increase from last month
@@ -538,16 +564,16 @@ const Dashboard = () => {
                 </div>
 
                 {/* Total Orders Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#042A47] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.orders} alt="" />
+                <div className="flex flex-row rounded-2xl flex-1" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#042A47] rounded-l-2xl p-3 sm:p-4 md:p-5 flex justify-center items-center">
+                    <img className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" src={images.orders} alt="" />
                   </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Total Orders</span>
-                    <span className="font-semibold text-2xl">
+                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                    <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Orders</span>
+                    <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                       {dashboardData?.data?.seller_stats?.total_orders?.value || 0}
                     </span>
-                    <span className="text-[#00000080] text-[10px]">
+                    <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
                         +{dashboardData?.data?.seller_stats?.total_orders?.increase || 0}%
                       </span> increase from last month
@@ -557,18 +583,18 @@ const Dashboard = () => {
               </div>
 
               {/* Second Row: Completed Orders & Total Transactions */}
-              <div className="flex flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {/* Completed Orders Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#471204] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.orders} alt="" />
+                <div className="flex flex-row rounded-2xl flex-1" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#471204] rounded-l-2xl p-3 sm:p-4 md:p-5 flex justify-center items-center">
+                    <img className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" src={images.orders} alt="" />
                   </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Completed Orders</span>
-                    <span className="font-semibold text-2xl">
+                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                    <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Completed Orders</span>
+                    <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                       {dashboardData?.data?.seller_stats?.completed_orders?.value || 0}
                     </span>
-                    <span className="text-[#00000080] text-[10px]">
+                    <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
                         +{dashboardData?.data?.seller_stats?.completed_orders?.increase || 0}%
                       </span> increase from last month
@@ -577,16 +603,16 @@ const Dashboard = () => {
                 </div>
 
                 {/* Total Transactions Card */}
-                <div className="flex flex-row rounded-2xl" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
-                  <div className="bg-[#044713] rounded-l-2xl p-5 flex justify-center items-center">
-                    <img className="w-7 h-7" src={images.money} alt="" />
+                <div className="flex flex-row rounded-2xl flex-1" style={{ boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)" }}>
+                  <div className="bg-[#044713] rounded-l-2xl p-3 sm:p-4 md:p-5 flex justify-center items-center">
+                    <img className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" src={images.money} alt="" />
                   </div>
-                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-3 pr-11 gap-1">
-                    <span className="font-semibold text-[15px]">Total Transactions</span>
-                    <span className="font-semibold text-2xl">
+                  <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
+                    <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Transactions</span>
+                    <span className="font-semibold text-lg sm:text-xl md:text-2xl">
                       {dashboardData?.data?.seller_stats?.total_transactions?.value || 0}
                     </span>
-                    <span className="text-[#00000080] text-[10px]">
+                    <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
                         +{dashboardData?.data?.seller_stats?.total_transactions?.increase || 0}%
                       </span> increase from last month
@@ -601,19 +627,19 @@ const Dashboard = () => {
         {/* ========================================================================
             CHARTS & LATEST DATA SECTION
         ======================================================================== */}
-        <div className="flex flex-row gap-5 mt-5">
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-5 mt-4 md:mt-5">
 
           {/* Site Statistics Chart */}
-          <div className="">
-            <div className="border border-[#989898] rounded-2xl bg-white w-180">
-              <div className="flex flex-row justify-between bg-[#F2F2F2] rounded-t-2xl p-5">
+          <div className="w-full lg:w-auto lg:flex-1">
+            <div className="border border-[#989898] rounded-2xl bg-white w-full">
+              <div className="flex flex-col sm:flex-row justify-between bg-[#F2F2F2] rounded-t-2xl p-3 sm:p-4 md:p-5 gap-2 sm:gap-0">
                 <div className="flex flex-row items-center gap-2">
                   <span>
                     <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
                   </span>
-                  <span className="font-semibold text-[16px]">Site Statistics</span>
+                  <span className="font-semibold text-sm sm:text-[16px]">Site Statistics</span>
                 </div>
-                <div className="flex flex-row items-center gap-2">
+                <div className="flex flex-row items-center gap-2 sm:gap-2">
                   <div className="flex flex-row items-center gap-1">
                     <div className="bg-[#008000] w-5 h-5 rounded-lg"></div>
                     <span>Users</span>
@@ -624,61 +650,66 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-5">
-                <div style={{ height: "371px" }}>
-                  <Bar data={chartData} options={chartOptions} />
+              <div className="p-3 sm:p-4 md:p-5">
+                <div className="w-full overflow-x-auto">
+                  <div className="w-full min-w-[300px]" style={{ height: "250px", minHeight: "250px" }}>
+                    <Bar data={chartData} options={chartOptions} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Latest Chats */}
-          <div className="">
+          <div className="w-full lg:w-auto lg:flex-1">
             <div className="border border-[#989898] rounded-2xl">
-              <div className="flex flex-row items-center bg-[#F2F2F2] rounded-t-2xl p-5 gap-2">
+              <div className="flex flex-row items-center bg-[#F2F2F2] rounded-t-2xl p-3 sm:p-4 md:p-5 gap-2">
                 <span>
                   <img className="w-5 h-5" src={images.analyticsIcon} alt="" />
                 </span>
-                <span className="font-semibold text-[16px]">Latest Chats</span>
+                <span className="font-semibold text-sm sm:text-[16px]">Latest Chats</span>
               </div>
               <div>
                 <div className="flex flex-col bg-white rounded-b-2xl">
-                  <div className="flex flex-row p-5 gap-32">
-                    <div>Store</div>
-                    <div>Customer</div>
+                  <div className="flex flex-row p-3 sm:p-4 md:p-5 gap-4 sm:gap-8 md:gap-16 lg:gap-32 justify-between">
+                    <div className="text-sm sm:text-base">Store</div>
+                    <div className="text-sm sm:text-base">Customer</div>
                   </div>
-                  {dashboardData?.data?.latest_chats?.length > 0 ? (
-                    dashboardData.data.latest_chats.map((chat: { 
-                      id?: number | string; 
-                      chat_id?: number | string; 
-                      store?: { name?: string; profile_image?: string }; 
-                      customer?: { id?: number | string; user_id?: number | string; name?: string; profile_image?: string }; 
-                      customer_id?: number | string;
-                      last_message?: string;
-                      created_at?: string;
-                      type?: string;
-                      other?: string;
-                      is_unread?: boolean;
-                    }) => (
-                      <div key={chat.id} className="flex flex-row justify-between pr-5 pl-5 pt-4 pb-4 gap-6.5 border-t-1 border-[#989898]">
-                        <div className="flex flex-row items-center gap-2">
+                  {(() => {
+                    const filteredChats = filterByPeriod(dashboardData?.data?.latest_chats || [], selectedPeriod, ['last_message_at', 'created_at', 'chat_date']);
+                    return filteredChats.length > 0 ? (
+                      filteredChats.map((chat: { 
+                        id?: number | string; 
+                        chat_id?: number | string; 
+                        store?: { name?: string; profile_image?: string }; 
+                        customer?: { id?: number | string; user_id?: number | string; name?: string; profile_image?: string }; 
+                        customer_id?: number | string;
+                        last_message?: string;
+                        created_at?: string;
+                        last_message_at?: string;
+                        type?: string;
+                        other?: string;
+                        is_unread?: boolean;
+                      }) => (
+                      <div key={chat.id} className="flex flex-col sm:flex-row justify-between pr-3 sm:pr-4 md:pr-5 pl-3 sm:pl-4 md:pl-5 pt-3 sm:pt-4 pb-3 sm:pb-4 gap-3 sm:gap-4 border-t-1 border-[#989898]">
+                        <div className="flex flex-row items-center gap-2 min-w-0 flex-1">
                           <img
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                             src={chat.store?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.store.profile_image}` : images.Users}
                             alt={chat.store?.name || 'Store'}
                           />
-                          <span>{chat.store?.name || 'Unknown Store'}</span>
+                          <span className="text-xs sm:text-sm truncate">{chat.store?.name || 'Unknown Store'}</span>
                         </div>
-                        <div className="flex flex-row items-center gap-2">
+                        <div className="flex flex-row items-center gap-2 min-w-0 flex-1 sm:justify-end">
                           <img
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                             src={chat.customer?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.customer.profile_image}` : images.Users}
                             alt={chat.customer?.name || 'Customer'}
                           />
-                          <span>{chat.customer?.name || 'Unknown Customer'}</span>
-                          <span className="ml-5">
+                          <span className="text-xs sm:text-sm truncate">{chat.customer?.name || 'Unknown Customer'}</span>
+                          <span className="ml-2 sm:ml-5 flex-shrink-0">
                             <img
-                              className="w-10 h-10 cursor-pointer"
+                              className="w-8 h-8 sm:w-10 sm:h-10 cursor-pointer"
                               src={images.eye}
                               alt="View chat"
                               onClick={() => {
@@ -700,11 +731,12 @@ const Dashboard = () => {
                         </div>
                       </div>
                     ))
-                  ) : (
-                    <div className="flex flex-row justify-center p-8">
-                      <span className="text-gray-500">No recent chats</span>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex flex-row justify-center p-8">
+                        <span className="text-gray-500">No recent chats</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -714,25 +746,25 @@ const Dashboard = () => {
         {/* ========================================================================
             ORDERS TABLE SECTION
         ======================================================================== */}
-        <div className="flex flex-row mt-5">
-          <div className="">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 md:gap-5 mt-4 md:mt-5">
+          <div className="w-full sm:w-auto overflow-x-auto">
             <TabButtons />
           </div>
-          <div className="ml-5">
+          <div className="w-full sm:w-auto">
             <BulkActionDropdown
               onActionSelect={handleBulkActionSelect}
               orders={dashboardData?.data?.latest_orders || []}
               selectedOrders={selectedOrders}
             />
           </div>
-          <div className="ml-5">
+          <div className="w-full sm:flex-1 sm:max-w-md">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search"
                 value={searchInput}
                 onChange={handleSearchInputChange}
-                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full max-w-full sm:max-w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
@@ -761,7 +793,8 @@ const Dashboard = () => {
             onSelectedOrdersChange={handleSelectedOrdersChange}
             filterStatus={activeTab}
             searchTerm={debouncedSearch}
-            orders={dashboardData?.data?.latest_orders || []}
+            orders={filterByPeriod(dashboardData?.data?.latest_orders || [], selectedPeriod, ['order_date', 'created_at', 'date'])}
+            onViewDetails={handleViewOrderDetails}
           />
         </div>
       </div>
@@ -770,6 +803,12 @@ const Dashboard = () => {
         isOpen={isChatOpen}
         onClose={closeChatModal}
         chatData={selectedChat || undefined}
+      />
+      {/* Order Details Modal */}
+      <OrderDetails
+        isOpen={isOrderDetailsOpen}
+        onClose={closeOrderDetailsModal}
+        orderId={selectedOrderId?.toString()}
       />
     </>
   );

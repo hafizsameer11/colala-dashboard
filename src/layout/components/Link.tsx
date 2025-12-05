@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface SubLink {
   name: string;
@@ -27,6 +27,7 @@ const LinkComp: React.FC<LinkCompProps> = ({
   menuStatus,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isActive, setIsActive] = useState<boolean>(isActiveCheck);
 
   useEffect(() => {
@@ -40,6 +41,23 @@ const LinkComp: React.FC<LinkCompProps> = ({
     );
   }, [location.pathname, link, sub]);
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // If we're already on the same route, don't navigate
+    if (location.pathname === link) {
+      onClick(); // Still update state
+      return;
+    }
+    
+    // Call the onClick handler from parent (for state updates)
+    onClick();
+    
+    // Navigate immediately - this should work with React Router
+    navigate(link, { replace: false });
+  };
+
   return (
     <div className="relative group">
       {/* Red side border on active or hover */}
@@ -48,10 +66,17 @@ const LinkComp: React.FC<LinkCompProps> = ({
           ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
       ></div>
 
-      <Link
-        to={link}
-        onClick={onClick}
-        className={`flex items-center py-5 rounded-2xl transition-all duration-200 mx-4 relative pl-3 text-[16px]
+      <div
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick(e as any);
+          }
+        }}
+        className={`flex items-center py-5 rounded-2xl transition-all duration-200 mx-4 relative pl-3 text-[16px] cursor-pointer
           ${
             isActive
               ? "bg-[#E53E3E] text-white"
@@ -76,7 +101,7 @@ const LinkComp: React.FC<LinkCompProps> = ({
         ></div>
 
         {!menuStatus && <span className="font-normal ml-2">{name}</span>}
-      </Link>
+      </div>
     </div>
   );
 };

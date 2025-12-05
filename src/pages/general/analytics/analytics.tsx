@@ -352,13 +352,13 @@ const Analytics = () => {
   return (
     <div>
       {/* Analytics Header */}
-      <div className="pr-5 pl-5 bg-white border-t-1 border-b-1 border-[#787878]">
-        <div className="flex flex-row justify-between pt-5 pb-5">
+      <div className="pr-3 sm:pr-4 md:pr-5 pl-3 sm:pl-4 md:pl-5 bg-white border-t-1 border-b-1 border-[#787878]">
+        <div className="flex flex-col sm:flex-row justify-between pt-3 sm:pt-4 md:pt-5 pb-3 sm:pb-4 md:pb-5 gap-3 sm:gap-4">
           <div className="flex items-center">
-            <h1 className="font-semibold text-2xl">Analytics Dashboard</h1>
+            <h1 className="font-semibold text-lg sm:text-xl md:text-2xl">Analytics Dashboard</h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             {/* Export Dropdown */}
             <div className="relative">
               <div
@@ -431,7 +431,7 @@ const Analytics = () => {
       </div>
 
       {/* Analytics Content */}
-      <div className="p-6 pb-0">
+      <div className="p-3 sm:p-4 md:p-6 pb-0">
         {isLoading && (
           <div className="flex justify-center items-center h-64">
             <div className="text-lg">Loading analytics data...</div>
@@ -446,11 +446,11 @@ const Analytics = () => {
         
         {!isLoading && !error && (
           <>
-            <div className="flex flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
               {/* Site Statistics Bar Chart */}
           <div
-            className="border border-[#989898] rounded-2xl bg-white"
-            style={{ width: "716px", height: "411px" }}
+            className="border border-[#989898] rounded-2xl bg-white w-full lg:w-auto lg:flex-1"
+            style={{ minWidth: "300px", height: "411px" }}
           >
             <div className="flex flex-row justify-between bg-[#F2F2F2] rounded-t-2xl p-5">
               <div className="flex flex-row items-center gap-2">
@@ -485,8 +485,8 @@ const Analytics = () => {
 
           {/* Site Statistics Pie Chart */}
           <div
-            className="border border-[#989898] rounded-2xl bg-white"
-            style={{ width: "412px", height: "411px" }}
+            className="border border-[#989898] rounded-2xl bg-white w-full lg:w-auto lg:flex-1"
+            style={{ minWidth: "300px", height: "411px" }}
           >
             <div className="flex flex-row justify-between bg-[#F2F2F2] rounded-t-2xl p-5">
               <div className="flex flex-row items-center gap-2">
@@ -534,13 +534,13 @@ const Analytics = () => {
         </div>
 
         {/* Analytics Cards and Revenue Chart Section */}
-        <div className="flex flex-row gap-6 mt-6 mb-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mt-4 sm:mt-6 mb-4 sm:mb-6">
           {/* Analytics Cards */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full lg:w-auto">
             {/* Total Users Card */}
             <div
-              className="bg-white border border-gray-300 rounded-2xl"
-              style={{ width: "272px", height: "265px" }}
+              className="bg-white border border-gray-300 rounded-2xl w-full"
+              style={{ maxWidth: "272px", height: "265px", margin: "0 auto" }}
             >
               <div className="p-6 flex flex-col h-full">
                 <h3 className="text-lg font-semibold text-center mb-6">
@@ -607,8 +607,8 @@ const Analytics = () => {
 
             {/* Total Sellers Card */}
             <div
-              className="bg-white border border-gray-300 rounded-2xl"
-              style={{ width: "272px", height: "265px" }}
+              className="bg-white border border-gray-300 rounded-2xl w-full"
+              style={{ maxWidth: "272px", height: "265px", margin: "0 auto" }}
             >
               <div className="p-6 flex flex-col h-full">
                 <h3 className="text-lg font-semibold text-center mb-6">
@@ -675,8 +675,8 @@ const Analytics = () => {
 
             {/* Total Buyers Card */}
             <div
-              className="bg-white border border-gray-300 rounded-2xl z-100"
-              style={{ width: "272px", height: "265px" }}
+              className="bg-white border border-gray-300 rounded-2xl z-100 w-full"
+              style={{ maxWidth: "272px", height: "265px", margin: "0 auto" }}
             >
               <div className="p-6 flex flex-col h-full">
                 <h3 className="text-lg font-semibold text-center mb-6">
@@ -743,8 +743,8 @@ const Analytics = () => {
 
             {/* Revenue Generated Card */}
             <div
-              className="bg-white border border-gray-300 rounded-2xl"
-              style={{ width: "272px", height: "265px" }}
+              className="bg-white border border-gray-300 rounded-2xl w-full"
+              style={{ maxWidth: "272px", height: "265px", margin: "0 auto" }}
             >
               <div className="p-6 flex flex-col h-full">
                 <h3 className="text-lg font-semibold text-center mb-6">
@@ -810,11 +810,11 @@ const Analytics = () => {
             </div>
           </div>
 
-          <div>
+          <div className="w-full lg:w-auto lg:flex-1">
             {/* Revenue Statistics Chart */}
             <div
-              className="border border-[#989898] rounded-2xl bg-white"
-              style={{ width: "568px", height: "420px" }}
+              className="border border-[#989898] rounded-2xl bg-white w-full"
+              style={{ minWidth: "300px", height: "420px" }}
             >
               <div className="flex flex-row justify-between bg-[#F2F2F2] rounded-t-2xl p-5">
                 <div className="flex flex-row items-center gap-2">
@@ -915,11 +915,11 @@ const Analytics = () => {
             </div>
 
             {/* Bottom Statistics Cards */}
-            <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
               {/* Top Row */}
               <div
-                className="bg-[#FF0000] text-white rounded-[15px] p-4 flex items-center gap-3 pl-2"
-                style={{ width: "174px", height: "68px" }}
+                className="bg-[#FF0000] text-white rounded-[15px] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 pl-2 w-full"
+                style={{ maxWidth: "174px", height: "68px", margin: "0 auto" }}
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
@@ -931,8 +931,8 @@ const Analytics = () => {
               </div>
 
               <div
-                className="bg-[#008000] text-white rounded-[15px] p-4 flex items-center gap-3 pl-2"
-                style={{ width: "174px", height: "68px" }}
+                className="bg-[#008000] text-white rounded-[15px] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 pl-2 w-full"
+                style={{ maxWidth: "174px", height: "68px", margin: "0 auto" }}
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
@@ -944,8 +944,8 @@ const Analytics = () => {
               </div>
 
               <div
-                className="bg-[#0000FF] text-white rounded-[15px] p-4 flex items-center gap-3 pl-2"
-                style={{ width: "174px", height: "68px" }}
+                className="bg-[#0000FF] text-white rounded-[15px] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 pl-2 w-full"
+                style={{ maxWidth: "174px", height: "68px", margin: "0 auto" }}
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
@@ -958,8 +958,8 @@ const Analytics = () => {
 
               {/* Bottom Row */}
               <div
-                className="bg-[#800080] text-white rounded-[15px] p-4 flex items-center gap-3 pl-2"
-                style={{ width: "174px", height: "68px" }}
+                className="bg-[#800080] text-white rounded-[15px] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 pl-2 w-full"
+                style={{ maxWidth: "174px", height: "68px", margin: "0 auto" }}
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
@@ -971,8 +971,8 @@ const Analytics = () => {
               </div>
 
               <div
-                className="bg-[#FFA500] text-white rounded-[15px] p-4 flex items-center gap-3 pl-2"
-                style={{ width: "174px", height: "68px" }}
+                className="bg-[#FFA500] text-white rounded-[15px] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 pl-2 w-full"
+                style={{ maxWidth: "174px", height: "68px", margin: "0 auto" }}
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>
@@ -984,8 +984,8 @@ const Analytics = () => {
               </div>
 
               <div
-                className="bg-black text-white rounded-[15px] p-4 flex items-center gap-3 pl-2"
-                style={{ width: "174px", height: "68px" }}
+                className="bg-black text-white rounded-[15px] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 pl-2 w-full"
+                style={{ maxWidth: "174px", height: "68px", margin: "0 auto" }}
               >
                 <div className="w-2 h-9 bg-white rounded"></div>
                 <div>

@@ -54,6 +54,41 @@ const Transactions = () => {
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
 
+  // period/date filter
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+
+  // Helper function to filter transactions by period
+  const filterTransactionsByPeriod = (transactions: any[], period: string) => {
+    if (period === "All time") return transactions;
+    
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (period) {
+      case "This Week":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "Last Month":
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        break;
+      case "Last 6 Months":
+        startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+        break;
+      case "Last Year":
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        break;
+      default:
+        return transactions;
+    }
+    
+    return transactions.filter((tx) => {
+      const txDate = tx.created_at || tx.date || tx.formatted_date;
+      if (!txDate) return false;
+      const date = new Date(txDate);
+      return date >= startDate && date <= now;
+    });
+  };
+
   // API data fetching
   const { data: transactionsData, isLoading, error } = useQuery({
     queryKey: ['adminTransactions', activeTab, typeFilter, currentPage],
@@ -62,24 +97,27 @@ const Transactions = () => {
   });
 
   // Extract data
-  const transactions = transactionsData?.data?.transactions || [];
+  const allTransactions = transactionsData?.data?.transactions || [];
   const statistics = transactionsData?.data?.statistics || {};
   const pagination = transactionsData?.data?.pagination;
+
+  // Filter transactions by selected period
+  const transactions = filterTransactionsByPeriod(allTransactions, selectedPeriod);
 
   const handlePageChange = (page: number) => {
     if (page !== currentPage) setCurrentPage(page);
   };
 
   const TabButtons = () => (
-    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
+              isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
             }`}
           >
             {tab}
@@ -100,11 +138,21 @@ const Transactions = () => {
     console.log("Deposit action selected:", action, "=> filter:", normalized);
   };
 
+  // Handle period change from PageHeader
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1); // Reset to first page when period changes
+  };
+
   return (
     <>
-      <PageHeader title="Transactions - Stores" />
+      <PageHeader 
+        title="Transactions - Stores" 
+        onPeriodChange={handlePeriodChange}
+        defaultPeriod="All time"
+      />
 
-      <div className="p-5">
+      <div className="p-3 sm:p-4 md:p-5">
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
@@ -138,11 +186,13 @@ const Transactions = () => {
           </StatCardGrid>
         )}
 
-        <div className="mt-5 flex flex-row justify-between">
-          <div className="flex flex-row items-center gap-2">
-            <TabButtons />
+        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2 flex-wrap">
+            <div className="overflow-x-auto w-full sm:w-auto">
+              <TabButtons />
+            </div>
 
-            <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
+            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
               <div>Today</div>
               <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
             </div>
@@ -153,13 +203,13 @@ const Transactions = () => {
             <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
           </div>
 
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+              className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg

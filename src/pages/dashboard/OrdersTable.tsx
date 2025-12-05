@@ -24,6 +24,7 @@ interface OrdersTableProps {
   filterStatus?: string; // e.g., "All", "placed", "delivered"
   searchTerm?: string; // debounced term from parent
   orders?: Order[]; // Real orders data from API
+  onViewDetails?: (orderId: string | number) => void; // Handler for viewing order details
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({
@@ -33,6 +34,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   filterStatus = "All",
   searchTerm = "",
   orders = [],
+  onViewDetails,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -67,8 +69,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     };
   };
 
-  // Use real orders data or fallback to empty array
-  const normalizedOrders = orders.map(normalizeOrder);
+  // Memoize normalized orders to prevent infinite loops
+  const normalizedOrders = useMemo(() => {
+    return orders.map(normalizeOrder);
+  }, [orders]);
 
   // FILTER + SEARCH (case-insensitive includes on key fields)
   const filteredOrders = useMemo(() => {
@@ -99,11 +103,34 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   // when filter/search changes, reset select-all to reflect current view
   React.useEffect(() => {
     setSelectAll(false);
-    // optionally also clear selections not in the current view
-    setSelectedRows((prev) =>
-      prev.filter((id) => filteredOrders.some((o) => String(o.id) === id))
-    );
-  }, [filterStatus, searchTerm, filteredOrders]);
+    // Clear selections that are no longer in the filtered view
+    // We calculate filtered IDs here to avoid dependency on filteredOrders array reference
+    const term = searchTerm.toLowerCase();
+    const currentFilteredIds = normalizedOrders
+      .filter((o) => {
+        if (filterStatus === "All") {
+          return true;
+        }
+        return o.status?.toLowerCase() === filterStatus.toLowerCase();
+      })
+      .filter((o) => {
+        if (!term) return true;
+        const haystack = [
+          o.storeName,
+          o.buyerName,
+          o.productName,
+          o.price,
+          o.orderDate,
+          o.status,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(term);
+      })
+      .map((o) => String(o.id));
+    
+    setSelectedRows((prev) => prev.filter((id) => currentFilteredIds.includes(id)));
+  }, [filterStatus, searchTerm, normalizedOrders]);
 
   // Remove the problematic useEffect hooks that cause infinite loops
   // We'll handle the selection in the event handlers instead
@@ -245,15 +272,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   return (
-    <div className="border border-[#989898] rounded-2xl mt-5">
-      <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+    <div className="border border-[#989898] rounded-2xl mt-4 md:mt-5">
+      <div className="bg-white p-3 sm:p-4 md:p-5 rounded-t-2xl font-semibold text-sm sm:text-base md:text-[16px] border-b border-[#989898]">
         {title}
       </div>
-      <div className="bg-white rounded-b-2xl overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-b-2xl overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead className="bg-[#F2F2F2]">
             <tr>
-              <th className="text-center p-3 font-semibold text-[14px] w-12">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px] w-10 sm:w-12">
                 <input
                   type="checkbox"
                   checked={
@@ -262,26 +289,29 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     selectedRows.length === filteredOrders.length
                   }
                   onChange={handleSelectAll}
-                  className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
+                  className="w-4 h-4 sm:w-5 sm:h-5 border border-gray-300 rounded cursor-pointer"
                 />
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px]">
                 Store Name
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px]">
                 Buyer Name
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px]">
                 Product Name
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px]">
                 Price
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px] hidden md:table-cell">
                 Order Date
               </th>
-              <th className="text-center p-3 font-semibold text-[14px]">
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px]">
                 Status
+              </th>
+              <th className="text-center p-2 sm:p-3 font-semibold text-xs sm:text-sm md:text-[14px]">
+                Action
               </th>
             </tr>
           </thead>
@@ -292,38 +322,51 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 className={`border-t border-[#E5E5E5] transition-colors ${index === filteredOrders.length - 1 ? "" : "border-b"
                   }`}
               >
-                <td className="p-4 text-center">
+                <td className="p-2 sm:p-3 md:p-4 text-center">
                   <input
                     type="checkbox"
                     checked={selectedRows.includes(String(order.id))}
                     onChange={() => handleRowSelect(order.id)}
-                    className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
+                    className="w-4 h-4 sm:w-5 sm:h-5 border border-gray-300 rounded cursor-pointer"
                   />
                 </td>
-                <td className="p-4 text-[14px] text-black text-center">
-                  {order.storeName}
+                <td className="p-2 sm:p-3 md:p-4 text-xs sm:text-sm md:text-[14px] text-black text-center">
+                  <span className="truncate block max-w-[100px] sm:max-w-none">{order.storeName}</span>
                 </td>
-                <td className="p-4 text-[14px] text-black text-center">
-                  {order.buyerName}
+                <td className="p-2 sm:p-3 md:p-4 text-xs sm:text-sm md:text-[14px] text-black text-center">
+                  <span className="truncate block max-w-[100px] sm:max-w-none">{order.buyerName}</span>
                 </td>
-                <td className="p-4 text-[14px] text-black text-center">
-                  {order.productName}
+                <td className="p-2 sm:p-3 md:p-4 text-xs sm:text-sm md:text-[14px] text-black text-center">
+                  <span className="truncate block max-w-[120px] sm:max-w-[200px] md:max-w-none">{order.productName}</span>
                 </td>
-                <td className="p-4 text-[14px] font-semibold text-black text-center">
+                <td className="p-2 sm:p-3 md:p-4 text-xs sm:text-sm md:text-[14px] font-semibold text-black text-center">
                   {formatCurrency(order.price)}
                 </td>
-                <td className="p-4 text-[14px] text-black text-center">
+                <td className="p-2 sm:p-3 md:p-4 text-xs sm:text-sm md:text-[14px] text-black text-center hidden md:table-cell">
                   {order.orderDate}
                 </td>
-                <td className="p-4 text-center">
-                  <span
-                    className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
-                      order.status || "",
-                      order.status_color
-                    )}`}
+                <td className="p-2 sm:p-3 md:p-4 text-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <span
+                      className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-[11px] md:text-[12px] font-medium ${getStatusStyle(
+                        order.status || "",
+                        order.status_color
+                      )}`}
+                    >
+                      {formatStatusText(order.status || "")}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500 md:hidden">
+                      {order.orderDate}
+                    </span>
+                  </div>
+                </td>
+                <td className="p-2 sm:p-3 md:p-4 text-center">
+                  <button
+                    onClick={() => onViewDetails?.(order.id)}
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#E53E3E] text-white text-xs sm:text-sm rounded-lg hover:bg-red-600 transition-colors font-medium cursor-pointer"
                   >
-                    {formatStatusText(order.status || "")}
-                  </span>
+                    View Detail
+                  </button>
                 </td>
               </tr>
             ))}
@@ -331,10 +374,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             {filteredOrders.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="p-6 text-center text-sm text-gray-500"
                 >
-                  No orders found for “{searchTerm}”{" "}
+                  No orders found for "{searchTerm}"{" "}
                   {filterStatus !== "All" ? `in ${filterStatus}` : ""}.
                 </td>
               </tr>

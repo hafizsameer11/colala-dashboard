@@ -111,14 +111,14 @@ const StoreDetails: React.FC = () => {
   };
 
   const TabButtons = () => (
-    <div className="flex items-center border border-[#989898] space-x-0.5 rounded-lg p-2 w-fit bg-white">
+    <div className="flex items-center border border-[#989898] space-x-0.5 rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${isActive ? "px-6 bg-[#E53E3E] text-white" : "px-2 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${isActive ? "px-3 sm:px-5 md:px-6 bg-[#E53E3E] text-white" : "px-1.5 sm:px-2 text-black"
               }`}
           >
             {tab}
@@ -167,7 +167,7 @@ const StoreDetails: React.FC = () => {
         onPeriodChange={handlePeriodChange}
       />
 
-      <div className="bg-[#F5F5F5] min-h-screen p-5">
+      <div className="bg-[#F5F5F5] min-h-screen p-3 sm:p-4 md:p-5">
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>

@@ -36,15 +36,15 @@ const Balance = () => {
   const pagination = balanceData?.data?.pagination;
 
   const TabButtons = () => (
-    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer ${
-              isActive ? "px-8 bg-[#E53E3E] text-white" : "px-4 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
+              isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
             }`}
           >
             {tab}
@@ -75,11 +75,11 @@ const Balance = () => {
   return (
     <>
       <PageHeader title="Balance" />
-      <div className="p-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="p-3 sm:p-4 md:p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Total Shopping wallet balance */}
           <div
-            className="flex flex-col rounded-2xl p-6 min-w-[350px]"
+            className="flex flex-col rounded-2xl p-4 sm:p-5 md:p-6 w-full min-w-0"
             style={{
               boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
               background:
@@ -121,7 +121,7 @@ const Balance = () => {
 
           {/* Total Escrow wallet balance */}
           <div
-            className="flex flex-col rounded-2xl p-6 min-w-[350px]"
+            className="flex flex-col rounded-2xl p-4 sm:p-5 md:p-6 w-full min-w-0"
             style={{
               boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
               background:
@@ -163,7 +163,7 @@ const Balance = () => {
 
           {/* Total points balance */}
           <div
-            className="flex flex-col rounded-2xl p-6 min-w-[350px]"
+            className="flex flex-col rounded-2xl p-4 sm:p-5 md:p-6 w-full min-w-0"
             style={{
               boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
               background:
@@ -203,7 +203,7 @@ const Balance = () => {
             </div>
           </div>
         </div>
-        <div className="mt-5 flex flex-row justify-between">
+        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
           <div className="flex gap-2">
             <div>
               <TabButtons />
@@ -219,7 +219,7 @@ const Balance = () => {
                 placeholder="Search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
