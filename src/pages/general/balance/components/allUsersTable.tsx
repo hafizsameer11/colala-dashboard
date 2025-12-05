@@ -6,6 +6,7 @@ interface User {
   email: string;
   phone: string | null;
   role: string | null;
+  profile_picture: string | null;
   shopping_balance: number;
   reward_balance: number;
   referral_balance: number;
@@ -51,6 +52,19 @@ const UsersTable: React.FC<UsersTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+
+  // Helper function to construct proper image URL
+  const getImageUrl = (profilePicture: string | null | undefined) => {
+    if (!profilePicture) return "/assets/layout/admin.png";
+    
+    // If already a full URL, return as is
+    if (profilePicture.startsWith('http://') || profilePicture.startsWith('https://')) {
+      return profilePicture;
+    }
+    
+    // Otherwise, construct the full URL
+    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+  };
 
   // Tab filter
   const matchesTab = (u: User) => {
@@ -187,9 +201,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 </td>
                 <td className="p-3 text-left flex items-center justify-start gap-2">
                   <img
-                    src="/assets/layout/admin.png"
+                    src={getImageUrl(user.profile_picture)}
                     alt="User"
-                    className="w-8 h-8 rounded-full"
+                    className="w-8 h-8 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/assets/layout/admin.png";
+                    }}
                   />
                   <span>{user.full_name}</span>
                 </td>

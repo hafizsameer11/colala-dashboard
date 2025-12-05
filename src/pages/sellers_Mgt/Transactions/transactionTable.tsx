@@ -81,8 +81,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const visibleTxs = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
 
-    const statusOk = (t: Transaction) =>
-      statusFilter === "All" ? true : t.status === statusFilter;
+    const statusOk = (t: Transaction) => {
+      if (statusFilter === "All") return true;
+      const txStatus = t.status?.toLowerCase() || "";
+      const filterStatus = statusFilter.toLowerCase();
+      
+      // Handle status variations from API
+      if (filterStatus === "success") {
+        return txStatus === "success" || txStatus === "successful";
+      }
+      return txStatus === filterStatus;
+    };
 
     const typeOk = (t: Transaction) =>
       typeFilter === "All" ? true : t.type === typeFilter;
@@ -138,17 +147,38 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     });
   };
 
-  const getStatusStyle = (status: Transaction["status"]) => {
-    switch (status) {
-      case "Successful":
-        return "bg-[#0080001A] text-[#008000] border border-[#008000]";
-      case "Pending":
-        return "bg-[#AAAAAA1A] text-[#FFA500] border border-[#FFA500]";
-      case "Failed":
-        return "bg-[#FF00001A] text-[#FF0000] border border-[#FF0000]";
+  const getStatusStyle = (statusColor?: string) => {
+    switch (statusColor?.toLowerCase()) {
+      case "yellow":
+        return "bg-yellow-50 text-yellow-700 border border-yellow-300";
+      case "green":
+        return "bg-green-50 text-green-700 border border-green-300";
+      case "blue":
+        return "bg-blue-50 text-blue-700 border border-blue-300";
+      case "red":
+        return "bg-red-50 text-red-700 border border-red-300";
       default:
         return "bg-gray-100 text-gray-600 border border-gray-300";
     }
+  };
+
+  const getStatusDisplayText = (status: string) => {
+    // Normalize status text for display
+    const normalized = status.toLowerCase();
+    if (normalized === "successful" || normalized === "success") {
+      return "Successful";
+    }
+    if (normalized === "pending") {
+      return "Pending";
+    }
+    if (normalized === "completed") {
+      return "Completed";
+    }
+    if (normalized === "failed") {
+      return "Failed";
+    }
+    // Capitalize first letter for other statuses
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
   };
 
   // Show loading state
@@ -237,10 +267,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   <td className="p-4 text-center">
                     <span
                       className={`px-3 py-1 rounded-md text-[12px] font-medium ${getStatusStyle(
-                        transaction.status
+                        transaction.status_color
                       )}`}
                     >
-                      {transaction.status}
+                      {getStatusDisplayText(transaction.status)}
                     </span>
                   </td>
                   <td className="p-4 text-center">

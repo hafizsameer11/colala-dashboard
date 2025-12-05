@@ -248,11 +248,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                         </div>
                       </div>
                     )}
-                    <div>
-                      <button className="bg-[#E53E3E] text-white rounded-full cursor-pointer px-6 py-1">
-                        Delete Review
-                      </button>
-                    </div>
+                    {/* Delete button removed - delete functionality is handled in the table */}
                   </div>
                 </div>
               </div>

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductReviews, getStoreReviews, deleteProductReview, deleteStoreReview } from "../../../../utils/queries/users";
+import { useToast } from "../../../../contexts/ToastContext";
 import ProductRatingModal from "./productrating";
 import StoreRatingModal from "./storerating";
+import images from "../../../../constants/images";
 
 type RowType = "Store" | "Product";
 
@@ -22,6 +24,10 @@ interface RatingReview {
   store?: {
     id: number;
     store_name: string;
+  };
+  product?: {
+    id: number;
+    name: string;
   };
   comment?: string;
   images?: string[];
@@ -44,20 +50,68 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
   const [showProductRatingModal, setShowProductRatingModal] = useState(false);
   const [showStoreRatingModal, setShowStoreRatingModal] = useState(false);
   const [selectedReview, setSelectedReview] = useState<RatingReview | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Fetch product reviews
   const { data: productReviewsData, isLoading: productLoading, error: productError } = useQuery({
-    queryKey: ['productReviews', searchQuery],
-    queryFn: () => getProductReviews(1, searchQuery),
+    queryKey: ['productReviews', currentPage, searchQuery, tabFilter],
+    queryFn: () => getProductReviews(currentPage, searchQuery),
     enabled: tabFilter === "All" || tabFilter === "Product",
   });
 
   // Fetch store reviews
   const { data: storeReviewsData, isLoading: storeLoading, error: storeError } = useQuery({
-    queryKey: ['storeReviews', searchQuery],
-    queryFn: () => getStoreReviews(1, searchQuery),
+    queryKey: ['storeReviews', currentPage, searchQuery, tabFilter],
+    queryFn: () => getStoreReviews(currentPage, searchQuery),
     enabled: tabFilter === "All" || tabFilter === "Store",
   });
+
+  // Delete product review mutation
+  const deleteProductReviewMutation = useMutation({
+    mutationFn: (reviewId: number | string) => deleteProductReview(reviewId),
+    onSuccess: () => {
+      showToast('Product review deleted successfully', 'success');
+      setShowDeleteConfirm(false);
+      setReviewToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['productReviews'] });
+      queryClient.invalidateQueries({ queryKey: ['ratingsReviewsSummary'] });
+    },
+    onError: (error: any) => {
+      console.error('Delete product review error:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete product review';
+      showToast(errorMessage, 'error');
+      setShowDeleteConfirm(false);
+      setReviewToDelete(null);
+    },
+  });
+
+  // Delete store review mutation
+  const deleteStoreReviewMutation = useMutation({
+    mutationFn: (reviewId: number | string) => deleteStoreReview(reviewId),
+    onSuccess: () => {
+      showToast('Store review deleted successfully', 'success');
+      setShowDeleteConfirm(false);
+      setReviewToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['storeReviews'] });
+      queryClient.invalidateQueries({ queryKey: ['ratingsReviewsSummary'] });
+    },
+    onError: (error: any) => {
+      console.error('Delete store review error:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete store review';
+      showToast(errorMessage, 'error');
+      setShowDeleteConfirm(false);
+      setReviewToDelete(null);
+    },
+  });
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tabFilter, searchQuery]);
 
   // Debug logging
   console.log('Product Reviews Debug:', productReviewsData);
@@ -65,17 +119,7 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
 
   // Transform API data to RatingReview format
   const ratingReviews: RatingReview[] = useMemo(() => {
-    const productReviews = productReviewsData?.data?.reviews?.map((review: {
-      id: number;
-      rating: number;
-      comment: string;
-      images: string[];
-      user: { id: number; full_name: string; email: string };
-      store: { id: number; store_name: string };
-      product?: { id: number; name: string };
-      created_at: string;
-      formatted_date: string;
-    }) => ({
+    const productReviews = productReviewsData?.data?.reviews?.map((review: any) => ({
       id: `product-${review.id}`,
       type: "Product" as RowType,
       storeName: review.product?.name || "Unknown Product",
@@ -85,20 +129,12 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
       other: "View Reviews",
       user: review.user,
       store: review.store,
+      product: review.product,
       comment: review.comment,
       images: review.images || [],
     })) || [];
 
-    const storeReviews = storeReviewsData?.data?.reviews?.map((review: {
-      id: number;
-      rating: number;
-      comment: string;
-      images: string[];
-      user: { id: number; full_name: string; email: string };
-      store: { id: number; store_name: string };
-      created_at: string;
-      formatted_date: string;
-    }) => ({
+    const storeReviews = storeReviewsData?.data?.reviews?.map((review: any) => ({
       id: `store-${review.id}`,
       type: "Store" as RowType,
       storeName: review.store?.store_name || "Unknown Store",
@@ -115,19 +151,40 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
     return [...productReviews, ...storeReviews];
   }, [productReviewsData, storeReviewsData]);
 
-  // Filtered rows based on tab + search (case-insensitive)
+  // Get pagination data (use product or store pagination based on active filter)
+  const pagination = useMemo(() => {
+    if (tabFilter === "Product" && productReviewsData?.data?.pagination) {
+      return productReviewsData.data.pagination;
+    }
+    if (tabFilter === "Store" && storeReviewsData?.data?.pagination) {
+      return storeReviewsData.data.pagination;
+    }
+    // For "All", use product pagination as default
+    return productReviewsData?.data?.pagination || storeReviewsData?.data?.pagination || null;
+  }, [tabFilter, productReviewsData, storeReviewsData]);
+
+  // Filtered rows based on tab (search is handled by API)
+  // For "All" tab, we combine both product and store reviews
+  // For specific tabs, API already filters by type, so we just use the data as-is
   const filteredRows = useMemo(() => {
-    const q = (searchQuery || "").toLowerCase();
-    return ratingReviews.filter((row) => {
-      const matchTab = tabFilter === "All" ? true : row.type === tabFilter;
-      const matchSearch =
-        !q ||
-        row.storeName.toLowerCase().includes(q) ||
-        String(row.noOfReviews).includes(q) ||
-        String(row.averageRating).includes(q) ||
-        row.lastRating.toLowerCase().includes(q);
-      return matchTab && matchSearch;
-    });
+    if (tabFilter === "All") {
+      // When showing "All", combine both types (search is done client-side for cross-type search)
+      const q = (searchQuery || "").toLowerCase();
+      if (q) {
+        return ratingReviews.filter((row) => {
+          return (
+            row.storeName.toLowerCase().includes(q) ||
+            String(row.noOfReviews).includes(q) ||
+            String(row.averageRating).includes(q) ||
+            row.lastRating.toLowerCase().includes(q)
+          );
+        });
+      }
+      return ratingReviews;
+    } else {
+      // For specific tabs, API already filters by type and search, so use data as-is
+      return ratingReviews;
+    }
   }, [tabFilter, searchQuery, ratingReviews]);
 
   // When filters change, clear selection so it stays consistent
@@ -155,24 +212,26 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
     }
   };
 
-  const handleDeleteReview = async (reviewId: string) => {
-    if (window.confirm('Are you sure you want to delete this review?')) {
-      try {
-        if (reviewId.startsWith('product-')) {
-          const id = reviewId.replace('product-', '');
-          await deleteProductReview(id);
-        } else if (reviewId.startsWith('store-')) {
-          const id = reviewId.replace('store-', '');
-          await deleteStoreReview(id);
-        }
-        // Refresh the data by invalidating queries
-        // Note: In a real app, you'd use queryClient.invalidateQueries here
-        window.location.reload(); // Temporary solution
-      } catch (error) {
-        console.error('Error deleting review:', error);
-        alert('Failed to delete review. Please try again.');
-      }
+  const handleDeleteReview = (reviewId: string) => {
+    setReviewToDelete(reviewId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!reviewToDelete) return;
+    
+    if (reviewToDelete.startsWith('product-')) {
+      const id = reviewToDelete.replace('product-', '');
+      deleteProductReviewMutation.mutate(id);
+    } else if (reviewToDelete.startsWith('store-')) {
+      const id = reviewToDelete.replace('store-', '');
+      deleteStoreReviewMutation.mutate(id);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setReviewToDelete(null);
   };
 
   const handleSelectAll = () => {
@@ -280,15 +339,17 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
                     <div className="flex gap-2 justify-center">
                       <button
                         onClick={() => handleViewReviews(ratingReview)}
-                        className="px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F] text-sm"
+                        disabled={deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending}
+                        className="px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         View
                       </button>
                       <button
                         onClick={() => handleDeleteReview(ratingReview.id)}
-                        className="px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-red-600 text-white hover:bg-red-700 text-sm"
+                        disabled={deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending}
+                        className="px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer bg-red-600 text-white hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Delete
+                        {deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </td>
@@ -298,6 +359,94 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {((currentPage - 1) * pagination.per_page) + 1} to {Math.min(currentPage * pagination.per_page, pagination.total)} of {pagination.total} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            {/* Page numbers */}
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, currentPage - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                    currentPage === pageNum
+                      ? 'bg-[#E53E3E] text-white'
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= pagination.last_page}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <img src={images.error} alt="Warning" className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Review</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this review? This will permanently remove the review and all its associated data.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending}
+                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${
+                  deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:bg-red-600'
+                }`}
+              >
+                {deleteProductReviewMutation.isPending || deleteStoreReviewMutation.isPending
+                  ? 'Deleting...'
+                  : 'Delete Review'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Product Rating Modal */}
       <ProductRatingModal

@@ -112,8 +112,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
     per_page: 20,
     total: 0
   });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [currentPage, setCurrentPage] = useState(1); // Reserved for future pagination implementation
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch disputes data
   const fetchDisputes = useCallback(async () => {
@@ -133,7 +132,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       if (activeTab !== "All") {
         const statusMap: Record<string, string> = {
           "Pending": "open",
-          "On Hold": "open", // Map "On Hold" to "open" status from API
+          "On Hold": "on_hold", // Map "On Hold" to "on_hold" status from API
           "Resolved": "resolved"
         };
         params.status = statusMap[activeTab];
@@ -147,7 +146,12 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       const response = await getDisputesList(params);
       if (response.status === 'success') {
         setDisputes(response.data.disputes || []);
-        setPagination(response.data.pagination || pagination);
+        setPagination(response.data.pagination || {
+          current_page: 1,
+          last_page: 1,
+          per_page: 20,
+          total: 0
+        });
       }
     } catch (error: unknown) {
       console.error('Error fetching disputes:', error);
@@ -155,7 +159,12 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [activeTab, search, currentPage, pagination]);
+  }, [activeTab, search, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search]);
 
   // Fetch disputes when component mounts or dependencies change
   useEffect(() => {

@@ -1510,6 +1510,7 @@ export const getProductReviews = async (page: number = 1, search?: string) => {
   try {
     const params = new URLSearchParams({
       page: page.toString(),
+      per_page: '20',
       ...(search && { search }),
     });
     const response = await apiCall(`${API_ENDPOINTS.RATINGS_REVIEWS.Products.List}?${params}`, 'GET', undefined, token);
@@ -1531,6 +1532,7 @@ export const getStoreReviews = async (page: number = 1, search?: string) => {
   try {
     const params = new URLSearchParams({
       page: page.toString(),
+      per_page: '20',
       ...(search && { search }),
     });
     const response = await apiCall(`${API_ENDPOINTS.RATINGS_REVIEWS.Stores.List}?${params}`, 'GET', undefined, token);

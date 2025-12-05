@@ -24,6 +24,8 @@ interface Store {
 const LeaderBoard = () => {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'weekly' | 'monthly' | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const navigate = useNavigate();
 
   // Fetch leaderboard data
@@ -69,10 +71,21 @@ const LeaderBoard = () => {
     });
   }, [debouncedSearch, currentPeriodData]);
 
-  // --- Select All should apply to the currently visible (filtered) users ---
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedPeriod, debouncedSearch]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // --- Select All should apply to the currently visible (paginated) users ---
   const filteredIds = useMemo(
-    () => filteredUsers.map((u: Store) => u.store_id),
-    [filteredUsers]
+    () => paginatedUsers.map((u: Store) => u.store_id),
+    [paginatedUsers]
   );
   const allVisibleSelected =
     filteredIds.length > 0 &&
@@ -296,7 +309,7 @@ const LeaderBoard = () => {
                     </thead>
 
                     <tbody className="divide-y divide-gray-200">
-                      {filteredUsers.map((store: Store, index: number) => (
+                      {paginatedUsers.map((store: Store, index: number) => (
                         <tr key={store.store_id} className="hover:bg-gray-50">
                           <td className="p-2 sm:p-3 md:p-4">
                             <input
@@ -322,7 +335,7 @@ const LeaderBoard = () => {
                             </div>
                           </td>
                           <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
-                            {index + 1}
+                            {startIndex + index + 1}
                           </td>
                           <td className="p-2 sm:p-3 md:p-4 font-bold text-xs sm:text-sm text-gray-900">
                             {store.total_points?.toLocaleString() || 0}
@@ -347,10 +360,10 @@ const LeaderBoard = () => {
                         </tr>
                       ))}
 
-                      {filteredUsers.length === 0 && (
+                      {paginatedUsers.length === 0 && (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="p-6 text-center text-sm text-gray-500"
                           >
                             No stores found
@@ -361,6 +374,52 @@ const LeaderBoard = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} results
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                        if (pageNum > totalPages) return null;
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-md ${
+                              currentPage === pageNum
+                                ? 'bg-[#E53E3E] text-white'
+                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>
