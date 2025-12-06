@@ -2,7 +2,7 @@ import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminPromotionDetails } from "../../../utils/queries/users";
-import { API_DOMAIN } from "../../../config/apiConfig";
+import { STORAGE_DOMAIN } from "../../../config/apiConfig";
 
 interface Promotion {
   id: string;
@@ -124,17 +124,29 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
               <div>
                 <img
                     className="rounded-t-2xl w-full h-48 object-cover"
-                    src={promotionDetails.data.product_info?.product_images?.[0]?.path ? 
-                      `${API_DOMAIN}/storage/${promotionDetails.data.product_info.product_images[0].path}` : 
-                      images.laptop}
+                    src={(() => {
+                      // Try multiple possible image paths from API response
+                      const imagePath = promotionDetails.data.product_info?.product_images?.[0]?.path || 
+                                       promotionDetails.data.product_info?.product?.images?.[0]?.path ||
+                                       promotionDetails.data.product_info?.product?.images?.[0]?.gcs_uri;
+                      if (imagePath) {
+                        return imagePath.startsWith('http') 
+                          ? imagePath 
+                          : `${STORAGE_DOMAIN}/${imagePath}`;
+                      }
+                      return images.laptop;
+                    })()}
                     alt="Product"
+                    onError={(e) => {
+                      e.currentTarget.src = images.laptop;
+                    }}
                 />
               </div>
               <div className="flex flex-row justify-between bg-[#F2F2F2] p-3">
                 <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-[#E53E3E] rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">
-                        {promotionDetails.data.store_info?.store_name?.charAt(0) || "S"}
+                        {promotionDetails.data.store_info?.store_name?.charAt(0)?.toUpperCase() || "S"}
                       </span>
                     </div>
                     <div className="text-[#B91919]">
@@ -146,7 +158,7 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
                     <img className="w-4 h-4" src={images.start1} alt="Rating" />
                   </div>
                   <div className="text-[#00000080]">
-                    {promotionDetails.data.product_info?.product?.average_rating || "N/A"}
+                    {promotionDetails.data.product_info?.product?.average_rating || "0"}
                   </div>
                 </div>
               </div>
@@ -155,38 +167,55 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
                   {promotionDetails.data.product_info?.product?.name || "No Product Name"}
                 </div>
                 <div className="flex flex-row gap-2">
-                  <div className="text-[#E53E3E] font-bold text-xl">
-                    ₦{parseFloat(promotionDetails.data.product_info?.product?.discount_price || "0").toLocaleString()}
-                  </div>
-                  {promotionDetails.data.product_info?.product?.discount_price && (
-                    <div className="text-[#00000080] line-through text-xl">
+                  {promotionDetails.data.product_info?.product?.discount_price ? (
+                    <>
+                      <div className="text-[#E53E3E] font-bold text-xl">
+                        ₦{parseFloat(promotionDetails.data.product_info.product.discount_price).toLocaleString()}
+                      </div>
+                      <div className="text-[#00000080] line-through text-xl">
+                        ₦{parseFloat(promotionDetails.data.product_info.product.price || "0").toLocaleString()}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-[#E53E3E] font-bold text-xl">
                       ₦{parseFloat(promotionDetails.data.product_info?.product?.price || "0").toLocaleString()}
                     </div>
                   )}
                 </div>
-                <div className="flex flex-row gap-2">
-                  <div className="flex items-center bg-[#FFA500] text-white rounded-md">
-                    <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
-                      {/* Right-side tilted shape */}
-                      <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-                      {/* Cart Icon */}
-                      <img className="w-5 h-5" src={images.cart1} alt="Cart" />
+                <div className="flex flex-row gap-2 flex-wrap">
+                  {promotionDetails.data.product_info?.product?.tag1 && (
+                    <div className="flex items-center bg-[#FFA500] text-white rounded-md">
+                      <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
+                        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                        <img className="w-5 h-5" src={images.cart1} alt="Cart" />
+                      </div>
+                      <span className="text-sm font-medium pr-3">
+                        {promotionDetails.data.product_info.product.tag1}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium pr-3">
-                      Free delivery
-                    </span>
-                  </div>
-                  <div className="flex items-center bg-[#FFA500] text-white rounded-md">
-                    <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
-                      {/* Right-side tilted shape */}
-                      <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
-                      {/* Cart Icon */}
-                      <img className="w-5 h-5" src={images.cart1} alt="Cart" />
+                  )}
+                  {promotionDetails.data.product_info?.product?.tag2 && (
+                    <div className="flex items-center bg-[#FFA500] text-white rounded-md">
+                      <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
+                        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                        <img className="w-5 h-5" src={images.cart1} alt="Cart" />
+                      </div>
+                      <span className="text-sm font-medium pr-3">
+                        {promotionDetails.data.product_info.product.tag2}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium pr-3">
-                      20% Off in bulk
-                    </span>
-                  </div>
+                  )}
+                  {promotionDetails.data.product_info?.product?.tag3 && (
+                    <div className="flex items-center bg-[#FFA500] text-white rounded-md">
+                      <div className="relative w-15 h-10 bg-[#FF3300] overflow-hidden rounded-md flex items-center px-3">
+                        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#FFA500] [clip-path:polygon(50%_0,100%_0,100%_100%,0_100%)]"></div>
+                        <img className="w-5 h-5" src={images.cart1} alt="Cart" />
+                      </div>
+                      <span className="text-sm font-medium pr-3">
+                        {promotionDetails.data.product_info.product.tag3}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-row items-center">
                   <div>
@@ -205,19 +234,23 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
             <div className="mt-5 flex flex-col gap-1">
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-2xl rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Reach</div>
-                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.reach?.toLocaleString() || "0"}</div>
+                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.reach?.toLocaleString() || promotionDetails.data.promotion_info?.reach?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Impressions</div>
-                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.impressions?.toLocaleString() || "0"}</div>
+                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.impressions?.toLocaleString() || promotionDetails.data.promotion_info?.impressions?.toLocaleString() || "0"}</div>
+              </div>
+              <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
+                <div className="text-[#00000080] text-xl">Clicks</div>
+                <div className="text-xl font-semibold">{promotionDetails.data.performance_metrics?.clicks?.toLocaleString() || promotionDetails.data.promotion_info?.clicks?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Cost/Click</div>
-                <div className="text-xl font-semibold">₦{promotionDetails.data.performance_metrics?.cpc || "0"}</div>
+                <div className="text-xl font-semibold">₦{promotionDetails.data.performance_metrics?.cpc || promotionDetails.data.promotion_info?.cpc || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Amount Spent</div>
-                <div className="text-xl font-semibold">₦{promotionDetails.data.performance_metrics?.amount_spent?.toLocaleString() || "0"}</div>
+                <div className="text-xl font-semibold">₦{promotionDetails.data.performance_metrics?.amount_spent?.toLocaleString() || promotionDetails.data.promotion_info?.total_amount?.toLocaleString() || "0"}</div>
               </div>
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-t-lg rounded-b-lg">
                 <div className="text-[#00000080] text-xl">Date Created</div>

@@ -169,158 +169,247 @@ const PromotionsTable: React.FC<PromotionsTableProps> = ({
   };
 
   return (
-    <div className="border border-[#989898] rounded-2xl mt-5 overflow-x-auto">
-      <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
+    <div className="border border-[#989898] rounded-2xl mt-5">
+      <div className="bg-white p-3 sm:p-4 md:p-5 rounded-t-2xl font-semibold text-sm sm:text-base md:text-[16px] border-b border-[#989898]">
         {title}
       </div>
       <div className="bg-white rounded-b-2xl overflow-hidden">
-        <table className="w-full min-w-[800px]">
-          <thead className="bg-[#F2F2F2]">
-            <tr>
-              <th className="text-center p-3 font-normal text-[14px] w-12">
-                <input
-                  type="checkbox"
-                  checked={selectAll && visiblePromotions.length > 0}
-                  onChange={handleSelectAll}
-                  className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
-                />
-              </th>
-              <th className="text-left p-3 font-normal text-[14px]">
-                Store Name
-              </th>
-              <th className="text-center p-3 font-normal text-[14px]">
-                Product
-              </th>
-              <th className="text-center p-3 font-normal text-[14px]">
-                Amount
-              </th>
-              <th className="text-center p-3 font-normal text-[14px]">
-                Duration
-              </th>
-              <th className="text-center p-3 font-normal text-[14px]">Date</th>
-              <th className="text-center p-3 font-normal text-[14px]">
-                Status
-              </th>
-              <th className="text-center p-3 font-normal text-[14px]">Other</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center">
-                  <div className="flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
-                  </div>
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center text-red-500">
-                  <p className="text-sm">Error loading promotions</p>
-                </td>
-              </tr>
-            ) : visiblePromotions.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="p-6 text-center text-gray-500">
-                  No promotions found.
-                </td>
-              </tr>
-            ) : (
-              visiblePromotions.map((promotion, index) => (
-                <tr
-                  key={promotion.id}
-                  className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
-                    index === visiblePromotions.length - 1 ? "" : "border-b"
-                  }`}
-                >
-                  <td className="p-4 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(promotion.id)}
-                      onChange={() => handleRowSelect(promotion.id)}
-                      className="w-5 h-5 border border-gray-300 rounded cursor-pointer mx-auto"
-                    />
-                  </td>
-                  <td className="p-4 text-[14px] text-black text-left">
-                    {promotion.storeName}
-                  </td>
-                  <td className="p-4 text-[14px] text-black text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                        <img
-                          src={promotion.productImage || "/assets/layout/itable.png"}
-                          alt={promotion.product}
-                          className="w-full h-full object-cover rounded-lg"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.parentElement!.classList.add(
-                              "bg-gray-400"
-                            );
-                          }}
+        {isLoading ? (
+          <div className="p-8 flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-500">Failed to load promotions.</div>
+        ) : (
+          <>
+            {/* Desktop/Tablet Table View - with horizontal scroll */}
+            <div className="hidden sm:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
+              <div className="inline-block min-w-full align-middle">
+                <table className="w-full bg-white rounded-lg shadow-sm min-w-[900px]">
+                  <thead className="bg-[#F2F2F2] sticky top-0 z-10">
+                    <tr>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] w-12 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectAll && visiblePromotions.length > 0}
+                          onChange={handleSelectAll}
+                          className="w-4 h-4 md:w-5 md:h-5 border border-gray-300 rounded cursor-pointer"
                         />
+                      </th>
+                      <th className="text-left p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">
+                        Store Name
+                      </th>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">
+                        Product
+                      </th>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">
+                        Amount
+                      </th>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">
+                        Duration
+                      </th>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">Date</th>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">
+                        Status
+                      </th>
+                      <th className="text-center p-2 md:p-3 font-normal text-xs md:text-[14px] whitespace-nowrap">Other</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visiblePromotions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-6 text-center text-gray-500">
+                          No promotions found.
+                        </td>
+                      </tr>
+                    ) : (
+                      visiblePromotions.map((promotion, index) => (
+                        <tr
+                          key={promotion.id}
+                          className={`border-t border-[#E5E5E5] transition-colors hover:bg-gray-50 ${
+                            index === visiblePromotions.length - 1 ? "" : "border-b"
+                          }`}
+                        >
+                          <td className="p-2 md:p-4 text-center whitespace-nowrap">
+                            <input
+                              type="checkbox"
+                              checked={selectedRows.includes(promotion.id)}
+                              onChange={() => handleRowSelect(promotion.id)}
+                              className="w-4 h-4 md:w-5 md:h-5 border border-gray-300 rounded cursor-pointer mx-auto"
+                            />
+                          </td>
+                          <td className="p-2 md:p-4 text-xs md:text-[14px] text-black text-left whitespace-nowrap">
+                            <span className="truncate block max-w-[150px]">{promotion.storeName}</span>
+                          </td>
+                          <td className="p-2 md:p-4 text-xs md:text-[14px] text-black text-left whitespace-nowrap">
+                            <div className="flex items-center gap-2 md:gap-3">
+                              <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <img
+                                  src={promotion.productImage || "/assets/layout/itable.png"}
+                                  alt={promotion.product}
+                                  className="w-full h-full object-cover rounded-lg"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                    e.currentTarget.parentElement!.classList.add(
+                                      "bg-gray-400"
+                                    );
+                                  }}
+                                />
+                              </div>
+                              <span className="text-left truncate max-w-[120px] md:max-w-none">{promotion.product}</span>
+                            </div>
+                          </td>
+                          <td className="p-2 md:p-4 text-xs md:text-[14px] text-black font-semibold text-center whitespace-nowrap">
+                            {promotion.amount}
+                          </td>
+                          <td className="p-2 md:p-4 text-xs md:text-[14px] text-black text-center whitespace-nowrap">
+                            {promotion.duration}
+                          </td>
+                          <td className="p-2 md:p-4 text-xs md:text-[14px] font-semibold text-black text-center whitespace-nowrap">
+                            {promotion.date}
+                          </td>
+                          <td className="p-2 md:p-4 text-center whitespace-nowrap">
+                            <span
+                              className={`px-2 md:px-3 py-1 rounded-md text-[10px] md:text-[12px] font-medium ${
+                                promotion.status === "running"
+                                  ? "bg-green-100 text-green-800"
+                                  : promotion.status === "paused"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : promotion.status === "scheduled"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {promotion.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="p-2 md:p-4 text-center whitespace-nowrap">
+                            <button
+                              onClick={() => handleModalOpen(promotion)}
+                              className="bg-[#E53E3E] text-white px-3 md:px-6 py-1.5 md:py-2.5 rounded-lg text-xs md:text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer whitespace-nowrap"
+                            >
+                              View Details
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="sm:hidden">
+              {visiblePromotions.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  No promotions found.
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {visiblePromotions.map((promotion) => (
+                    <div
+                      key={promotion.id}
+                      className="p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.includes(promotion.id)}
+                            onChange={() => handleRowSelect(promotion.id)}
+                            className="w-5 h-5 mt-1 flex-shrink-0"
+                          />
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img
+                              src={promotion.productImage || "/assets/layout/itable.png"}
+                              alt={promotion.product}
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                e.currentTarget.parentElement!.classList.add(
+                                  "bg-gray-400"
+                                );
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 text-sm truncate">{promotion.product}</h3>
+                            <p className="text-xs text-gray-500 truncate">{promotion.storeName}</p>
+                          </div>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-md text-[10px] font-medium flex-shrink-0 ml-2 ${
+                            promotion.status === "running"
+                              ? "bg-green-100 text-green-800"
+                              : promotion.status === "paused"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : promotion.status === "scheduled"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {promotion.status.toUpperCase()}
+                        </span>
                       </div>
-                      <span className="text-left">{promotion.product}</span>
+
+                      <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                        <div>
+                          <span className="text-gray-500 text-xs">Amount:</span>
+                          <p className="text-gray-900 font-semibold">{promotion.amount}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs">Duration:</span>
+                          <p className="text-gray-900 font-medium">{promotion.duration}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-500 text-xs">Date:</span>
+                          <p className="text-gray-900 font-semibold">{promotion.date}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleModalOpen(promotion)}
+                        className="w-full bg-[#E53E3E] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#D32F2F] transition-colors"
+                      >
+                        View Details
+                      </button>
                     </div>
-                  </td>
-                  <td className="p-4 text-[14px] text-black font-semibold text-center">
-                    {promotion.amount}
-                  </td>
-                  <td className="p-4 text-[14px] text-black text-center">
-                    {promotion.duration}
-                  </td>
-                  <td className="p-4 text-[14px] font-semibold text-black text-center">
-                    {promotion.date}
-                  </td>
-                  <td className="p-4 text-center">
-                    <span
-                      className={`px-3 py-1 rounded-md text-[12px] font-medium ${
-                        promotion.status === "running"
-                          ? "bg-green-100 text-green-800"
-                          : promotion.status === "paused"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : promotion.status === "scheduled"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {promotion.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="p-4 text-center">
-                    <button
-                      onClick={() => handleModalOpen(promotion)}
-                      className="bg-[#E53E3E] text-white px-6 py-2.5 rounded-lg text-[15px] font-medium hover:bg-[#D32F2F] transition-colors cursor-pointer"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Pagination */}
       {pagination && pagination.last_page > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <button
-            onClick={() => onPageChange && onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <span className="px-4 py-2">
-            Page {currentPage} of {pagination.last_page}
-          </span>
-          <button
-            onClick={() => onPageChange && onPageChange(currentPage + 1)}
-            disabled={currentPage === pagination.last_page}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
+        <div className="bg-white border-t border-gray-200 px-3 sm:px-4 md:px-6 py-3 md:py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
+              Showing {((currentPage - 1) * (pagination.per_page || 20)) + 1} to {Math.min(currentPage * (pagination.per_page || 20), pagination.total)} of {pagination.total} results
+            </div>
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap justify-center">
+              <button
+                onClick={() => onPageChange && onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                Page {currentPage} of {pagination.last_page}
+              </span>
+              <button
+                onClick={() => onPageChange && onPageChange(currentPage + 1)}
+                disabled={currentPage === pagination.last_page}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

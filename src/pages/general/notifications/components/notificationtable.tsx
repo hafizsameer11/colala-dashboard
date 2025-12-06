@@ -2,7 +2,8 @@ import React, { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../constants/images";
 import NewNotification from "./newnotification";
-import { createNotification } from "../../../../utils/mutations/notifications";
+import { createNotification, updateNotificationStatus, deleteNotification } from "../../../../utils/mutations/notifications";
+import { useToast } from "../../../../contexts/ToastContext";
 
 interface NotificationData {
   id: number;
@@ -47,19 +48,56 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
 }) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [isNewNotificationModalOpen, setIsNewNotificationModalOpen] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<NotificationData | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingStatus, setEditingStatus] = useState<{ id: number; status: string } | null>(null);
   
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   
   const createNotificationMutation = useMutation({
     mutationFn: createNotification,
     onSuccess: () => {
-      // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       setIsNewNotificationModalOpen(false);
+      showToast('Notification created successfully', 'success');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating notification:', error);
-      // You could add a toast notification here
+      const errorMessage = error?.data?.message || error?.message || 'Failed to create notification';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => 
+      updateNotificationStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      setEditingStatus(null);
+      showToast('Notification status updated successfully', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Error updating notification status:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update notification status';
+      showToast(errorMessage, 'error');
+      setEditingStatus(null);
+    },
+  });
+
+  const deleteNotificationMutation = useMutation({
+    mutationFn: (id: number) => deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      setShowDeleteConfirm(false);
+      setNotificationToDelete(null);
+      showToast('Notification deleted successfully', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Error deleting notification:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete notification';
+      showToast(errorMessage, 'error');
+      setShowDeleteConfirm(false);
     },
   });
 
@@ -122,30 +160,83 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
     setIsNewNotificationModalOpen(true);
   };
 
+  const handleEditStatus = (notification: NotificationData) => {
+    setEditingStatus({ id: notification.id, status: notification.status });
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    if (editingStatus) {
+      updateStatusMutation.mutate({ id: editingStatus.id, status: newStatus });
+    }
+  };
+
+  const handleDeleteClick = (notification: NotificationData) => {
+    setNotificationToDelete(notification);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (notificationToDelete) {
+      deleteNotificationMutation.mutate(notificationToDelete.id);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setNotificationToDelete(null);
+  };
+
+  const getStatusOptions = (currentStatus: string) => {
+    const allStatuses = ['draft', 'scheduled', 'sent', 'failed'];
+    return allStatuses.filter(status => status !== currentStatus);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return 'bg-green-100 text-green-800';
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const handleNewNotificationSubmit = (data: any) => {
     // Convert the form data to FormData for the API
     const formData = new FormData();
-    formData.append('title', data.subject);
+    formData.append('title', data.title);
     formData.append('message', data.message);
-    formData.append('link', data.link);
     
-    // Parse audience data - it comes as comma-separated string from the modal
-    const audienceUserIds = data.audience ? data.audience.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id)) : [];
-    
-    if (audienceUserIds.length > 0) {
-      // Check if all buyers or all sellers are selected
-      // This is a simplified check - in a real app you'd want to compare with actual buyer/seller lists
-      formData.append('audience_type', 'specific');
-      // Append each user ID separately for FormData
-      audienceUserIds.forEach((userId: number) => {
-        formData.append('target_user_ids[]', userId.toString());
-      });
-    } else {
-      formData.append('audience_type', 'all');
+    if (data.link && data.link.trim()) {
+      formData.append('link', data.link.trim());
     }
     
+    // Handle audience_type
+    formData.append('audience_type', data.audience_type || 'all');
+    
+    // If specific audience, append target_user_ids
+    if (data.audience_type === 'specific' && data.target_user_ids && data.target_user_ids.length > 0) {
+      data.target_user_ids.forEach((userId: number) => {
+        formData.append('target_user_ids[]', userId.toString());
+      });
+    }
+    
+    // Handle attachment
     if (data.attachment) {
       formData.append('attachment', data.attachment);
+    }
+    
+    // Handle scheduled_for (optional)
+    if (data.scheduled_for && data.scheduled_for.trim()) {
+      // Convert datetime-local format to backend expected format
+      const scheduledDate = new Date(data.scheduled_for);
+      const formattedDate = scheduledDate.toISOString().slice(0, 19).replace('T', ' ');
+      formData.append('scheduled_for', formattedDate);
     }
     
     createNotificationMutation.mutate(formData);
@@ -183,10 +274,16 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
 
   return (
     <div className="mt-5 bg-white border border-[#E5E7EB] rounded-lg">
-      <div className="bg-[#F9FAFB] px-6 py-4 border-b border-[#E5E7EB] rounded-t-lg">
+      <div className="bg-[#F9FAFB] px-6 py-4 border-b border-[#E5E7EB] rounded-t-lg flex items-center justify-between">
         <h3 className="text-base font-medium text-[#111827]">
           Latest Notifications
         </h3>
+        <button 
+          onClick={handleSendNew}
+          className="bg-[#E53E3E] text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer hover:bg-[#d32f2f] text-sm"
+        >
+          Send New Notification
+        </button>
       </div>
 
       <div className="overflow-x-auto">
@@ -264,24 +361,52 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
                     </span>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={handleSendNew}
-                        className="bg-[#E53E3E] text-white px-4 py-3 rounded-lg font-medium  transition-colors cursor-pointer"
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="relative">
+                        {editingStatus?.id === notification.id ? (
+                          <select
+                            value={editingStatus.status}
+                            onChange={(e) => handleStatusChange(e.target.value)}
+                            onBlur={() => setEditingStatus(null)}
+                            className="px-3 py-2 border border-[#989898] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] cursor-pointer"
+                            autoFocus
+                          >
+                            <option value={editingStatus.status}>{editingStatus.status}</option>
+                            {getStatusOptions(editingStatus.status).map((status) => (
+                              <option key={status} value={status}>
+                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <>
+                            <span className={`px-3 py-1.5 rounded-md text-xs font-medium ${getStatusColor(notification.status)}`}>
+                              {notification.status.charAt(0).toUpperCase() + notification.status.slice(1)}
+                            </span>
+                            <button
+                              onClick={() => handleEditStatus(notification)}
+                              className="ml-2 border border-[#989898] rounded-xl p-2 hover:bg-gray-50 transition-colors"
+                              title="Edit Status"
+                            >
+                              <img
+                                src={images.PencilSimpleLine}
+                                alt="Edit Status"
+                                className="w-5 h-5 cursor-pointer"
+                              />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteClick(notification)}
+                        className="border border-[#989898] rounded-xl p-2 hover:bg-red-50 transition-colors"
+                        title="Delete Notification"
+                        disabled={deleteNotificationMutation.isPending}
                       >
-                        Send New
-                      </button>
-                      <button className="border border-[#989898] rounded-xl p-2 ">
-                        <img
-                          src={images.PencilSimpleLine}
-                          alt="Edit "
-                          className="w-7 h-7 cursor-pointer"
-                        />
-                      </button>
-                      <button className="border border-[#989898] rounded-xl p-2 ">
                         <img
                           src={images.TrashSimple}
-                          className="w-7 h-7 cursor-pointer"
+                          alt="Delete"
+                          className="w-5 h-5 cursor-pointer"
                         />
                       </button>
                     </div>
@@ -328,6 +453,46 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
         onSubmit={handleNewNotificationSubmit}
         isLoading={createNotificationMutation.isPending}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && notificationToDelete && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Notification</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete the notification <span className="font-semibold">"{notificationToDelete.title}"</span>? This will permanently delete the notification and all associated data.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={deleteNotificationMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleteNotificationMutation.isPending}
+                className={`flex-1 px-4 py-2 bg-red-500 text-white rounded-lg transition-colors ${
+                  deleteNotificationMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
+                }`}
+              >
+                {deleteNotificationMutation.isPending ? 'Deleting...' : 'Delete Notification'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

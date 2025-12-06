@@ -25,9 +25,34 @@ const PlansModal: React.FC<PlansModalProps> = ({
   subscriptionDetails,
   error,
 }) => {
+  // Extract plan name from subscription details (handle both nested and flat structures)
+  // API response structure: { status: "success", data: { plan_info: { plan_name: "Basic" } } }
+  const planInfo = subscriptionDetails?.data?.plan_info || subscriptionDetails?.plan_info;
+  const rawPlanName = planInfo?.plan_name;
+  
+  // Normalize plan name to match tab names (capitalize first letter, handle case variations)
+  const normalizedPlanName = rawPlanName 
+    ? rawPlanName.charAt(0).toUpperCase() + rawPlanName.slice(1).toLowerCase()
+    : null;
+
+  // Determine which tabs to show - only show the matching plan tab when viewing subscription details
+  const allTabs: Array<"Basic" | "Standard" | "Ultra"> = ["Basic", "Standard", "Ultra"];
+  const visibleTabs = subscriptionDetails && normalizedPlanName
+    ? allTabs.filter(tab => tab.toLowerCase() === normalizedPlanName.toLowerCase())
+    : allTabs;
+
+  // Use the plan name as the active tab when viewing subscription details
+  const activeTab = subscriptionDetails && normalizedPlanName && visibleTabs.length > 0
+    ? (normalizedPlanName as "Basic" | "Standard" | "Ultra")
+    : initialTab;
+
   // Debug logging for subscription details
   console.log('PlansModal - Initial Tab:', initialTab);
   console.log('PlansModal - Subscription Details:', subscriptionDetails);
+  console.log('PlansModal - Raw Plan Name:', rawPlanName);
+  console.log('PlansModal - Normalized Plan Name:', normalizedPlanName);
+  console.log('PlansModal - Visible Tabs:', visibleTabs);
+  console.log('PlansModal - Active Tab:', activeTab);
   console.log('PlansModal - Error:', error);
 
   if (!isOpen) return null;
@@ -72,37 +97,28 @@ const PlansModal: React.FC<PlansModalProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Plan Type Selector */}
-                    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
-                      <button
-                        className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer px-8 ${
-                          initialTab === "Basic" ? "bg-[#E53E3E] text-white" : "text-black"
-                        }`}
-                      >
-                        Basic
-                      </button>
-                      <button
-                        className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer px-8 ${
-                          initialTab === "Standard" ? "bg-[#E53E3E] text-white" : "text-black"
-                        }`}
-                      >
-                        Standard
-                      </button>
-                      <button
-                        className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer px-8 ${
-                          initialTab === "Ultra" ? "bg-[#E53E3E] text-white" : "text-black"
-                        }`}
-                      >
-                        Ultra
-                      </button>
-                    </div>
+                    {/* Plan Type Selector - Only show matching plan tab */}
+                    {visibleTabs.length > 0 && (
+                      <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-2 w-fit bg-white">
+                        {visibleTabs.map((tab) => (
+                          <button
+                            key={tab}
+                            className={`py-2 text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer px-8 ${
+                              activeTab === tab ? "bg-[#E53E3E] text-white" : "text-black"
+                            }`}
+                          >
+                            {tab}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Plan Name */}
                     <div className="flex flex-col gap-3">
                       <label className="text-xl font-medium">Plan Name</label>
                       <input
                         type="text"
-                        value={subscriptionDetails.plan_info?.plan_name || ""}
+                        value={planInfo?.plan_name || ""}
                         readOnly
                         className="w-full rounded-2xl border border-[#989898] p-5 bg-gray-50"
                       />
@@ -113,7 +129,7 @@ const PlansModal: React.FC<PlansModalProps> = ({
                       <label className="text-xl font-medium">Monthly Price</label>
                       <input
                         type="text"
-                        value={`${subscriptionDetails.plan_info?.currency || ""} ${subscriptionDetails.plan_info?.price || ""}`}
+                        value={`${planInfo?.currency || ""} ${planInfo?.price || ""}`}
                         readOnly
                         className="w-full rounded-2xl border border-[#989898] p-5 bg-gray-50"
                       />
@@ -123,7 +139,7 @@ const PlansModal: React.FC<PlansModalProps> = ({
                     <div className="flex flex-col gap-3">
                       <label className="text-xl font-medium">Plan Benefits</label>
                       <div className="space-y-3">
-                        {subscriptionDetails.plan_info?.features && Object.values(subscriptionDetails.plan_info.features).map((feature, index) => (
+                        {planInfo?.features && Object.values(planInfo.features).map((feature, index) => (
                           <input
                             key={index}
                             type="text"
@@ -140,7 +156,7 @@ const PlansModal: React.FC<PlansModalProps> = ({
                       <label className="text-xl font-medium">Subscription Status</label>
                       <div className="flex items-center justify-between p-5 border border-[#989898] rounded-2xl bg-gray-50">
                         <span className="text-lg font-medium">
-                          Status: <span className="font-bold text-[#E53E3E]">{subscriptionDetails.subscription_info?.status || "Unknown"}</span>
+                          Status: <span className="font-bold text-[#E53E3E]">{(subscriptionDetails?.data?.subscription_info || subscriptionDetails?.subscription_info)?.status || "Unknown"}</span>
                         </span>
                       </div>
                     </div>
@@ -150,27 +166,36 @@ const PlansModal: React.FC<PlansModalProps> = ({
                       <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium text-gray-600">Start Date</label>
                         <div className="p-3 border border-[#989898] rounded-lg bg-gray-50">
-                          {subscriptionDetails.subscription_info?.start_date ? 
-                            new Date(subscriptionDetails.subscription_info.start_date).toLocaleDateString() : "N/A"}
+                          {(() => {
+                            const subInfo = subscriptionDetails?.data?.subscription_info || subscriptionDetails?.subscription_info;
+                            return subInfo?.start_date ? 
+                              new Date(subInfo.start_date).toLocaleDateString() : "N/A";
+                          })()}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium text-gray-600">End Date</label>
                         <div className="p-3 border border-[#989898] rounded-lg bg-gray-50">
-                          {subscriptionDetails.subscription_info?.end_date ? 
-                            new Date(subscriptionDetails.subscription_info.end_date).toLocaleDateString() : "N/A"}
+                          {(() => {
+                            const subInfo = subscriptionDetails?.data?.subscription_info || subscriptionDetails?.subscription_info;
+                            return subInfo?.end_date ? 
+                              new Date(subInfo.end_date).toLocaleDateString() : "N/A";
+                          })()}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium text-gray-600">Days Remaining</label>
                         <div className="p-3 border border-[#989898] rounded-lg bg-gray-50">
-                          {subscriptionDetails.days_remaining ? Math.ceil(subscriptionDetails.days_remaining) : "N/A"} days
+                          {(() => {
+                            const daysRemaining = subscriptionDetails?.data?.days_remaining || subscriptionDetails?.days_remaining;
+                            return daysRemaining ? Math.ceil(daysRemaining) : "N/A";
+                          })()} days
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium text-gray-600">Payment Status</label>
                         <div className="p-3 border border-[#989898] rounded-lg bg-gray-50">
-                          {subscriptionDetails.subscription_info?.payment_status || "N/A"}
+                          {(subscriptionDetails?.data?.subscription_info || subscriptionDetails?.subscription_info)?.payment_status || "N/A"}
                         </div>
                       </div>
                     </div>
@@ -181,15 +206,15 @@ const PlansModal: React.FC<PlansModalProps> = ({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Store Name:</span>
-                          <span className="font-medium">{subscriptionDetails.store_info?.store_name || "N/A"}</span>
+                          <span className="font-medium">{(subscriptionDetails?.data?.store_info || subscriptionDetails?.store_info)?.store_name || "N/A"}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Owner:</span>
-                          <span className="font-medium">{subscriptionDetails.store_info?.owner_name || "N/A"}</span>
+                          <span className="font-medium">{(subscriptionDetails?.data?.store_info || subscriptionDetails?.store_info)?.owner_name || "N/A"}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Email:</span>
-                          <span className="font-medium">{subscriptionDetails.store_info?.owner_email || "N/A"}</span>
+                          <span className="font-medium">{(subscriptionDetails?.data?.store_info || subscriptionDetails?.store_info)?.owner_email || "N/A"}</span>
                         </div>
                       </div>
                     </div>

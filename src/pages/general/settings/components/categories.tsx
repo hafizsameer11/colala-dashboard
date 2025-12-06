@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "../../../../utils/queries/users";
 import CategoryModal from "./categoryModal";
@@ -33,14 +33,17 @@ const Categories: React.FC<CategoriesProps> = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 15;
 
   const queryClient = useQueryClient();
 
-  // Fetch categories
+  // Fetch categories with pagination
   const { data: categoriesData, isLoading, error } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories,
+    queryKey: ['categories', currentPage],
+    queryFn: () => getCategories(currentPage, perPage),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    keepPreviousData: true,
   });
 
   // Create category mutation
@@ -49,6 +52,8 @@ const Categories: React.FC<CategoriesProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setIsCategoryModalOpen(false);
+      // Reset to first page after creating
+      setCurrentPage(1);
     },
     onError: (error) => {
       console.error('Error creating category:', error);
@@ -75,6 +80,10 @@ const Categories: React.FC<CategoriesProps> = ({
     mutationFn: deleteCategory,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      // If current page becomes empty, go to previous page
+      if (filteredCategories.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     },
     onError: (error) => {
       console.error('Error deleting category:', error);
@@ -82,7 +91,15 @@ const Categories: React.FC<CategoriesProps> = ({
     },
   });
 
-  const categories: Category[] = categoriesData?.data || [];
+  // Extract categories and pagination from API response
+  // Handle both paginated and non-paginated responses
+  const categories: Category[] = categoriesData?.data?.data || categoriesData?.data?.categories || categoriesData?.data || [];
+  const pagination = categoriesData?.data?.pagination || {
+    current_page: currentPage,
+    last_page: 1,
+    per_page: perPage,
+    total: categories.length,
+  };
 
   const toggleCategory = (categoryId: number) => {
     setExpandedCategories(prev =>
@@ -143,10 +160,36 @@ const Categories: React.FC<CategoriesProps> = ({
   };
 
   // Filter categories based on search term
-  const filteredCategories = categories.filter(category =>
-    !searchTerm.trim() ||
-    category.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = useMemo(() => {
+    return categories.filter(category =>
+      !searchTerm.trim() ||
+      category.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [categories, searchTerm]);
+
+  // Client-side pagination for filtered results (if API doesn't support search)
+  // If API supports search, we can remove this and use server-side pagination
+  const paginatedCategories = useMemo(() => {
+    // If we have server-side pagination, use filteredCategories directly
+    // Otherwise, paginate client-side
+    const startIndex = (currentPage - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    return filteredCategories.slice(startIndex, endIndex);
+  }, [filteredCategories, currentPage, perPage]);
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(filteredCategories.length / perPage);
+  const displayPagination = {
+    current_page: currentPage,
+    last_page: totalPages,
+    per_page: perPage,
+    total: filteredCategories.length,
+  };
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const CustomHeader = () => (
     <div className="flex items-center justify-between p-6 bg-white border-b border-t border-[#787878]">
@@ -243,15 +286,16 @@ const Categories: React.FC<CategoriesProps> = ({
           {/* Categories Tab Content */}
           {activeTab === "Categories" && (
             <>
-              {/* Search Bar */}
-              <div className="mb-6">
-                <div className="relative">
+              {/* Top Section: Search and Add Button */}
+              <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-auto">
                   <input
                     type="text"
                     placeholder="Search categories..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="pl-12 pr-6 py-3 border border-gray-300 rounded-lg text-sm w-[300px] focus:outline-none bg-white shadow-sm placeholder-gray-400"
+                    className="pl-12 pr-6 py-3 border border-gray-300 rounded-lg text-sm w-full sm:w-[300px] focus:outline-none bg-white shadow-sm placeholder-gray-400"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
@@ -269,6 +313,14 @@ const Categories: React.FC<CategoriesProps> = ({
                     </svg>
                   </div>
                 </div>
+                
+                {/* Add New Category Button */}
+                <button
+                  onClick={handleAddNewCategory}
+                  className="px-6 py-3.5 bg-[#E53E3E] text-white font-medium rounded-lg hover:bg-[#D32F2F] cursor-pointer transition-colors whitespace-nowrap w-full sm:w-auto"
+                >
+                  Add New Category
+                </button>
               </div>
 
               {isLoading ? (
@@ -280,7 +332,7 @@ const Categories: React.FC<CategoriesProps> = ({
                   <div className="text-lg text-red-600">Error loading categories. Please try again.</div>
                 </div>
               ) : (
-                filteredCategories.map((category) => (
+                paginatedCategories.map((category) => (
                   <div key={category.id} className="space-y-0">
                     {/* Main Category */}
                     <div className="bg-white rounded-2xl border border-gray-200 px-6 py-4 shadow-sm hover:shadow-md transition-shadow">
@@ -458,15 +510,35 @@ const Categories: React.FC<CategoriesProps> = ({
                 ))
               )}
 
-              {/* Bottom Action Buttons */}
-              <div className="flex items-center justify-between pt-6">
-                <button
-                  onClick={handleAddNewCategory}
-                  className="px-6 py-3.5 bg-[#E53E3E] text-white font-medium rounded-lg hover:bg-[#D32F2F] cursor-pointer transition-colors"
-                >
-                  Add New Category
-                </button>
-              </div>
+              {/* Pagination */}
+              {displayPagination && displayPagination.last_page > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-gray-200">
+                  <div className="text-sm text-gray-700 text-center sm:text-left">
+                    Showing {((displayPagination.current_page - 1) * displayPagination.per_page) + 1} to{' '}
+                    {Math.min(displayPagination.current_page * displayPagination.per_page, displayPagination.total)} of{' '}
+                    {displayPagination.total} results
+                  </div>
+                  <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap justify-center">
+                    <button
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <span className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                      Page {displayPagination.current_page} of {displayPagination.last_page}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage >= displayPagination.last_page}
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

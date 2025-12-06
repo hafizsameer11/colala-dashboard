@@ -49,15 +49,22 @@ const AllUsers = () => {
   const tabs: Tab[] = ["All", "Buyers", "Sellers"];
 
   const TabButtons = () => (
-    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
+    <div 
+      className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1 sm:p-1.5 md:p-2 w-full sm:w-fit bg-white overflow-x-auto"
+      style={{ 
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
+      }}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
-              isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 ${
+              isActive ? "px-2 sm:px-4 md:px-6 lg:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
             }`}
           >
             {tab}
@@ -166,17 +173,17 @@ const AllUsers = () => {
 
             {/* Date Range Info */}
             {statsData.data.date_range && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-1">Data Period</h3>
-                    <p className="text-sm text-gray-600">
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-1">Data Period</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">
                       From {new Date(statsData.data.date_range.from).toLocaleDateString()} to {new Date(statsData.data.date_range.to).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right flex-shrink-0">
                     <div className="text-xs text-gray-500 mb-1">Total Days</div>
-                    <div className="text-lg font-semibold text-gray-800">
+                    <div className="text-base sm:text-lg font-semibold text-gray-800">
                       {Math.ceil((new Date(statsData.data.date_range.to).getTime() - new Date(statsData.data.date_range.from).getTime()) / (1000 * 60 * 60 * 24))} days
                     </div>
                   </div>
@@ -189,42 +196,46 @@ const AllUsers = () => {
             <p className="text-sm">Error loading user statistics</p>
           </div>
         )}
-        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
-            <div className="overflow-x-auto">
+        {/* Filters and Actions Row - Improved Mobile Layout */}
+        <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:gap-4">
+          {/* Top Row: Tabs and Bulk Actions */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full">
+            <div className="w-full sm:w-auto overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <TabButtons />
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
-            <div className="flex flex-col sm:flex-row gap-2">
+          
+          {/* Bottom Row: Add Buttons and Search */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <button 
                 onClick={handleAddNewBuyer}
-                className="bg-black text-white cursor-pointer px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl hover:bg-gray-800 transition-colors duration-200 text-sm sm:text-base whitespace-nowrap"
+                className="bg-black text-white cursor-pointer px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl hover:bg-gray-800 transition-colors duration-200 text-sm sm:text-base whitespace-nowrap w-full sm:w-auto"
               >
                 Add New Buyer
               </button>
               <button 
                 onClick={handleAddNewSeller}
-                className="bg-[#E53E3E] text-white cursor-pointer px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl hover:bg-red-600 transition-colors duration-200 text-sm sm:text-base whitespace-nowrap"
+                className="bg-[#E53E3E] text-white cursor-pointer px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl hover:bg-red-600 transition-colors duration-200 text-sm sm:text-base whitespace-nowrap w-full sm:w-auto"
               >
                 Add New Seller
               </button>
             </div>
-            <div className="relative w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto sm:flex-shrink-0">
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search users..."
                 value={searchInput}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(e: any) => setSearchInput(e.target.value)}
-                className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+                className="pl-10 sm:pl-12 pr-4 sm:pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-xs sm:text-sm md:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
               />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
                 <svg
-                  className="h-5 w-5 text-gray-400"
+                  className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

@@ -78,15 +78,22 @@ const Promotions = () => {
   };
 
   const TabButtons = () => (
-    <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
+    <div 
+      className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1 sm:p-1.5 md:p-2 w-full sm:w-fit bg-white overflow-x-auto" 
+      style={{ 
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
+      }}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${
-              isActive ? "px-4 sm:px-6 md:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 ${
+              isActive ? "px-2 sm:px-4 md:px-6 lg:px-8 bg-[#E53E3E] text-white" : "px-2 sm:px-3 md:px-4 text-black"
             }`}
           >
             {tab}
@@ -105,7 +112,7 @@ const Promotions = () => {
     <div>
       <PageHeader title="Latest Promotions" />
       <div className="p-3 sm:p-4 md:p-5">
-        {/* Stat cards ... unchanged */}
+        {/* Stat cards - responsive grid */}
         <StatCardGrid columns={3}>
           <StatCard
             icon={images.ChartLineUp}
@@ -127,33 +134,36 @@ const Promotions = () => {
           />
         </StatCardGrid>
 
-        {/* Filters row */}
-        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
-            <div className="overflow-x-auto w-full sm:w-auto">
+        {/* Filters row - improved mobile layout */}
+        <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:gap-4">
+          {/* Top row: Tabs and Period dropdown */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full">
+            <div className="w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
+            <div className="flex flex-row items-center gap-2 sm:gap-3 md:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 md:py-3.5 bg-white cursor-pointer text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto justify-between sm:justify-start">
               <div>Today</div>
               <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+                <img className="w-3 h-3 sm:w-4 sm:h-4" src={images.dropdown} alt="" />
               </div>
             </div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <div className="w-full sm:w-auto">
+              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            </div>
           </div>
 
-          {/* Search (debounced) */}
-          <div className="relative w-full sm:w-auto">
+          {/* Bottom row: Search */}
+          <div className="relative w-full">
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search promotions..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-12 pr-6 py-2.5 sm:py-3.5 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[280px] md:w-[363px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
+              className="pl-10 sm:pl-12 pr-4 sm:pr-6 py-2 sm:py-2.5 md:py-3.5 border border-[#00000080] rounded-lg text-xs sm:text-sm md:text-[15px] w-full focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
             />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

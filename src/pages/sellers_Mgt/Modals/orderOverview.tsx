@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateOrderStatus } from "../../../utils/queries/users";
+import { useToast } from "../../../contexts/ToastContext";
 import images from "../../../constants/images";
 
 interface OrderOverviewProps {
@@ -6,21 +9,107 @@ interface OrderOverviewProps {
 }
 
 // StatusDropdown component
-const StatusDropdown: React.FC = () => {
+const StatusDropdown: React.FC<{ orderData?: any }> = ({ orderData }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState("Change Status");
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Reverse mapping from backend status to UI display
+  const reverseStatusMapping: Record<string, string> = {
+    "pending": "Pending",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "out_for_delivery": "Out for delivery",
+    "delivered": "Delivered",
+    "completed": "Order Completed",
+    "disputed": "Disputed",
+    "cancelled": "Cancelled",
+    // Legacy support for old status values
+    "placed": "Pending", // Map old "placed" to "Pending"
+  };
+
+  // Status mapping from UI display to backend API values
+  // API accepts: pending, processing, shipped, out_for_delivery, delivered, completed, disputed, cancelled
+  const statusMapping: Record<string, string> = {
+    "Pending": "pending",
+    "Processing": "processing",
+    "Shipped": "shipped",
+    "Out for delivery": "out_for_delivery",
+    "Delivered": "delivered",
+    "Order Completed": "completed",
+    "Disputed": "disputed",
+    "Cancelled": "cancelled",
+  };
 
   const statusOptions = [
-    "Order Placed",
+    "Pending",
+    "Processing",
+    "Shipped",
     "Out for delivery",
     "Delivered",
-    "Funds in Escrow Wallet",
     "Order Completed",
+    "Disputed",
+    "Cancelled",
   ];
 
+  // Get current status display text
+  const currentStatus = orderData?.status 
+    ? (reverseStatusMapping[orderData.status] || orderData.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()))
+    : "Change Status";
+
+  // Update order status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: (statusData: { status: string; notes?: string; delivery_code?: string }) => {
+      // Get the store order ID (this is what the API expects for /admin/orders/{storeOrderId}/status)
+      const storeOrderId = orderData?.id || 
+                           orderData?.store_order_id || 
+                           orderData?.storeOrderId ||
+                           orderData?.order_id;
+      if (!storeOrderId) {
+        console.error('Order data:', orderData);
+        throw new Error('Store Order ID not found in order data');
+      }
+      return updateOrderStatus(storeOrderId, statusData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminOrderDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerOrders'] });
+      showToast('Order status updated successfully', 'success');
+      setIsOpen(false);
+    },
+    onError: (error: any) => {
+      console.error('Failed to update order status:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update order status';
+      showToast(errorMessage, 'error');
+    },
+  });
+
   const handleStatusSelect = (status: string) => {
-    setSelectedStatus(status);
+    const backendStatus = statusMapping[status];
+    if (!backendStatus) {
+      showToast('Invalid status selected', 'error');
+      return;
+    }
+
+    // Get the store order ID (this is what the API expects)
+    const storeOrderId = orderData?.id || 
+                         orderData?.store_order_id || 
+                         orderData?.storeOrderId ||
+                         orderData?.order_id;
+    
+    if (!storeOrderId) {
+      console.error('Order data:', orderData);
+      showToast('Order ID not found. Please refresh and try again.', 'error');
+      return;
+    }
+
     setIsOpen(false);
+
+    // Call the API to update the order status
+    updateStatusMutation.mutate({
+      status: backendStatus,
+    });
   };
 
   return (
@@ -29,7 +118,7 @@ const StatusDropdown: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-white border border-[#989898] rounded-lg px-4 py-4 text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:border-blue-500 cursor-pointer"
       >
-        <span className="text-[#00000080]">{selectedStatus}</span>
+        <span className="text-[#00000080]">{currentStatus}</span>
         <svg
           className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -160,7 +249,7 @@ const OrderOverview: React.FC<OrderOverviewProps> = ({ orderData }) => {
           <span className="font-semibold text-xl">Change Order Status</span>
         </div>
         <div className="mt-4">
-          <StatusDropdown />
+          <StatusDropdown orderData={orderData} />
         </div>
 
         {/* Timeline */}

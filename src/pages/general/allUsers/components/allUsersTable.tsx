@@ -298,128 +298,217 @@ const UsersTable: React.FC<UsersTableProps> = ({
 
   return (
     <div className="border border-gray-300 rounded-2xl mt-5">
-      <div className="bg-white p-5 rounded-t-2xl font-semibold text-lg border-b border-gray-300">
+      <div className="bg-white p-3 sm:p-4 md:p-5 rounded-t-2xl font-semibold text-sm sm:text-base md:text-lg border-b border-gray-300">
         {title}
       </div>
       <div className="bg-white rounded-b-2xl overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-[#F2F2F2]">
-            <tr className="text-center">
-              <th className="p-3 text-left font-semibold">
-                <input
-                  type="checkbox"
-                  checked={
-                    selectAll &&
-                    filteredUsers.length > 0 &&
-                    selectedRows.length === filteredUsers.length
-                  }
-                  onChange={handleSelectAll}
-                  className="w-5 h-5"
-                />
-              </th>
-              <th className="p-3 text-left font-normal">User Name</th>
-              <th className="p-3 text-center font-normal">Email</th>
-              <th className="p-3 text-center font-normal">Phone No</th>
-              <th className="p-3 text-center font-normal">Wallet Balance</th>
-              <th className="p-3 text-center font-normal">User type</th>
-              <th className="p-3 text-center font-normal">Other</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((user) => (
-              <tr
-                key={user.id}
-                className="text-center border-t border-gray-200"
-              >
-                <td className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(user.id)}
-                    onChange={() => handleRowSelect(user.id)}
-                    className="w-5 h-5"
-                  />
-                </td>
-                <td className="p-3 text-left flex items-center justify-start gap-2">
-                  <img
-                    src={getImageUrl(user.userImage || null)}
-                    alt="User"
-                    className="w-8 h-8 rounded-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/assets/layout/admin.png";
-                    }}
-                  />
-                  <span>{user.userName}</span>
-                </td>
-                <td className="p-3">{user.email}</td>
-                <td className="p-3">{user.phoneNumber}</td>
-                <td className="p-3 font-bold">{user.walletBalance}</td>
-                <td className="p-3">{user.userType}</td>
-                <td className="p-3 flex flex-row items-center gap-2">
-                  <div>
+        {/* Desktop/Tablet Table View - with horizontal scroll */}
+        <div className="hidden sm:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
+          <div className="inline-block min-w-full align-middle">
+            <table className="w-full min-w-[900px]">
+              <thead className="bg-[#F2F2F2] sticky top-0 z-10">
+                <tr className="text-center">
+                  <th className="p-2 md:p-3 text-left font-semibold text-xs md:text-sm whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectAll &&
+                        filteredUsers.length > 0 &&
+                        selectedRows.length === filteredUsers.length
+                      }
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 md:w-5 md:h-5 cursor-pointer"
+                    />
+                  </th>
+                  <th className="p-2 md:p-3 text-left font-normal text-xs md:text-sm whitespace-nowrap">User Name</th>
+                  <th className="p-2 md:p-3 text-center font-normal text-xs md:text-sm whitespace-nowrap">Email</th>
+                  <th className="p-2 md:p-3 text-center font-normal text-xs md:text-sm whitespace-nowrap">Phone No</th>
+                  <th className="p-2 md:p-3 text-center font-normal text-xs md:text-sm whitespace-nowrap">Wallet Balance</th>
+                  <th className="p-2 md:p-3 text-center font-normal text-xs md:text-sm whitespace-nowrap">User type</th>
+                  <th className="p-2 md:p-3 text-center font-normal text-xs md:text-sm whitespace-nowrap">Other</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="text-center border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="p-2 md:p-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(user.id)}
+                        onChange={() => handleRowSelect(user.id)}
+                        className="w-4 h-4 md:w-5 md:h-5 cursor-pointer"
+                      />
+                    </td>
+                    <td className="p-2 md:p-3 text-left">
+                      <div className="flex items-center justify-start gap-2">
+                        <img
+                          src={getImageUrl(user.userImage || null)}
+                          alt="User"
+                          className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = "/assets/layout/admin.png";
+                          }}
+                        />
+                        <span className="text-xs md:text-sm truncate max-w-[150px]">{user.userName}</span>
+                      </div>
+                    </td>
+                    <td className="p-2 md:p-3 text-xs md:text-sm">
+                      <span className="truncate block max-w-[200px] mx-auto">{user.email}</span>
+                    </td>
+                    <td className="p-2 md:p-3 text-xs md:text-sm whitespace-nowrap">{user.phoneNumber}</td>
+                    <td className="p-2 md:p-3 font-bold text-xs md:text-sm whitespace-nowrap">{user.walletBalance}</td>
+                    <td className="p-2 md:p-3 text-xs md:text-sm whitespace-nowrap">{user.userType}</td>
+                    <td className="p-2 md:p-3">
+                      <div className="flex flex-row items-center justify-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => handleCustomerDetails(user)}
+                          className="bg-[#E53E3E] hover:bg-red-600 text-white px-2 md:px-4 py-1.5 md:py-2 rounded-lg cursor-pointer text-xs md:text-sm whitespace-nowrap"
+                        >
+                          User Details
+                        </button>
+                        <DotsDropdown
+                          user={user}
+                          onActionSelect={(action) =>
+                            console.log(`Action ${action} for user ${user.id}`)
+                          }
+                          onUserDeleted={(userId) => {
+                            setSelectedRows(prev => prev.filter(id => id !== userId));
+                          }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="p-6 text-center text-xs md:text-sm text-gray-500"
+                    >
+                      No users found{searchTerm ? ` for "${searchTerm}"` : ""}
+                      {filterType !== "All" ? ` in ${filterType}` : ""}.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="sm:hidden">
+          {filteredUsers.length === 0 ? (
+            <div className="p-6 text-center text-sm text-gray-500">
+              No users found{searchTerm ? ` for "${searchTerm}"` : ""}
+              {filterType !== "All" ? ` in ${filterType}` : ""}.
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {filteredUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(user.id)}
+                        onChange={() => handleRowSelect(user.id)}
+                        className="w-5 h-5 mt-1 flex-shrink-0 cursor-pointer"
+                      />
+                      <img
+                        src={getImageUrl(user.userImage || null)}
+                        alt="User"
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = "/assets/layout/admin.png";
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm truncate">{user.userName}</h3>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 ml-2">
+                      <span className={`px-2 py-1 rounded-md text-[10px] font-medium ${
+                        user.userType === "Seller" 
+                          ? "bg-blue-100 text-blue-800" 
+                          : "bg-green-100 text-green-800"
+                      }`}>
+                        {user.userType}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                    <div>
+                      <span className="text-gray-500 text-xs">Phone:</span>
+                      <p className="text-gray-900 font-medium text-xs">{user.phoneNumber}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-xs">Balance:</span>
+                      <p className="text-gray-900 font-semibold text-xs">{user.walletBalance}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
                     <button
                       onClick={() => handleCustomerDetails(user)}
-                      className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer"
+                      className="flex-1 bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer text-sm font-medium"
                     >
                       User Details
                     </button>
+                    <div className="flex items-center">
+                      <DotsDropdown
+                        user={user}
+                        onActionSelect={(action) =>
+                          console.log(`Action ${action} for user ${user.id}`)
+                        }
+                        onUserDeleted={(userId) => {
+                          setSelectedRows(prev => prev.filter(id => id !== userId));
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <DotsDropdown
-                      user={user}
-                      onActionSelect={(action) =>
-                        console.log(`Action ${action} for user ${user.id}`)
-                      }
-                      onUserDeleted={(userId) => {
-                        // Remove from selected rows if it was selected
-                        setSelectedRows(prev => prev.filter(id => id !== userId));
-                        // The query will be invalidated by the mutation in DotsDropdown
-                      }}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {filteredUsers.length === 0 && (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="p-6 text-center text-sm text-gray-500"
-                >
-                  No users found{searchTerm ? ` for "${searchTerm}"` : ""}
-                  {filterType !== "All" ? ` in ${filterType}` : ""}.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         
         {/* Pagination */}
         {usersData?.data?.pagination && (
-          <div className="flex justify-between items-center p-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              Showing {((currentPage - 1) * (usersData.data.pagination.per_page || 20)) + 1} to{" "}
-              {Math.min(currentPage * (usersData.data.pagination.per_page || 20), usersData.data.pagination.total || 0)} of{" "}
-              {usersData.data.pagination.total || 0} results
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onPageChange?.(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="px-3 py-1 text-sm">
-                Page {currentPage} of {usersData.data.pagination.last_page || 1}
-              </span>
-              <button
-                onClick={() => onPageChange?.(currentPage + 1)}
-                disabled={currentPage >= (usersData.data.pagination.last_page || 1)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
+          <div className="bg-white border-t border-gray-200 px-3 sm:px-4 md:px-6 py-3 md:py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
+                Showing {((currentPage - 1) * (usersData.data.pagination.per_page || 20)) + 1} to{" "}
+                {Math.min(currentPage * (usersData.data.pagination.per_page || 20), usersData.data.pagination.total || 0)} of{" "}
+                {usersData.data.pagination.total || 0} results
+              </div>
+              <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap justify-center">
+                <button
+                  onClick={() => onPageChange?.(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                  Page {currentPage} of {usersData.data.pagination.last_page || 1}
+                </span>
+                <button
+                  onClick={() => onPageChange?.(currentPage + 1)}
+                  disabled={currentPage >= (usersData.data.pagination.last_page || 1)}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -10,6 +10,13 @@ const API_ENDPOINTS = {
     Login: API_DOMAIN + "/auth/login", // POST
   },
 
+  // ADMIN ORDERS
+  ADMIN_ORDERS: {
+    List: API_DOMAIN + "/admin/orders", // GET
+    Details: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/details`, // GET
+    UpdateStatus: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/status`, // PUT
+  },
+
   // ADMIN DASHBOARD & OVERVIEW
   DASHBOARD: {
     Dashboard: API_DOMAIN + "/admin/dashboard", // GET

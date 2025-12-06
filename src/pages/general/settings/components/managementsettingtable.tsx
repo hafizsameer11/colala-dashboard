@@ -5,12 +5,12 @@ import { getProfilePictureUrl } from "../../../../utils/imageUtils";
 interface Admin {
   id: number;
   full_name: string;
-  user_name?: string;
+  user_name?: string | null;
   email: string;
   phone: string;
   profile_picture: string | null;
   role: "admin" | "moderator" | "super_admin";
-  is_active: boolean;
+  is_active: boolean | number; // API returns 1/0, but we'll convert to boolean
   wallet_balance: string;
   created_at: string;
 }
@@ -58,13 +58,22 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
 
   // No need to handle newAdmin here since we're using real API data
 
+  // Normalize users data - convert is_active from number to boolean
+  const normalizedUsers = useMemo(() => {
+    return users.map((user) => ({
+      ...user,
+      is_active: typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active,
+    }));
+  }, [users]);
+
   // Filtering (case-insensitive, multiple fields)
   const filteredUsers = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((user) => {
+    if (!q) return normalizedUsers;
+    return normalizedUsers.filter((user) => {
       const haystack = [
         user.full_name,
+        user.user_name || '',
         user.role,
         user.email,
         user.phone,
@@ -76,7 +85,7 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [users, searchTerm]);
+  }, [normalizedUsers, searchTerm]);
 
   // Keep select-all in sync for filtered view
   useEffect(() => {
@@ -175,9 +184,16 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                         alt={user.full_name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
-                      <span className=" text-black font-medium">
-                        {user.full_name}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-black font-medium">
+                          {user.full_name}
+                        </span>
+                        {user.user_name && (
+                          <span className="text-xs text-gray-500">
+                            @{user.user_name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="p-4 text-black">{user.email}</td>

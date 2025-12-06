@@ -1,9 +1,10 @@
 import images from "../../../constants/images";
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getAdminOrderDetails } from "../../../utils/queries/users";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAdminOrderDetails, updateOrderStatus } from "../../../utils/queries/users";
 import ProductDetails from "../../../components/productDetails";
 import OrderOverview from "./orderOverview";
+import { useToast } from "../../../contexts/ToastContext";
 
 interface OrderDetailsProps {
   isOpen: boolean;
@@ -32,6 +33,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
   const [deliveryCode, setDeliveryCode] = useState("");
   const [statusNotes, setStatusNotes] = useState("");
 
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
   const { data: orderDetails, isLoading, error } = useQuery({
     queryKey: ['adminOrderDetails', orderId],
     queryFn: () => getAdminOrderDetails(orderId!),
@@ -41,33 +45,40 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
 
   const d = orderDetails?.data;
 
-  const handleStatusUpdate = () => {
-    console.log('=== handleStatusUpdate called ===');
-    console.log('newStatus:', newStatus);
-    console.log('orderId:', orderId);
-    console.log('onStatusUpdate exists:', !!onStatusUpdate);
-    console.log('statusNotes:', statusNotes);
-    console.log('deliveryCode:', deliveryCode);
-
-    if (newStatus && onStatusUpdate && orderId) {
-      const statusData = {
-        status: newStatus,
-        notes: statusNotes,
-        delivery_code: deliveryCode,
-      };
-      console.log('Calling onStatusUpdate with:', statusData);
-      onStatusUpdate(orderId, statusData);
+  // Update order status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: (statusData: { status: string; notes?: string; delivery_code?: string }) =>
+      updateOrderStatus(orderId!, statusData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminOrderDetails', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerOrders'] });
+      showToast('Order status updated successfully', 'success');
       setShowStatusUpdate(false);
       setNewStatus("");
       setDeliveryCode("");
       setStatusNotes("");
-    } else {
-      console.log('Validation failed:', {
-        hasNewStatus: !!newStatus,
-        hasOnStatusUpdate: !!onStatusUpdate,
-        hasOrderId: !!orderId
-      });
+    },
+    onError: (error: any) => {
+      console.error('Failed to update order status:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update order status';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  const handleStatusUpdate = () => {
+    if (!newStatus || !orderId) {
+      showToast('Please select a status', 'error');
+      return;
     }
+
+    const statusData = {
+      status: newStatus,
+      notes: statusNotes || undefined,
+      delivery_code: deliveryCode || undefined,
+    };
+
+    updateStatusMutation.mutate(statusData);
   };
 
   if (!isOpen) return null;
@@ -219,10 +230,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
 
                   <button
                     onClick={handleStatusUpdate}
-                    disabled={!newStatus}
+                    disabled={!newStatus || updateStatusMutation.isPending}
                     className="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Update Status
+                    {updateStatusMutation.isPending ? 'Updating...' : 'Update Status'}
                   </button>
                 </div>
               )}
@@ -249,7 +260,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
 
             {!isLoading && !error && d && (
               <>
-                {activeTab === "track order" && <OrderOverview orderData={d} />}
+                {activeTab === "track order" && <OrderOverview orderData={{ ...d, id: d?.id || d?.store_order_id || orderId }} />}
                 {activeTab === "full order details" && !isProductDetails && (
                   <div className="mt-5">
                     {(d?.items || []).map((item: any, idx: number) => (

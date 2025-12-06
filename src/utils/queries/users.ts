@@ -1432,15 +1432,16 @@ export const createProduct = async (productData: FormData) => {
 };
 
 /**
- * Get categories list
+ * Get categories list with pagination
  */
-export const getCategories = async () => {
+export const getCategories = async (page: number = 1, perPage: number = 15) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.CATEGORIES.List, 'GET', undefined, token);
+    const url = `${API_ENDPOINTS.CATEGORIES.List}?page=${page}&per_page=${perPage}`;
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get categories API call error:', error);

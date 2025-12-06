@@ -89,15 +89,34 @@ interface ProductData {
     store: {
       id: number;
       store_name: string;
+      seller_name?: string;
       store_email: string;
-      store_phone: string;
+      store_phone?: string;
       store_location: string;
-      profile_image: string;
-      banner_image: string;
-      theme_color: string;
+      profile_image?: string;
+      banner_image?: string;
+      theme_color?: string;
       average_rating: number;
-      total_sold: number;
-      followers_count: number;
+      total_sold?: number;
+      followers_count?: number;
+    };
+    category?: {
+      id: number;
+      name: string;
+      title: string;
+    };
+    statistics?: {
+      views?: number;
+      impressions?: number;
+      clicks?: number;
+      chats?: number;
+      phone_views?: number;
+      total_engagement?: number;
+      average_rating?: number;
+      total_reviews?: number;
+      total_products?: number;
+      boost_count?: number;
+      active_boost?: boolean;
     };
   };
 }
@@ -118,13 +137,19 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
     <div className="">
       {/* Main Product Image */}
       {productData?.complete?.images && productData.complete.images.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-6 cursor-pointer hover:opacity-90 transition-opacity">
           <img
             src={productData.complete.images[0].path.startsWith('http')
               ? productData.complete.images[0].path
               : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`}
             alt={productData?.complete?.product?.name || 'Product'}
             className="w-full h-80 object-cover rounded-2xl"
+            onClick={() => {
+              const imageUrl = productData.complete.images[0].path.startsWith('http')
+                ? productData.complete.images[0].path
+                : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`;
+              window.open(imageUrl, '_blank');
+            }}
             onError={(e) => {
               e.currentTarget.src = images.iphone;
             }}
@@ -305,7 +330,9 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                   <div className="relative h-30">
                     <img
                       src={productData?.complete?.store?.banner_image
-                        ? `https://colala.hmstech.xyz/storage/${productData.complete.store.banner_image}`
+                        ? (productData.complete.store.banner_image.startsWith('http')
+                            ? productData.complete.store.banner_image
+                            : `https://colala.hmstech.xyz/storage/${productData.complete.store.banner_image}`)
                         : images.cover
                       }
                       alt="Store cover"
@@ -318,7 +345,9 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                     <div className="absolute -bottom-8 left-4">
                       <img
                         src={productData?.complete?.store?.profile_image
-                          ? `https://colala.hmstech.xyz/storage/${productData.complete.store.profile_image}`
+                          ? (productData.complete.store.profile_image.startsWith('http')
+                              ? productData.complete.store.profile_image
+                              : `https://colala.hmstech.xyz/storage/${productData.complete.store.profile_image}`)
                           : images.icon
                         }
                         alt="Store profile"
@@ -347,15 +376,14 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                       </div>
                     </div>
 
-                    {/* Badges */}
-                    <div className="flex items-center space-x-2 ml-18 -mt-8 mb-3">
-                      <span className="bg-[#0000FF33] text-[#0000FF] px-2 py-1 rounded-lg text-xs font-medium border border-[#0000FF]">
-                        Electronics
-                      </span>
-                      <span className="bg-[#FF000033] text-[#FF0000] px-2 py-1 rounded-lg text-xs font-medium border border-[#FF0000]">
-                        Phones
-                      </span>
-                    </div>
+                    {/* Badges - Show category if available */}
+                    {productData?.complete?.category && (
+                      <div className="flex items-center space-x-2 ml-18 -mt-8 mb-3">
+                        <span className="bg-[#0000FF33] text-[#0000FF] px-2 py-1 rounded-lg text-xs font-medium border border-[#0000FF]">
+                          {productData.complete.category.title || productData.complete.category.name || 'Category'}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Location */}
                     <div className="flex items-center space-x-1 mb-4">
@@ -417,27 +445,29 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                               Products
                             </span>
                             <span className="text-[20px] text-[#000000]">
-                              100
+                              {productData?.complete?.statistics?.total_reviews || productData?.complete?.statistics?.views || 'N/A'}
                             </span>
                           </div>
                         </div>
-                        <div className="flex flex-row gap-2 border-r border-[#CDCDCD] pr-7 ml-5">
-                          <div>
-                            <img
-                              src={images.category}
-                              alt="shop"
-                              className="w-10 h-10"
-                            />
+                        {productData?.complete?.category && (
+                          <div className="flex flex-row gap-2 border-r border-[#CDCDCD] pr-7 ml-5">
+                            <div>
+                              <img
+                                src={images.category}
+                                alt="shop"
+                                className="w-10 h-10"
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-[#00000080]">
+                                Category
+                              </span>
+                              <span className="text-[20px] text-[#000000]">
+                                1
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-[#00000080]">
-                              Categories
-                            </span>
-                            <span className="text-[20px] text-[#000000]">
-                              5
-                            </span>
-                          </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Action Button */}

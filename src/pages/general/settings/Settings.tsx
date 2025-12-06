@@ -708,15 +708,15 @@ const AllUsers = () => {
                     </div>
                   ) : (
                     <ManagementSettingTable
-                      users={usersData?.data?.users || []}
+                      users={usersData?.data?.data || []}
                       newAdmin={newAdminData}
                       onAdminDetails={handleAdminDetails}
                       searchTerm={debouncedSearch}
                       pagination={{
-                        currentPage: usersData?.data?.pagination?.current_page || 1,
-                        totalPages: usersData?.data?.pagination?.last_page || 1,
-                        total: usersData?.data?.pagination?.total || 0,
-                        perPage: usersData?.data?.pagination?.per_page || 15,
+                        currentPage: usersData?.data?.current_page || 1,
+                        totalPages: usersData?.data?.last_page || 1,
+                        total: usersData?.data?.total || 0,
+                        perPage: usersData?.data?.per_page || 15,
                         onPageChange: setCurrentPage
                       }}
                     />

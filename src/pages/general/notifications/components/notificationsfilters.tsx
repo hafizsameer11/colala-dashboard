@@ -66,25 +66,34 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
 
   const handleNewNotificationSubmit = (data: any) => {
     const formData = new FormData();
-    formData.append('title', data.subject);
+    formData.append('title', data.title);
     formData.append('message', data.message);
-    formData.append('link', data.link);
     
-    // Parse audience data - it comes as comma-separated string from the modal
-    const audienceUserIds = data.audience ? data.audience.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id)) : [];
-    
-    if (audienceUserIds.length > 0) {
-      formData.append('audience_type', 'specific');
-      // Append each user ID separately for FormData
-      audienceUserIds.forEach((userId: number) => {
-        formData.append('target_user_ids[]', userId.toString());
-      });
-    } else {
-      formData.append('audience_type', 'all');
+    if (data.link && data.link.trim()) {
+      formData.append('link', data.link.trim());
     }
     
+    // Handle audience_type
+    formData.append('audience_type', data.audience_type || 'all');
+    
+    // If specific audience, append target_user_ids
+    if (data.audience_type === 'specific' && data.target_user_ids && data.target_user_ids.length > 0) {
+      data.target_user_ids.forEach((userId: number) => {
+        formData.append('target_user_ids[]', userId.toString());
+      });
+    }
+    
+    // Handle attachment
     if (data.attachment) {
       formData.append('attachment', data.attachment);
+    }
+    
+    // Handle scheduled_for (optional)
+    if (data.scheduled_for && data.scheduled_for.trim()) {
+      // Convert datetime-local format to backend expected format
+      const scheduledDate = new Date(data.scheduled_for);
+      const formattedDate = scheduledDate.toISOString().slice(0, 19).replace('T', ' ');
+      formData.append('scheduled_for', formattedDate);
     }
     
     createNotificationMutation.mutate(formData);

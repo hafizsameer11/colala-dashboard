@@ -13,7 +13,7 @@ export const createUser = async (userData: {
   password: string;
   country: string;
   state: string;
-  role?: "buyer" | "seller";
+  role?: "buyer" | "seller" | "admin";
   referral_code?: string;
   profile_picture?: File;
 }) => {
@@ -33,7 +33,7 @@ export const createUser = async (userData: {
     formData.append("country", userData.country);
     formData.append("state", userData.state);
 
-    // Add role (defaults to 'buyer' if not specified, matching Laravel controller)
+    // Add role (required by backend, should be 'buyer', 'seller', or 'admin')
     formData.append("role", userData.role || "buyer");
 
     if (userData.referral_code) {

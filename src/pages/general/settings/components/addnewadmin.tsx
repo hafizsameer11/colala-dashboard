@@ -15,7 +15,7 @@ interface AddNewAdminProps {
     password: string;
     country: string;
     state: string;
-    role: string;
+    role: "admin";
     referral_code?: string;
     profile_picture?: File | null;
   }) => void;
@@ -34,19 +34,16 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     password: "",
     country: "",
     state: "",
-    role: "buyer" as "buyer" | "seller",
+    role: "admin" as "buyer" | "seller" | "admin",
     referral_code: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   // --- Image state
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const roleOptions = ["buyer", "seller"];
 
   const clearAvatar = useCallback(() => {
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
@@ -66,11 +63,10 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
       password: "", 
       country: "", 
       state: "", 
-      role: "buyer" as "buyer" | "seller", 
+      role: "admin" as "buyer" | "seller" | "admin", 
       referral_code: "" 
     });
     setShowPassword(false);
-    setIsRoleDropdownOpen(false);
     clearAvatar();
     onClose();
   }, [onClose, clearAvatar]);
@@ -180,9 +176,10 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     }
 
     // Use mutation to create user
+    // Always set role to "admin" for admin creation
     createUserMutation.mutate({
       ...formData,
-      role: formData.role as "buyer" | "seller",
+      role: "admin" as "buyer" | "seller" | "admin",
       profile_picture: avatarFile || undefined
     });
   };
@@ -439,57 +436,6 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 placeholder="Enter referral code"
                 className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
               />
-            </div>
-
-            {/* Assign Role */}
-            <div>
-              <label className="block text-xl font-medium text-[#000] mb-2.5">
-                Assign Role
-              </label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                  className="w-full p-5 cursor-pointer border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent text-left flex items-center justify-between bg-white"
-                >
-                  <span className="text-gray-900 cursor-pointer">
-                    {formData.role}
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                      isRoleDropdownOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {isRoleDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-full cursor-pointer bg-white border border-gray-300 rounded-lg shadow-lg z-[10001]">
-                    {roleOptions.map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, role: role as "buyer" | "seller" }));
-                          setIsRoleDropdownOpen(false);
-                        }}
-                        className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                      >
-                        {role}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Submit */}

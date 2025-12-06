@@ -113,14 +113,21 @@ const StoreDetails: React.FC = () => {
   };
 
   const TabButtons = () => (
-    <div className="flex items-center border border-[#989898] space-x-0.5 rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
+    <div 
+      className="flex items-center border border-[#989898] space-x-0.5 rounded-lg p-1 sm:p-1.5 md:p-2 w-full sm:w-fit bg-white overflow-x-auto tab-buttons-container" 
+      style={{ 
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
+      }}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
         return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap ${isActive ? "px-3 sm:px-5 md:px-6 bg-[#E53E3E] text-white" : "px-1.5 sm:px-2 text-black"
+            className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg font-normal transition-all duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 ${isActive ? "px-2 sm:px-4 md:px-6 bg-[#E53E3E] text-white" : "px-2 sm:px-3 text-black"
               }`}
           >
             {tab}
@@ -165,13 +172,15 @@ const StoreDetails: React.FC = () => {
     <div>
       <PageHeader
         title={
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between text-[20px] gap-15 font-semibold">
-            <div className="flex items-center">
-              <span style={{ color: "#00000080" }}>User Management</span>
-              <span className="mx-1">/</span>
-              <span className="text-black">Store Details</span>
+          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between w-full">
+            <div className="flex items-center text-base sm:text-lg md:text-xl lg:text-[20px] font-semibold">
+              <span style={{ color: "#00000080" }} className="text-sm sm:text-base md:text-lg lg:text-[20px]">User Management</span>
+              <span className="mx-1 sm:mx-2">/</span>
+              <span className="text-black text-sm sm:text-base md:text-lg lg:text-[20px]">Store Details</span>
             </div>
-            <TabButtons />
+            <div className="w-full sm:w-auto">
+              <TabButtons />
+            </div>
           </div>
         }
         onPeriodChange={handlePeriodChange}
