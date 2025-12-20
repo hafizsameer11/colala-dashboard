@@ -7,7 +7,7 @@ const STORAGE_DOMAIN = "https://colala.hmstech.xyz/storage";
 const API_ENDPOINTS = {
   AUTH: {
     // Authentication endpoints
-    Login: API_DOMAIN + "/auth/login", // POST
+    Login: API_DOMAIN + "/auth/admin-login", // POST
   },
 
   // ADMIN ORDERS
