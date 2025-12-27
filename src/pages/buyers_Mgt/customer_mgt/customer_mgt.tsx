@@ -5,7 +5,7 @@ import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import UsersTable from "./usersTable";
 import AddUserModal from "../../../components/addUserModel";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserStats, getUsersList } from "../../../utils/queries/users";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
@@ -26,7 +26,18 @@ const customer_mgt = () => {
   // ============================================================================
   
   /**
-   * Fetch user statistics (total, active, new users)
+   * Fetch users list with pagination and search
+   * Note: This endpoint also returns statistics in the response
+   */
+  const { data: usersData, isLoading: usersLoading, error: usersError } = useQuery({
+    queryKey: ['usersList', currentPage, debouncedQuery],
+    queryFn: () => getUsersList(currentPage, debouncedQuery),
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  });
+
+  /**
+   * Fetch user statistics (always fetch for accurate stats)
+   * The users list endpoint includes stats, but we'll use the dedicated stats endpoint for reliability
    */
   const { data: userStats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['userStats'],
@@ -34,14 +45,74 @@ const customer_mgt = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  /**
-   * Fetch users list with pagination and search
-   */
-  const { data: usersData, isLoading: usersLoading, error: usersError } = useQuery({
-    queryKey: ['usersList', currentPage, debouncedQuery],
-    queryFn: () => getUsersList(currentPage, debouncedQuery),
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
-  });
+  // Calculate new users (users created in the last 30 days)
+  const newUsersCount = useMemo(() => {
+    // Check both possible paths: usersData?.data?.users or usersData?.data?.data
+    const users = usersData?.data?.users || usersData?.data?.data || [];
+    if (!users || users.length === 0) return 0;
+    
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    return users.filter((user: any) => {
+      if (!user.created_at) return false;
+      const createdDate = new Date(user.created_at);
+      return createdDate >= thirtyDaysAgo;
+    }).length;
+  }, [usersData]);
+
+  // Extract statistics - ALWAYS prioritize usersData since it includes stats in the response
+  // Use useMemo to ensure stable reference and proper extraction
+  const statistics = useMemo(() => {
+    // ALWAYS use usersData?.data?.statistics first (this is the primary source from getUsersList)
+    // Only fall back to userStats if usersData statistics are not available
+    const rawStatistics = usersData?.data?.statistics 
+      ? usersData.data.statistics 
+      : (userStats?.data?.statistics || userStats?.data || {});
+    
+    // Helper function to extract numeric value (handles both direct numbers and objects with value property)
+    const getStatValue = (stat: any): number => {
+      if (stat === null || stat === undefined) return 0;
+      if (typeof stat === 'number') return stat;
+      if (typeof stat === 'string') {
+        const parsed = parseInt(stat, 10);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      if (typeof stat === 'object' && stat !== null) {
+        // Check if it's an object with a 'value' property
+        if ('value' in stat) {
+          return typeof stat.value === 'number' ? stat.value : 0;
+        }
+        // If it's an array, return its length (shouldn't happen, but handle it)
+        if (Array.isArray(stat)) {
+          return stat.length;
+        }
+      }
+      return 0;
+    };
+
+    // Extract and normalize statistics values - ensure we get the actual numbers
+    const stats = {
+      total_users: getStatValue(rawStatistics?.total_users?.value),
+      buyer_users: getStatValue(rawStatistics?.buyer_users),
+      seller_users: getStatValue(rawStatistics?.seller_users),
+      active_users: getStatValue(rawStatistics?.active_users),
+      inactive_users: getStatValue(rawStatistics?.inactive_users),
+    };
+    
+    // Debug: Log the data structures to understand the response
+    console.log('=== Statistics Debug (Customer Management) ===');
+    console.log('Full usersData object:', JSON.stringify(usersData, null, 2));
+    console.log('usersData?.data:', usersData?.data);
+    console.log('usersData?.data?.statistics:', usersData?.data?.statistics);
+    console.log('userStats?.data:', userStats?.data);
+    console.log('userStats?.data?.statistics:', userStats?.data?.statistics);
+    console.log('Selected Raw Statistics:', rawStatistics);
+    console.log('Final Normalized Statistics:', stats);
+    console.log('=============================================');
+    
+    return stats;
+  }, [usersData, userStats]);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -87,14 +158,14 @@ const customer_mgt = () => {
           {/* ========================================================================
               USER STATISTICS CARDS
           ======================================================================== */}
-          {statsLoading ? (
+          {usersLoading ? (
             <div className="flex justify-center items-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
             </div>
-          ) : statsError ? (
+          ) : usersError ? (
             <div className="flex justify-center items-center h-32">
               <div className="text-red-500 text-center">
-                <p className="text-sm">Error loading user statistics</p>
+                <p className="text-sm">Error loading user data</p>
               </div>
             </div>
           ) : (
@@ -102,20 +173,20 @@ const customer_mgt = () => {
               <StatCard
                 icon={images.Users}
                 title="Total Users"
-                value={userStats?.data?.total_users?.value || 0}
-                subtitle={`+${userStats?.data?.total_users?.increase || 0}% increase from last month`}
+                value={statistics.total_users}
+                subtitle={`${statistics.buyer_users} buyers, ${statistics.seller_users} sellers`}
               />
               <StatCard
                 icon={images.Users}
                 title="Active Users"
-                value={userStats?.data?.active_users?.value || 0}
-                subtitle={`+${userStats?.data?.active_users?.increase || 0}% increase from last month`}
+                value={statistics.active_users}
+                subtitle={`${statistics.inactive_users} inactive users`}
               />
               <StatCard
                 icon={images.Users}
                 title="New Users"
-                value={userStats?.data?.new_users?.value || 0}
-                subtitle={`+${userStats?.data?.new_users?.increase || 0}% increase from last month`}
+                value={newUsersCount}
+                subtitle="Users registered in the last 30 days"
               />
             </StatCardGrid>
           )}
@@ -176,11 +247,11 @@ const customer_mgt = () => {
               onSelectedUsersChange={handleSelectedUsersChange}
               onUsersDeleted={handleUsersDeleted}
               searchQuery={debouncedQuery}
-              users={usersData?.data?.data || []}
+              users={usersData?.data?.users || usersData?.data?.data || []}
               pagination={usersData?.data || null}
               onPageChange={handlePageChange}
               isLoading={usersLoading}
-              error={usersError}
+              error={usersError ? (usersError instanceof Error ? usersError.message : String(usersError)) : null}
             />
           </div>
         </div>

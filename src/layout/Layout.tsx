@@ -35,10 +35,24 @@ const Layout: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <button
-                className="block lg:hidden"
+                className="block lg:hidden p-2 hover:bg-gray-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
                 onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label="Toggle sidebar"
               >
-                <i className="bi bi-list text-4xl"></i>
+                <svg
+                  className="w-8 h-8 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
               </button>
               {/* <Agents agents={TopbarProfileLeft} /> */}
             </div>

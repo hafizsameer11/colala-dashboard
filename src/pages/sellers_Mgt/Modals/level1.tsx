@@ -166,12 +166,27 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
       return;
     }
 
+    // Convert social media form fields to array format
+    const socialLinks: Array<{ type: string; url: string }> = [];
+    if (formData.instagramProfile && formData.instagramProfile.trim()) {
+      socialLinks.push({ type: 'instagram', url: formData.instagramProfile.trim() });
+    }
+    if (formData.twitterHandle && formData.twitterHandle.trim()) {
+      socialLinks.push({ type: 'twitter', url: formData.twitterHandle.trim() });
+    }
+    if (formData.facebookProfile && formData.facebookProfile.trim()) {
+      socialLinks.push({ type: 'facebook', url: formData.facebookProfile.trim() });
+    }
+
     // Save form data to localStorage (since no backend)
     const storeData = {
-      ...formData,
+      storeName: formData.storeName,
+      email: formData.email,
+      phoneNumber: formData.phoneNumber,
       password,
       category: selectedCategory!,
       showPhoneOnProfile,
+      socialLinks: socialLinks, // Convert to array format
       level1Completed: true,
       submittedAt: new Date().toISOString(),
     };
@@ -199,9 +214,23 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
       return;
     }
 
+    // Convert social media form fields to array format
+    const socialLinks: Array<{ type: string; url: string }> = [];
+    if (formData.instagramProfile && formData.instagramProfile.trim()) {
+      socialLinks.push({ type: 'instagram', url: formData.instagramProfile.trim() });
+    }
+    if (formData.twitterHandle && formData.twitterHandle.trim()) {
+      socialLinks.push({ type: 'twitter', url: formData.twitterHandle.trim() });
+    }
+    if (formData.facebookProfile && formData.facebookProfile.trim()) {
+      socialLinks.push({ type: 'facebook', url: formData.facebookProfile.trim() });
+    }
+
     // Save form data to localStorage
     const storeData = {
-      ...formData,
+      storeName: formData.storeName,
+      email: formData.email,
+      phoneNumber: formData.phoneNumber,
       password,
       category: selectedCategory!,
       showPhoneOnProfile,
@@ -209,11 +238,13 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
       bannerImage: bannerImage,
       profileImageFile: profileImageFile,
       bannerImageFile: bannerImageFile,
+      socialLinks: socialLinks, // Convert to array format
       level1Completed: true,
       submittedAt: new Date().toISOString(),
     };
     
     console.log('Level1 handleProceed - showPhoneOnProfile:', showPhoneOnProfile, 'type:', typeof showPhoneOnProfile);
+    console.log('Level1 handleProceed - socialLinks:', socialLinks);
 
     localStorage.setItem("storeFormData", JSON.stringify(storeData));
     console.log("Proceeding to Level 2 with data:", storeData);

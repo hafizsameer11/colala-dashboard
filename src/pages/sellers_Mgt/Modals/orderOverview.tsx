@@ -71,14 +71,60 @@ const StatusDropdown: React.FC<{ orderData?: any }> = ({ orderData }) => {
       }
       return updateOrderStatus(storeOrderId, statusData);
     },
+    onMutate: async (statusData) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['adminOrderDetails'] });
+      await queryClient.cancelQueries({ queryKey: ['dashboard'] });
+
+      // Snapshot the previous values
+      const previousDashboard = queryClient.getQueryData(['dashboard']);
+
+      // Optimistically update the dashboard cache (latest orders)
+      queryClient.setQueryData(['dashboard'], (old: any) => {
+        if (!old?.data?.latest_orders) return old;
+        
+        const storeOrderId = orderData?.id || 
+                             orderData?.store_order_id || 
+                             orderData?.storeOrderId ||
+                             orderData?.order_id;
+        
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            latest_orders: old.data.latest_orders.map((order: any) => {
+              // Match by order ID or store_order_id
+              if (order.id === storeOrderId || order.store_order_id === storeOrderId || order.order_id === storeOrderId) {
+                return {
+                  ...order,
+                  status: statusData.status
+                };
+              }
+              return order;
+            })
+          }
+        };
+      });
+
+      // Return context with snapshotted values
+      return { previousDashboard };
+    },
     onSuccess: () => {
+      // Invalidate all related queries for real-time updates
       queryClient.invalidateQueries({ queryKey: ['adminOrderDetails'] });
       queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
       queryClient.invalidateQueries({ queryKey: ['sellerOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }); // This is the key fix!
+      queryClient.invalidateQueries({ queryKey: ['latest-orders'] });
       showToast('Order status updated successfully', 'success');
       setIsOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // Rollback to previous values on error
+      if (context?.previousDashboard) {
+        queryClient.setQueryData(['dashboard'], context.previousDashboard);
+      }
+      
       console.error('Failed to update order status:', error);
       const errorMessage = error?.data?.message || error?.message || 'Failed to update order status';
       showToast(errorMessage, 'error');

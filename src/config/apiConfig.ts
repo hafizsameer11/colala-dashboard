@@ -8,6 +8,7 @@ const API_ENDPOINTS = {
   AUTH: {
     // Authentication endpoints
     Login: API_DOMAIN + "/auth/admin-login", // POST
+    Logout: API_DOMAIN + "/auth/admin-logout", // POST
   },
 
   // ADMIN ORDERS
@@ -41,9 +42,12 @@ const API_ENDPOINTS = {
     Profile: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/profile`, // GET
     Details: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/details`, // GET
     Create: API_DOMAIN + "/admin/all-users", // POST
-    Update: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // PUT
+    Update: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // POST
     Delete: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // DELETE
     Addresses: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // GET
+    CreateAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST
+    UpdateAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST (with address_id in body)
+    DeleteAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST (with address_id and _method: DELETE in body)
   },
 
   // CHATS
@@ -196,13 +200,6 @@ const API_ENDPOINTS = {
     Settings: (userId: number | string) => `${API_DOMAIN}/admin/seller-loyalty-settings/${userId}`, // GET
     UpdateSettings: (userId: number | string) => `${API_DOMAIN}/admin/seller-loyalty-settings/${userId}`, // PUT
     Customers: (userId: number | string) => `${API_DOMAIN}/admin/seller-loyalty-customers/${userId}`, // GET
-  },
-
-  // ADMIN ORDERS
-  ADMIN_ORDERS: {
-    List: API_DOMAIN + "/admin/orders", // GET
-    Details: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/details`, // GET
-    UpdateStatus: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/status`, // PUT
   },
 
   // ADMIN TRANSACTIONS

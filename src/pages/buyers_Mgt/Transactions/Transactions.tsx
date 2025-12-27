@@ -2,7 +2,7 @@ import PageHeader from "../../../components/PageHeader";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import DepositDropdown from "../../../components/DepositsDropdown";
 import TransactionTable from "../customer_mgt/customerDetails/transaction/transactionTable";
@@ -28,6 +28,15 @@ function normalizeType(
   if (a.includes("payment")) return "Payments";
   if (a.includes("deposit")) return "Deposit";
   return "All";
+}
+
+// Convert filter type to API-expected format (singular, lowercase)
+function getTypeForAPI(typeFilter: "All" | "Deposit" | "Withdrawals" | "Payments"): string | undefined {
+  if (typeFilter === "All") return undefined;
+  if (typeFilter === "Deposit") return "deposit";
+  if (typeFilter === "Withdrawals") return "withdrawal"; // API expects singular "withdrawal"
+  if (typeFilter === "Payments") return "payment"; // API expects singular "payment"
+  return undefined;
 }
 
 const Transactions = () => {
@@ -105,16 +114,68 @@ const Transactions = () => {
   // API data fetching
   const { data: transactionsData, isLoading, error } = useQuery({
     queryKey: ['adminTransactions', activeTab, typeFilter, currentPage],
-    queryFn: () => getAdminTransactions(currentPage, activeTab === "All" ? undefined : activeTab, typeFilter === "All" ? undefined : typeFilter.toLowerCase()),
+    queryFn: () => getAdminTransactions(currentPage, activeTab === "All" ? undefined : activeTab, getTypeForAPI(typeFilter)),
   });
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, typeFilter]);
 
   // Extract data
   const allTransactions = transactionsData?.data?.transactions || [];
-  const statistics = transactionsData?.data?.statistics || {};
   const pagination = transactionsData?.data?.pagination;
 
-  // Filter transactions by selected period
-  const transactions = filterTransactionsByPeriod(allTransactions, selectedPeriod);
+  // Filter transactions by selected period, status, and type
+  const transactions = useMemo(() => {
+    let filtered = filterTransactionsByPeriod(allTransactions, selectedPeriod);
+    
+    // Apply status filter if not "All"
+    if (activeTab !== "All") {
+      const statusFilter = activeTab.toLowerCase().trim();
+      filtered = filtered.filter((tx: any) => {
+        const txStatus = String(tx.status || '').toLowerCase().trim();
+        return txStatus === statusFilter || txStatus.includes(statusFilter);
+      });
+    }
+    
+    // Apply type filter if not "All"
+    if (typeFilter !== "All") {
+      const typeFilterLower = typeFilter.toLowerCase().trim();
+      filtered = filtered.filter((tx: any) => {
+        const txType = String(tx.type || tx.transaction_type || '').toLowerCase().trim();
+        if (typeFilterLower === 'deposit') {
+          return txType.includes('deposit');
+        } else if (typeFilterLower === 'withdrawals') {
+          return txType.includes('withdraw') || txType.includes('withdrawal');
+        } else if (typeFilterLower === 'payments') {
+          return txType.includes('payment') || txType.includes('pay');
+        }
+        return true;
+      });
+    }
+    
+    return filtered;
+  }, [allTransactions, selectedPeriod, activeTab, typeFilter]);
+
+  // Calculate statistics from filtered transactions
+  const statistics = useMemo(() => {
+    const total = transactions.length;
+    const pending = transactions.filter((tx: any) => {
+      const status = String(tx.status || '').toLowerCase();
+      return status.includes('pending') || status === 'pending';
+    }).length;
+    const successful = transactions.filter((tx: any) => {
+      const status = String(tx.status || '').toLowerCase();
+      return status.includes('success') || status.includes('completed') || status === 'success' || status === 'completed';
+    }).length;
+    
+    return {
+      total_transactions: total,
+      pending_transactions: pending,
+      successful_transactions: successful,
+    };
+  }, [transactions]);
 
   const handlePageChange = (page: number) => {
     if (page !== currentPage) setCurrentPage(page);
@@ -160,6 +221,7 @@ const Transactions = () => {
   const handleDepositActionSelect = (action: string) => {
     const normalized = normalizeType(action);
     setTypeFilter(normalized);
+    setCurrentPage(1); // Reset to first page when filter changes
     console.log("Deposit action selected:", action, "=> filter:", normalized);
   };
 

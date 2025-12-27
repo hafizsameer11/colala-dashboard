@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../../components/PageHeader";
 import Activity from "./activity/activity";
@@ -12,6 +12,7 @@ import { getUserDetails } from "../../../../utils/queries/users";
 const CustomerDetails: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { state } = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Activity");
   const [selectedChatId, setSelectedChatId] = useState<string | number | null>(null);
 
@@ -208,7 +209,13 @@ const CustomerDetails: React.FC = () => {
         title={
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-45 text-[20px] font-semibold">
             <div className="flex items-center gap-1">
-              <span style={{ color: "#00000080" }}>User Management</span>
+              <button
+                onClick={() => navigate("/customer-mgt")}
+                className="text-[#00000080] hover:text-[#E53E3E] transition-colors duration-200 cursor-pointer font-semibold"
+                style={{ color: "#00000080" }}
+              >
+                Customer Management
+              </button>
               <span className="mx-1">/</span>
               <span className="text-black">Customer Details</span>
             </div>

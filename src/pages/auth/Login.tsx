@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import images from "../../constants/images";
 
 const Login = () => {
-  const { login, loading } = useAuth();
+  const { login, loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
@@ -12,6 +12,13 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,11 +45,16 @@ const Login = () => {
     
     if (success) {
       console.log('Login successful, navigating to dashboard'); // Debug log
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } else {
       setError("Invalid email or password. Please check your credentials.");
     }
   };
+
+  // Don't render login form if already authenticated
+  if (isAuthenticated && !loading) {
+    return null;
+  }
 
   return (
     <div className="max-h-screen flex">

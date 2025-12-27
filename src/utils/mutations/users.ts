@@ -111,7 +111,7 @@ export const updateUser = async (userData: {
 
     const response = await apiCall(
       API_ENDPOINTS.ALL_USERS.Update(userData.userId),
-      "PUT",
+      "POST",
       formData,
       token
     );
@@ -343,6 +343,111 @@ export const toggleKnowledgeBaseStatus = async (id: number | string) => {
     return response;
   } catch (error) {
     console.error("Toggle knowledge base status API call error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new address for a user
+ */
+export const createUserAddress = async (
+  userId: number | string,
+  addressData: {
+    phone: string;
+    state: string;
+    local_government: string;
+    line1: string;
+    line2?: string;
+    is_default?: boolean;
+  }
+) => {
+  const token = Cookies.get("authToken");
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  try {
+    const response = await apiCall(
+      API_ENDPOINTS.ALL_USERS.CreateAddress(userId),
+      "POST",
+      addressData,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Create user address API call error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update an existing address for a user
+ */
+export const updateUserAddress = async (
+  userId: number | string,
+  addressId: number | string,
+  addressData: {
+    phone?: string;
+    state?: string;
+    local_government?: string;
+    line1?: string;
+    line2?: string;
+    is_default?: boolean;
+  }
+) => {
+  const token = Cookies.get("authToken");
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  try {
+    // Include address_id in the body for update
+    const payload = {
+      address_id: addressId,
+      ...addressData,
+    };
+    
+    const response = await apiCall(
+      API_ENDPOINTS.ALL_USERS.UpdateAddress(userId),
+      "POST",
+      payload,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Update user address API call error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete an address for a user
+ */
+export const deleteUserAddress = async (
+  userId: number | string,
+  addressId: number | string
+) => {
+  const token = Cookies.get("authToken");
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  try {
+    // Send address_id in POST body - backend should recognize this as delete operation
+    // Some Laravel APIs use the presence of address_id with specific endpoint to determine delete
+    const payload = {
+      address_id: addressId,
+    };
+    
+    const response = await apiCall(
+      API_ENDPOINTS.ALL_USERS.DeleteAddress(userId),
+      "POST",
+      payload,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Delete user address API call error:", error);
     throw error;
   }
 };

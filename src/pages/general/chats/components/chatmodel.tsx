@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../constants/images";
 import { getChatDetails, sendChatMessage, updateChatStatus } from "../../../../utils/queries/chats";
@@ -24,6 +24,7 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
   const [input, setInput] = useState("");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<'open' | 'closed' | 'resolved'>('open');
+  const lastSentStatusRef = useRef<'open' | 'closed' | 'resolved' | null>(null);
   
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -60,13 +61,137 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
   const updateStatusMutation = useMutation({
     mutationFn: (statusData: { status: 'open' | 'closed' | 'resolved'; type?: 'general' | 'support' | 'dispute' }) => 
       updateChatStatus(chatData!.id, statusData),
-    onSuccess: () => {
-      // Invalidate and refetch chat details to get updated status
-      queryClient.invalidateQueries({ queryKey: ['chatDetails', chatData?.id] });
+    onMutate: async (statusData) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['chatDetails', chatData?.id] });
+
+      // Snapshot the previous value
+      const previousChatDetails = queryClient.getQueryData(['chatDetails', chatData?.id]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(['chatDetails', chatData?.id], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            chat_info: {
+              ...old.data.chat_info,
+              status: statusData.status,
+              type: statusData.type || old.data.chat_info?.type || 'general'
+            }
+          }
+        };
+      });
+
+      // Return context with the snapshotted value
+      return { previousChatDetails };
+    },
+    onSuccess: async (data, variables) => {
+      // Handle case where API returns null status - use the status we sent instead
+      const actualStatus = (data?.data?.status && data.data.status !== null) 
+        ? data.data.status 
+        : variables.status; // Use sent status if API returned null
+      
+      console.log('Status update success:', {
+        responseStatus: data?.data?.status,
+        sentStatus: variables.status,
+        actualStatusUsed: actualStatus,
+        fullResponse: data
+      });
+
+      // Store the sent status to preserve it during refetch
+      const sentStatus = variables.status;
+      const sentType = variables.type;
+
+      // Update cache with the actual status (use sent status if API returned null)
+      queryClient.setQueryData(['chatDetails', chatData?.id], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            chat_info: {
+              ...old.data.chat_info,
+              status: actualStatus, // Use sent status if API returned null
+              type: sentType || old.data.chat_info?.type || 'general'
+            }
+          }
+        };
+      });
+
+      // Ensure selectedStatus matches what we sent (not what API returned)
+      if (actualStatus && ['open', 'closed', 'resolved'].includes(actualStatus)) {
+        setSelectedStatus(actualStatus as 'open' | 'closed' | 'resolved');
+      }
+
+      // Invalidate other queries
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-chats'] });
+
+      // Refetch chatDetails manually to have control over the merge
+      // This allows us to preserve the sent status if API returns null
+      queryClient.refetchQueries({ 
+        queryKey: ['chatDetails', chatData?.id] 
+      }).then(() => {
+        // After refetch completes, ensure the status is preserved if API returned null
+        queryClient.setQueryData(['chatDetails', chatData?.id], (old: any) => {
+          if (!old) return old;
+          // If the refetched data has null status, use the status we sent
+          const currentStatus = old?.data?.chat_info?.status;
+          const statusToUse = (currentStatus && currentStatus !== null) 
+            ? currentStatus 
+            : sentStatus;
+          
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              chat_info: {
+                ...old.data.chat_info,
+                status: statusToUse, // Preserve sent status if API returned null
+                type: sentType || old.data.chat_info?.type || 'general'
+              }
+            }
+          };
+        });
+      }).catch((error) => {
+        console.error('Error refetching chat details:', error);
+        // Even if refetch fails, ensure our status is preserved
+        queryClient.setQueryData(['chatDetails', chatData?.id], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              chat_info: {
+                ...old.data.chat_info,
+                status: sentStatus,
+                type: sentType || old.data.chat_info?.type || 'general'
+              }
+            }
+          };
+        });
+      });
+
+      // Clear the ref after refetch completes
+      setTimeout(() => {
+        lastSentStatusRef.current = null;
+      }, 500);
+
       setShowStatusDropdown(false);
       showToast('Chat status updated successfully', 'success');
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, _variables, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousChatDetails) {
+        queryClient.setQueryData(['chatDetails', chatData?.id], context.previousChatDetails);
+      }
+      // Revert the selectedStatus state
+      if (chatDetails?.data?.chat_info?.status) {
+        setSelectedStatus(chatDetails.data.chat_info.status as 'open' | 'closed' | 'resolved');
+      }
       console.error('Update status error:', error);
       const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update chat status';
       showToast(errorMessage, 'error');
@@ -74,11 +199,27 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
   });
 
   // Update selected status when chat details load
+  // Only update if status is not null and we haven't just sent a status update
   useEffect(() => {
-    if (chatDetails?.data?.chat_info?.status) {
-      setSelectedStatus(chatDetails.data.chat_info.status as 'open' | 'closed' | 'resolved');
+    // Don't update if we just sent a status update (wait for it to complete)
+    if (updateStatusMutation.isPending || lastSentStatusRef.current) {
+      return;
     }
-  }, [chatDetails]);
+
+    if (chatDetails?.data?.chat_info?.status) {
+      const chatStatus = chatDetails.data.chat_info.status as 'open' | 'closed' | 'resolved';
+      // Only set if it's a valid status value and different from current
+      if (['open', 'closed', 'resolved'].includes(chatStatus) && chatStatus !== selectedStatus) {
+        setSelectedStatus(chatStatus);
+      }
+    } else if (chatDetails?.data?.chat_info && !chatDetails.data.chat_info.status && !lastSentStatusRef.current) {
+      // If chat details loaded but status is null/undefined, and we haven't sent a status
+      // Only default to 'open' if current status is also 'open' (initial state)
+      if (selectedStatus === 'open') {
+        // Keep 'open' as default
+      }
+    }
+  }, [chatDetails, selectedStatus, updateStatusMutation.isPending]);
 
   // Close status dropdown when clicking outside
   useEffect(() => {
@@ -110,10 +251,39 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
   };
 
   const handleStatusUpdate = (status: 'open' | 'closed' | 'resolved') => {
+    // Ensure status is never null or undefined
+    if (!status || !['open', 'closed', 'resolved'].includes(status)) {
+      console.error('Invalid status value:', status);
+      return;
+    }
+
+    // Store the status we're sending to prevent useEffect from overwriting it
+    lastSentStatusRef.current = status;
+
+    // Update local state immediately for instant UI feedback
     setSelectedStatus(status);
+    setShowStatusDropdown(false);
+    
+    // Get the actual type from chatDetails, or use chatData type, or default to 'general'
+    const chatType = chatDetails?.data?.chat_info?.type || 
+                     chatData?.type?.toLowerCase() || 
+                     'general';
+    
+    // Ensure type is valid
+    const validType = ['general', 'support', 'dispute'].includes(chatType) 
+      ? chatType as 'general' | 'support' | 'dispute'
+      : 'general';
+
+    console.log('Updating chat status:', { 
+      chatId: chatData?.id, 
+      status, 
+      type: validType 
+    });
+
+    // Send the actual status (never null) and type
     updateStatusMutation.mutate({
-      status,
-      type: chatDetails?.data?.chat_info?.type || 'general'
+      status, // This is guaranteed to be a valid status
+      type: validType
     });
   };
 
@@ -205,7 +375,7 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
                   {chatDetails.data.store_info?.store_name || "Unknown Store"}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {chatDetails.data.chat_info?.type || "general"} • {chatDetails.data.chat_info?.status || "active"}
+                  {chatDetails.data.chat_info?.type || "general"} • {selectedStatus || chatDetails.data.chat_info?.status || "active"}
                 </p>
               </div>
             </div>

@@ -61,7 +61,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       })) || [],
       // Map store info
       store: productDetails.data.store_info ? {
-        id: productDetails.data.store_info.store_id,
+        id: productDetails.data.store_info.user_id || productDetails.data.store_info.store_id || productDetails.data.store_info.id,
+        store_id: productDetails.data.store_info.store_id,
+        user_id: productDetails.data.store_info.user_id,
         store_name: productDetails.data.store_info.store_name,
         seller_name: productDetails.data.store_info.seller_name,
         store_email: productDetails.data.store_info.seller_email,
@@ -71,6 +73,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         average_rating: productDetails.data.statistics?.average_rating || 0,
         total_sold: productDetails.data.statistics?.total_sold || 0,
         followers_count: productDetails.data.statistics?.followers_count || 0,
+        social_links: productDetails.data.store_info.social_links || [],
       } : null,
       // Map category for badges
       category: productDetails.data.category ? {
@@ -90,7 +93,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   // Debug: Log the product data structure
   console.log('ProductDetails - productId:', productId);
   console.log('ProductDetails - Raw API Response:', productDetails);
+  console.log('ProductDetails - Store Info from API:', productDetails?.data?.store_info);
   console.log('ProductDetails - Transformed Data:', realProductData);
+  console.log('ProductDetails - Store ID available:', realProductData?.complete?.store?.id);
+  console.log('ProductDetails - User ID available:', realProductData?.complete?.store?.user_id);
+  console.log('ProductDetails - Store ID (store_id) available:', realProductData?.complete?.store?.store_id);
   console.log('ProductDetails - isLoading:', isLoading);
   console.log('ProductDetails - error:', error);
   
@@ -271,8 +278,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           <div className="relative max-w-6xl max-h-[90vh] w-full h-full flex items-center justify-center">
             {/* Close Button */}
             <button
-              onClick={() => setSelectedImageIndex(null)}
-              className="absolute top-4 right-4 z-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-3 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImageIndex(null);
+              }}
+              className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition-all duration-200 flex items-center justify-center shadow-lg"
               aria-label="Close image viewer"
             >
               <svg
@@ -281,11 +291,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2.5}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
@@ -298,7 +308,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   e.stopPropagation();
                   setSelectedImageIndex(selectedImageIndex - 1);
                 }}
-                className="absolute left-4 z-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-3 transition-colors"
+                className="absolute left-4 z-10 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition-all duration-200 flex items-center justify-center shadow-lg"
                 aria-label="Previous image"
               >
                 <svg
@@ -307,11 +317,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  strokeWidth={2.5}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
@@ -325,7 +335,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   e.stopPropagation();
                   setSelectedImageIndex(selectedImageIndex + 1);
                 }}
-                className="absolute right-4 z-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-3 transition-colors"
+                className="absolute right-4 z-10 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition-all duration-200 flex items-center justify-center shadow-lg"
                 aria-label="Next image"
               >
                 <svg
@@ -334,11 +344,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  strokeWidth={2.5}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M9 5l7 7-7 7"
                   />
                 </svg>

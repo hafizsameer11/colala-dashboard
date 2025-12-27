@@ -1,5 +1,6 @@
 import images from "../constants/images";
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // ColorPicker component
 const ColorPicker: React.FC<{ variants?: Array<{ color?: string; size?: string }> }> = ({ variants = [] }) => {
@@ -88,6 +89,8 @@ interface ProductData {
     }>;
     store: {
       id: number;
+      store_id?: number;
+      user_id?: number;
       store_name: string;
       seller_name?: string;
       store_email: string;
@@ -99,6 +102,10 @@ interface ProductData {
       average_rating: number;
       total_sold?: number;
       followers_count?: number;
+      social_links?: Array<{
+        type: string;
+        url: string;
+      }>;
     };
     category?: {
       id: number;
@@ -133,22 +140,112 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
   productData,
 }) => {
   const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
+  const navigate = useNavigate();
+
+  // Helper function to get social media URL by type
+  const getSocialUrl = (type: string): string | null => {
+    const socialLinks = productData?.complete?.store?.social_links || [];
+    console.log('getSocialUrl - Looking for type:', type);
+    console.log('getSocialUrl - Available social links:', socialLinks);
+    
+    const link = socialLinks.find((l: { type: string; url: string }) => {
+      const linkType = (l.type || '').toLowerCase().trim();
+      const searchType = type.toLowerCase().trim();
+      // Handle variations: 'x' should match 'twitter', 'whatsapp' might not exist
+      if (searchType === 'x' && linkType === 'twitter') return true;
+      if (searchType === 'twitter' && linkType === 'twitter') return true;
+      return linkType === searchType;
+    });
+    
+    const url = link?.url || null;
+    console.log('getSocialUrl - Found URL for', type, ':', url);
+    return url;
+  };
+
+  // Handler for "Go to Shop" button
+  const handleGoToShop = () => {
+    console.log('Go to Shop button clicked');
+    console.log('Product Data:', productData);
+    console.log('Store Data:', productData?.complete?.store);
+    
+    // Try to get user_id first (preferred), then store_id, then id
+    const storeId = productData?.complete?.store?.user_id 
+      || productData?.complete?.store?.store_id 
+      || productData?.complete?.store?.id;
+    
+    console.log('Store ID to navigate:', storeId);
+    
+    if (storeId) {
+      console.log('Navigating to:', `/store-details/${storeId}`);
+      navigate(`/store-details/${storeId}`);
+    } else {
+      console.error('No store ID available for navigation');
+      console.error('Available store fields:', Object.keys(productData?.complete?.store || {}));
+    }
+  };
+
+  // Handler for social media icons
+  const handleSocialClick = (type: string, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    const url = getSocialUrl(type);
+    console.log(`Social media click - Type: ${type}, URL: ${url}`);
+    console.log('Social links data:', productData?.complete?.store?.social_links);
+    
+    if (url && url.trim()) {
+      let fullUrl = url.trim();
+      
+      // Ensure URL has protocol
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        // For Instagram, Twitter, Facebook - add https://
+        if (type === 'instagram' || type === 'twitter' || type === 'facebook') {
+          // If it's just a username (no @), add the platform URL
+          if (type === 'instagram' && !fullUrl.includes('.')) {
+            fullUrl = `https://instagram.com/${fullUrl.replace('@', '')}`;
+          } else if (type === 'twitter' && !fullUrl.includes('.')) {
+            fullUrl = `https://twitter.com/${fullUrl.replace('@', '')}`;
+          } else if (type === 'facebook' && !fullUrl.includes('.')) {
+            fullUrl = `https://facebook.com/${fullUrl}`;
+          } else {
+            fullUrl = `https://${fullUrl}`;
+          }
+        } else {
+          fullUrl = `https://${fullUrl}`;
+        }
+      }
+      
+      console.log('Opening URL:', fullUrl);
+      try {
+        window.open(fullUrl, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Error opening social media link:', error);
+        alert(`Unable to open ${type} link. Please check the URL.`);
+      }
+    } else {
+      console.warn(`No ${type} URL available for this store`);
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} link is not available for this store.`);
+    }
+  };
+
   return (
     <div className="">
       {/* Main Product Image */}
       {productData?.complete?.images && productData.complete.images.length > 0 && (
         <div className="mb-6 cursor-pointer hover:opacity-90 transition-opacity">
           <img
-            src={productData.complete.images[0].path.startsWith('http')
+            src={productData.complete.images[0]?.path?.startsWith('http')
               ? productData.complete.images[0].path
-              : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`}
+              : `https://colala.hmstech.xyz/storage/${productData.complete.images[0]?.path || ''}`}
             alt={productData?.complete?.product?.name || 'Product'}
             className="w-full h-80 object-cover rounded-2xl"
             onClick={() => {
-              const imageUrl = productData.complete.images[0].path.startsWith('http')
-                ? productData.complete.images[0].path
-                : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`;
-              window.open(imageUrl, '_blank');
+              if (productData?.complete?.images?.[0]?.path) {
+                const imageUrl = productData.complete.images[0].path.startsWith('http')
+                  ? productData.complete.images[0].path
+                  : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`;
+                window.open(imageUrl, '_blank');
+              }
             }}
             onError={(e) => {
               e.currentTarget.src = images.iphone;
@@ -399,34 +496,72 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
 
                     {/* Social Media Icons */}
                     <div className="flex items-center mb-6 border rounded-lg border-[#CDCDCD] p-1.5 space-x-1">
-                      <button className="cursor-pointer">
-                        <img
-                          src={images.whatsapp1}
-                          alt="whatsapp"
-                          className="w-15 h-15"
-                        />
-                      </button>
-                      <button className="cursor-pointer">
-                        <img
-                          src={images.insta}
-                          alt="instagram"
-                          className="w-15 h-15"
-                        />
-                      </button>
-                      <button className="cursor-pointer">
-                        <img
-                          src={images.x}
-                          alt="twitter"
-                          className="w-15 h-15"
-                        />
-                      </button>
-                      <button className="cursor-pointer">
-                        <img
-                          src={images.facebook}
-                          alt="facebook"
-                          className="w-15 h-15"
-                        />
-                      </button>
+                      {/* Only show icons if they have URLs */}
+                      {getSocialUrl('instagram') && (
+                        <button 
+                          type="button"
+                          className="cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+                          onClick={(e) => handleSocialClick('instagram', e)}
+                          title={`Open Instagram: ${getSocialUrl('instagram')}`}
+                          style={{ pointerEvents: 'auto' }}
+                        >
+                          <img
+                            src={images.insta}
+                            alt="instagram"
+                            className="w-15 h-15 pointer-events-none"
+                            draggable="false"
+                          />
+                        </button>
+                      )}
+                      {getSocialUrl('twitter') && (
+                        <button 
+                          type="button"
+                          className="cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+                          onClick={(e) => handleSocialClick('twitter', e)}
+                          title={`Open Twitter/X: ${getSocialUrl('twitter')}`}
+                          style={{ pointerEvents: 'auto' }}
+                        >
+                          <img
+                            src={images.x}
+                            alt="twitter"
+                            className="w-15 h-15 pointer-events-none"
+                            draggable="false"
+                          />
+                        </button>
+                      )}
+                      {getSocialUrl('facebook') && (
+                        <button 
+                          type="button"
+                          className="cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+                          onClick={(e) => handleSocialClick('facebook', e)}
+                          title={`Open Facebook: ${getSocialUrl('facebook')}`}
+                          style={{ pointerEvents: 'auto' }}
+                        >
+                          <img
+                            src={images.facebook}
+                            alt="facebook"
+                            className="w-15 h-15 pointer-events-none"
+                            draggable="false"
+                          />
+                        </button>
+                      )}
+                      {/* Show WhatsApp only if URL exists - WhatsApp is not in the form, so it might not be saved */}
+                      {getSocialUrl('whatsapp') && (
+                        <button 
+                          type="button"
+                          className="cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+                          onClick={(e) => handleSocialClick('whatsapp', e)}
+                          title={`Open WhatsApp: ${getSocialUrl('whatsapp')}`}
+                          style={{ pointerEvents: 'auto' }}
+                        >
+                          <img
+                            src={images.whatsapp1}
+                            alt="whatsapp"
+                            className="w-15 h-15 pointer-events-none"
+                            draggable="false"
+                          />
+                        </button>
+                      )}
                     </div>
 
                     {/* Store Stats and Visit Button */}
@@ -471,7 +606,21 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                       </div>
 
                       {/* Action Button */}
-                      <button className="bg-[#E53E3E] rounded-lg px-7 py-2 text-white cursor-pointer">
+                      <button 
+                        type="button"
+                        className="bg-[#E53E3E] rounded-lg px-7 py-2 text-white cursor-pointer hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleGoToShop();
+                        }}
+                        disabled={!productData?.complete?.store?.id && !productData?.complete?.store?.user_id && !productData?.complete?.store?.store_id}
+                        title={
+                          (productData?.complete?.store?.id || productData?.complete?.store?.user_id || productData?.complete?.store?.store_id) 
+                            ? 'Visit seller shop' 
+                            : 'Shop not available'
+                        }
+                      >
                         Go to Shop
                       </button>
                     </div>

@@ -14,7 +14,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     console.log('ProtectedRoute - Auth state changed:', { isAuthenticated, loading }); // Debug log
     if (!loading && !isAuthenticated) {
       console.log('ProtectedRoute - Redirecting to login'); // Debug log
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   }, [isAuthenticated, loading, navigate]);
 

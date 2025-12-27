@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import images from "../../constants/images";
 import StatCard from "../../components/StatCard";
@@ -81,6 +81,9 @@ const Dashboard = () => {
   // Selected orders for bulk actions
   const [selectedOrders, setSelectedOrders] = useState<Order[]>([]);
 
+  // Period filter state - MUST be declared before useMemo hooks that use it
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+
   // Chats modal state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChat, setSelectedChat] = useState<{
@@ -105,12 +108,243 @@ const Dashboard = () => {
   /**
    * Fetch dashboard data using React Query
    * Includes buyer stats, seller stats, site stats, latest chats, and latest orders
+   * Note: Period filter is applied client-side, so we don't need to include it in queryKey
    */
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+
+  // Helper function to parse order_date format: "26-12-2025/20:10PM"
+  const parseOrderDate = (dateString: string): Date | null => {
+    if (!dateString) return null;
+    
+    try {
+      // Handle format: "26-12-2025/20:10PM"
+      const parts = dateString.split('/');
+      if (parts.length === 2) {
+        const datePart = parts[0].trim(); // "26-12-2025"
+        const timePart = parts[1].trim(); // "20:10PM"
+        
+        // Parse date part: DD-MM-YYYY
+        const dateComponents = datePart.split('-');
+        if (dateComponents.length === 3) {
+          const day = parseInt(dateComponents[0], 10);
+          const month = parseInt(dateComponents[1], 10) - 1; // Month is 0-indexed
+          const year = parseInt(dateComponents[2], 10);
+          
+          // Parse time part: HH:MMAM/PM
+          let hours = 0;
+          let minutes = 0;
+          if (timePart) {
+            const isPM = timePart.toUpperCase().includes('PM');
+            const timeOnly = timePart.replace(/[AP]M/i, '').trim();
+            const timeComponents = timeOnly.split(':');
+            if (timeComponents.length >= 2) {
+              hours = parseInt(timeComponents[0], 10);
+              minutes = parseInt(timeComponents[1], 10);
+              if (isPM && hours !== 12) hours += 12;
+              if (!isPM && hours === 12) hours = 0;
+            }
+          }
+          
+          return new Date(year, month, day, hours, minutes);
+        }
+      }
+      
+      // Fallback to standard Date parsing
+      const parsed = new Date(dateString);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('Error parsing order date:', dateString, error);
+    }
+    
+    return null;
+  };
+
+  // Memoize filtered data to prevent unnecessary recalculations
+  // These filters update when selectedPeriod changes, causing the page to re-render with filtered data
+  const filteredOrders = useMemo(() => {
+    const orders = dashboardData?.data?.latest_orders || [];
+    let filtered = [...orders];
+    
+    // Apply period filter
+    if (selectedPeriod && selectedPeriod !== "All time") {
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (selectedPeriod.trim()) {
+        case "This Week":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "Last Month":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          break;
+        case "Last 6 Months":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          break;
+        case "Last Year":
+          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          break;
+        default:
+          startDate = new Date(0); // Include all dates
+      }
+      
+      filtered = filtered.filter((o: any) => {
+        const orderDate = o.order_date || o.created_at || o.date;
+        if (!orderDate) return true; // Include items without dates
+        
+        const parsedDate = parseOrderDate(String(orderDate));
+        if (!parsedDate) return true; // Include items with unparseable dates
+        
+        return parsedDate >= startDate && parsedDate <= now;
+      });
+    }
+    
+    // Apply status filter if not "All"
+    if (activeTab !== "All") {
+      const filterStatusLower = activeTab.toLowerCase().trim();
+      filtered = filtered.filter((o: any) => {
+        if (!o.status) return false;
+        const orderStatus = String(o.status).toLowerCase().trim();
+        
+        // Direct exact match
+        if (orderStatus === filterStatusLower) return true;
+        
+        // Handle status variations
+        const orderStatusNormalized = orderStatus.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+        const filterStatusNormalized = filterStatusLower.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+        if (orderStatusNormalized === filterStatusNormalized) return true;
+        
+        // Handle specific status patterns
+        if (filterStatusLower === "pending_acceptance" || filterStatusLower === "pending acceptance") {
+          return (orderStatus.includes("pending") && orderStatus.includes("acceptance")) ||
+                 orderStatusNormalized.includes("pending acceptance");
+        }
+        if (filterStatusLower === "out_for_delivery" || filterStatusLower === "out for delivery") {
+          return (orderStatus.includes("out") && orderStatus.includes("delivery")) ||
+                 orderStatusNormalized.includes("out for delivery");
+        }
+        if (filterStatusLower === "paid") {
+          return orderStatus === "paid" || orderStatus.startsWith("paid") || orderStatus.endsWith("paid");
+        }
+        if (filterStatusLower === "accepted") {
+          return orderStatus === "accepted" || orderStatus.includes("accepted");
+        }
+        if (filterStatusLower === "delivered") {
+          return orderStatus === "delivered" || orderStatus.includes("delivered");
+        }
+        if (filterStatusLower === "completed") {
+          return orderStatus === "completed" || orderStatus.includes("completed");
+        }
+        if (filterStatusLower === "disputed") {
+          return orderStatus === "disputed" || orderStatus.includes("disputed");
+        }
+        
+        return false;
+      });
+    }
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard - Filtered Orders:', {
+        period: selectedPeriod,
+        statusFilter: activeTab,
+        totalOrders: orders.length,
+        filteredCount: filtered.length,
+        sampleOrder: orders[0] ? {
+          id: orders[0].id,
+          order_date: orders[0].order_date,
+          status: orders[0].status,
+        } : null,
+      });
+    }
+    
+    return filtered;
+  }, [dashboardData?.data?.latest_orders, selectedPeriod, activeTab]);
+
+  const filteredChats = useMemo(() => {
+    const chats = dashboardData?.data?.latest_chats || [];
+    const filtered = filterByPeriod(chats, selectedPeriod, ['last_message_at', 'created_at', 'chat_date']);
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard - Filtered Chats:', {
+        period: selectedPeriod,
+        totalChats: chats.length,
+        filteredCount: filtered.length,
+      });
+    }
+    
+    return filtered;
+  }, [dashboardData?.data?.latest_chats, selectedPeriod]);
+
+  // Calculate statistics from filtered orders based on API response structure
+  const calculatedStats = useMemo(() => {
+    const orders = filteredOrders;
+    
+    // Calculate statistics from filtered orders
+    const totalOrders = orders.length;
+    const completedOrders = orders.filter((o: any) => {
+      const status = String(o.status || '').toLowerCase();
+      return status === 'completed' || status.includes('completed');
+    }).length;
+    
+    // For total_users and total_transactions, we use API values since they're not derivable from orders
+    // But if filters are applied, we might want to show 0 or keep API values
+    // For now, we'll keep API values for users and transactions, but update orders counts
+    const useApiStats = selectedPeriod === "All time" && activeTab === "All";
+    
+    return {
+      buyer: {
+        total_users: {
+          value: useApiStats 
+            ? (dashboardData?.data?.buyer_stats?.total_users?.value || 0)
+            : (dashboardData?.data?.buyer_stats?.total_users?.value || 0), // Keep API value
+          increase: dashboardData?.data?.buyer_stats?.total_users?.increase || 0,
+        },
+        total_orders: {
+          value: totalOrders,
+          increase: dashboardData?.data?.buyer_stats?.total_orders?.increase || 0,
+        },
+        completed_orders: {
+          value: completedOrders,
+          increase: dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0,
+        },
+        total_transactions: {
+          value: useApiStats
+            ? (dashboardData?.data?.buyer_stats?.total_transactions?.value || 0)
+            : (dashboardData?.data?.buyer_stats?.total_transactions?.value || 0), // Keep API value
+          increase: dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0,
+        },
+      },
+      seller: {
+        total_users: {
+          value: useApiStats
+            ? (dashboardData?.data?.seller_stats?.total_users?.value || 0)
+            : (dashboardData?.data?.seller_stats?.total_users?.value || 0), // Keep API value
+          increase: dashboardData?.data?.seller_stats?.total_users?.increase || 0,
+        },
+        total_orders: {
+          value: totalOrders,
+          increase: dashboardData?.data?.seller_stats?.total_orders?.increase || 0,
+        },
+        completed_orders: {
+          value: completedOrders,
+          increase: dashboardData?.data?.seller_stats?.completed_orders?.increase || 0,
+        },
+        total_transactions: {
+          value: useApiStats
+            ? (dashboardData?.data?.seller_stats?.total_transactions?.value || 0)
+            : (dashboardData?.data?.seller_stats?.total_transactions?.value || 0), // Keep API value
+          increase: dashboardData?.data?.seller_stats?.total_transactions?.increase || 0,
+        },
+      },
+    };
+  }, [filteredOrders, selectedPeriod, activeTab, dashboardData]);
 
   // ============================================================================
   // SEARCH DEBOUNCING
@@ -170,15 +404,15 @@ const Dashboard = () => {
     setSelectedOrders(orders);
   };
 
-  // Period filter state
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-
   /**
    * Handle period change for dashboard data
+   * This updates the period filter which affects orders and chats display
    */
   const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
     console.log("Period changed to:", period);
+    setSelectedPeriod(period);
+    // Reset selected orders when period changes
+    setSelectedOrders([]);
   };
 
   /**
@@ -472,11 +706,11 @@ const Dashboard = () => {
                 <StatCard
                   icon={images.Users}
                   title="Total Users"
-                  value={dashboardData?.data?.buyer_stats?.total_users?.value || 0}
+                  value={calculatedStats.buyer.total_users.value}
                   subtitle={
                     <>
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.total_users?.increase || 0}%
+                        +{calculatedStats.buyer.total_users.increase}%
                       </span>{" "}
                       increase from last month
                     </>
@@ -486,11 +720,11 @@ const Dashboard = () => {
                 <StatCard
                   icon={images.orders}
                   title="Total Orders"
-                  value={dashboardData?.data?.buyer_stats?.total_orders?.value || 0}
+                  value={calculatedStats.buyer.total_orders.value}
                   subtitle={
                     <>
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}%
+                        +{calculatedStats.buyer.total_orders.increase}%
                       </span>{" "}
                       increase from last month
                     </>
@@ -504,11 +738,11 @@ const Dashboard = () => {
                 <StatCard
                   icon={images.orders}
                   title="Completed Orders"
-                  value={dashboardData?.data?.buyer_stats?.completed_orders?.value || 0}
+                  value={calculatedStats.buyer.completed_orders.value}
                   subtitle={
                     <>
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0}%
+                        +{calculatedStats.buyer.completed_orders.increase}%
                       </span>{" "}
                       increase from last month
                     </>
@@ -518,11 +752,11 @@ const Dashboard = () => {
                 <StatCard
                   icon={images.money}
                   title="Total Transactions"
-                  value={dashboardData?.data?.buyer_stats?.total_transactions?.value || 0}
+                  value={calculatedStats.buyer.total_transactions.value}
                   subtitle={
                     <>
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}%
+                        +{calculatedStats.buyer.total_transactions.increase}%
                       </span>{" "}
                       increase from last month
                     </>
@@ -553,11 +787,11 @@ const Dashboard = () => {
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
                     <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Users</span>
                     <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                      {dashboardData?.data?.seller_stats?.total_users?.value || 0}
+                      {calculatedStats.seller.total_users.value}
                     </span>
                     <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.seller_stats?.total_users?.increase || 0}%
+                        +{calculatedStats.seller.total_users.increase}%
                       </span> increase from last month
                     </span>
                   </div>
@@ -571,11 +805,11 @@ const Dashboard = () => {
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
                     <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Orders</span>
                     <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                      {dashboardData?.data?.seller_stats?.total_orders?.value || 0}
+                      {calculatedStats.seller.total_orders.value}
                     </span>
                     <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.seller_stats?.total_orders?.increase || 0}%
+                        +{calculatedStats.seller.total_orders.increase}%
                       </span> increase from last month
                     </span>
                   </div>
@@ -592,11 +826,11 @@ const Dashboard = () => {
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
                     <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Completed Orders</span>
                     <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                      {dashboardData?.data?.seller_stats?.completed_orders?.value || 0}
+                      {calculatedStats.seller.completed_orders.value}
                     </span>
                     <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.seller_stats?.completed_orders?.increase || 0}%
+                        +{calculatedStats.seller.completed_orders.increase}%
                       </span> increase from last month
                     </span>
                   </div>
@@ -610,11 +844,11 @@ const Dashboard = () => {
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
                     <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Transactions</span>
                     <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                      {dashboardData?.data?.seller_stats?.total_transactions?.value || 0}
+                      {calculatedStats.seller.total_transactions.value}
                     </span>
                     <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
-                        +{dashboardData?.data?.seller_stats?.total_transactions?.increase || 0}%
+                        +{calculatedStats.seller.total_transactions.increase}%
                       </span> increase from last month
                     </span>
                   </div>
@@ -676,7 +910,6 @@ const Dashboard = () => {
                     <div className="text-sm sm:text-base">Customer</div>
                   </div>
                   {(() => {
-                    const filteredChats = filterByPeriod(dashboardData?.data?.latest_chats || [], selectedPeriod, ['last_message_at', 'created_at', 'chat_date']);
                     return filteredChats.length > 0 ? (
                       filteredChats.map((chat: { 
                         id?: number | string; 
@@ -791,9 +1024,9 @@ const Dashboard = () => {
             title="Latest Orders"
             onRowSelect={handleOrderSelection}
             onSelectedOrdersChange={handleSelectedOrdersChange}
-            filterStatus={activeTab}
+            filterStatus="All"
             searchTerm={debouncedSearch}
-            orders={filterByPeriod(dashboardData?.data?.latest_orders || [], selectedPeriod, ['order_date', 'created_at', 'date'])}
+            orders={filteredOrders}
             onViewDetails={handleViewOrderDetails}
           />
         </div>

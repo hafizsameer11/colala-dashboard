@@ -6,6 +6,7 @@ import { Buyers_links } from "../constants/Buyers";
 import { Sellers_links } from "../constants/Sellers";
 import { General_links } from "../constants/general";
 import images from "../constants/images";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SidebarProps {
   setMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -14,6 +15,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [activeLink, setActiveLink] = useState<string>("/dashboard");
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
@@ -21,15 +23,16 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
     setActiveLink(location.pathname);
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    // Clear any stored authentication data
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userSession");
-    localStorage.removeItem("userData");
-    sessionStorage.clear();
-
-    // Navigate to login page
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigate to login page after logout
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Navigate to login page even if logout API fails
+      navigate("/login", { replace: true });
+    }
   };
 
   return (

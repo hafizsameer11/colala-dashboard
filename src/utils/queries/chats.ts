@@ -91,8 +91,34 @@ export const updateChatStatus = async (chatId: number | string, statusData: {
   if (!token) {
     throw new Error('No authentication token found');
   }
+  
+  // Validate and ensure status is never null
+  if (!statusData.status || !['open', 'closed', 'resolved'].includes(statusData.status)) {
+    throw new Error('Invalid status value. Status must be one of: open, closed, resolved');
+  }
+  
+  // Prepare the payload, ensuring no null values are sent
+  const payload: {
+    status: 'open' | 'closed' | 'resolved';
+    type?: 'general' | 'support' | 'dispute';
+  } = {
+    status: statusData.status
+  };
+  
+  // Only include type if it's a valid value
+  if (statusData.type && ['general', 'support', 'dispute'].includes(statusData.type)) {
+    payload.type = statusData.type;
+  }
+  
+  console.log('Sending status update to API:', {
+    chatId,
+    payload,
+    endpoint: API_ENDPOINTS.CHATS.UpdateStatus(chatId)
+  });
+  
   try {
-    const response = await apiCall(API_ENDPOINTS.CHATS.UpdateStatus(chatId), 'PUT', statusData, token);
+    const response = await apiCall(API_ENDPOINTS.CHATS.UpdateStatus(chatId), 'PUT', payload, token);
+    console.log('Status update API response:', response);
     return response;
   } catch (error) {
     console.error('Update chat status API call error:', error);

@@ -91,10 +91,32 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
     const typeOk = (t: Transaction) => {
       if (typeFilter === "All") return true;
-      const normalizedType = t.type.toLowerCase();
-      if (typeFilter === "Deposit") return normalizedType.includes("deposit");
-      if (typeFilter === "Withdrawals") return normalizedType.includes("withdraw");
-      if (typeFilter === "Payments") return normalizedType.includes("payment") || normalizedType.includes("order");
+      const normalizedType = t.type.toLowerCase().trim();
+      
+      // Handle different transaction type formats from API
+      if (typeFilter === "Deposit") {
+        return normalizedType === "deposit" || 
+               normalizedType.includes("deposit") ||
+               normalizedType === "wallet_deposit" ||
+               normalizedType === "account_deposit";
+      }
+      
+      if (typeFilter === "Withdrawals") {
+        return normalizedType === "withdrawal" || 
+               normalizedType === "withdraw" ||
+               normalizedType.includes("withdraw") ||
+               normalizedType === "wallet_withdrawal" ||
+               normalizedType === "account_withdrawal";
+      }
+      
+      if (typeFilter === "Payments") {
+        return normalizedType === "payment" || 
+               normalizedType.includes("payment") ||
+               normalizedType.includes("order") ||
+               normalizedType === "order_payment" ||
+               normalizedType === "transaction_payment";
+      }
+      
       return true;
     };
 

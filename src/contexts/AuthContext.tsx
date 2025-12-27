@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { loginUser } from '../utils/mutations/auth';
+import { loginUser, logoutUser } from '../utils/mutations/auth';
 import Cookies from 'js-cookie';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -94,12 +94,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    // Clear auth data
-    Cookies.remove('authToken');
-    Cookies.remove('userData');
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      // Call logout API endpoint
+      await logoutUser();
+    } catch (error) {
+      // Even if API call fails, we should still clear local auth data
+      console.error('Logout API error:', error);
+    } finally {
+      // Clear auth data regardless of API call result
+      Cookies.remove('authToken');
+      Cookies.remove('userData');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userSession');
+      localStorage.removeItem('userData');
+      sessionStorage.clear();
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
 
   const value: AuthContextType = {
