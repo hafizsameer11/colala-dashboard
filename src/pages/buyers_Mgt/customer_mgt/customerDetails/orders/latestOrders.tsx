@@ -81,31 +81,67 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
 
   // Normalize orders data from API
   const normalizeOrder = (order: unknown): Order => {
-    const orderObj = order as {
-      id: string | number;
-      order_no?: string;
-      store_name?: string;
-      product_name?: string;
-      price?: string;
-      order_date?: string;
-      status?: string;
-      status_color?: string;
-      store?: { name?: string };
-      product?: { name?: string };
-      pricing?: { subtotal_with_shipping?: string };
-    };
+    const orderObj = order as any;
     
-    // Handle both flattened and nested data structures
-    const storeName = orderObj.store?.name || orderObj.store_name || 'Unknown Store';
-    const productName = orderObj.product?.name || orderObj.product_name || 'Unknown Product';
-    const price = orderObj.pricing?.subtotal_with_shipping || orderObj.price || '₦0.00';
-    const orderDate = orderObj.order_date || 'Unknown Date';
-    const status = orderObj.status || 'Unknown Status';
-    const statusColor = orderObj.status_color;
+    // Handle different API response structures
+    // Structure 1: Full order with store_order details (has status)
+    // Structure 2: Basic order from recent_orders (only has payment_status)
+    // Structure 3: Nested structure with store/product objects
+    
+    // Extract store name from various possible locations
+    const storeName = 
+      orderObj.store_order?.store?.name ||
+      orderObj.store?.name || 
+      orderObj.store_name || 
+      orderObj.store_order?.store_name ||
+      'Unknown Store';
+    
+    // Extract product name - might be in items array or single product
+    let productName = 'Unknown Product';
+    if (orderObj.items && Array.isArray(orderObj.items) && orderObj.items.length > 0) {
+      // If multiple items, show count or first item name
+      if (orderObj.items.length === 1) {
+        productName = orderObj.items[0].name || 'Unknown Product';
+      } else {
+        productName = `${orderObj.items.length} items`;
+      }
+    } else {
+      productName = orderObj.product?.name || orderObj.product_name || 'Unknown Product';
+    }
+    
+    // Extract price from various locations
+    const price = 
+      orderObj.store_order?.subtotal_with_shipping ||
+      orderObj.pricing?.subtotal_with_shipping || 
+      orderObj.grand_total || 
+      orderObj.price || 
+      '₦0.00';
+    
+    // Extract order date
+    const orderDate = 
+      orderObj.formatted_date || 
+      orderObj.order_date || 
+      orderObj.created_at || 
+      'Unknown Date';
+    
+    // Extract status - prioritize store_order status, then order status, then payment_status
+    let status = 
+      orderObj.store_order?.status ||
+      orderObj.status || 
+      'Unknown Status';
+    
+    // If still no status, try to infer from payment_status (but this is not ideal)
+    if (status === 'Unknown Status' && orderObj.payment_status) {
+      // Don't use payment_status as status - it's different
+      // But we can use it as a fallback if absolutely necessary
+      status = orderObj.payment_status;
+    }
+    
+    const statusColor = orderObj.status_color || orderObj.store_order?.status_color;
     
     return {
-      id: orderObj.id,
-      order_no: orderObj.order_no || 'N/A',
+      id: orderObj.id || orderObj.store_order?.id || 'N/A',
+      order_no: orderObj.order_no || orderObj.order_number || orderObj.store_order?.order?.order_no || 'N/A',
       store_name: storeName,
       product_name: productName,
       price: price,
@@ -129,7 +165,11 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   // 1) Filter by tab
   const byTab = useMemo(() => {
     if (activeTab === "All") {
-      return normalizedOrders;
+      // Exclude completed orders from "All" tab - they should only show in "Completed" tab
+      return normalizedOrders.filter((o) => {
+        const orderStatus = o.status?.toLowerCase() || '';
+        return !orderStatus.includes('completed');
+      });
     }
     
     // Map tab names to status values
@@ -137,17 +177,53 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
       "Order Placed": ["placed", "order placed"],
       "Out for delivery": ["out for delivery", "out_for_delivery", "shipped"],
       "Delivered": ["delivered"],
-      "Completed": ["completed"],
+      "Completed": ["completed", "order completed"],
+      "completed": ["completed", "order completed"], // Handle lowercase tab name
       "Disputed": ["disputed"],
-      "Uncompleted": ["uncompleted", "cancelled", "failed"]
+      "Uncompleted": ["uncompleted", "cancelled", "failed"],
+      // Handle other lowercase tab names
+      "placed": ["placed", "order placed"],
+      "pending": ["pending"],
+      "out_for_delivery": ["out for delivery", "out_for_delivery", "shipped"],
+      "delivered": ["delivered"]
     };
     
     const statusValues = statusMap[activeTab] || [activeTab.toLowerCase()];
     
-    return normalizedOrders.filter((o) => {
-      const orderStatus = o.status?.toLowerCase() || '';
-      return statusValues.some(status => orderStatus.includes(status));
+    // Debug logging for completed filter
+    if (activeTab === "completed" || activeTab === "Completed") {
+      console.log('Filtering for completed orders - activeTab:', activeTab);
+      console.log('Status values to match:', statusValues);
+      console.log('All normalized orders:', normalizedOrders.map(o => ({ id: o.id, status: o.status })));
+    }
+    
+    const filtered = normalizedOrders.filter((o) => {
+      const orderStatus = o.status?.toLowerCase()?.trim() || '';
+      if (!orderStatus) return false;
+      
+      // Check if any of the status values match
+      const matches = statusValues.some(status => {
+        const statusLower = status.toLowerCase().trim();
+        // Exact match or contains match
+        const isMatch = orderStatus === statusLower || orderStatus.includes(statusLower);
+        
+        // Debug logging for completed filter
+        if ((activeTab === "completed" || activeTab === "Completed") && isMatch) {
+          console.log(`Order ${o.id} matches - status: "${orderStatus}", matching against: "${statusLower}"`);
+        }
+        
+        return isMatch;
+      });
+      
+      return matches;
     });
+    
+    // Debug logging for completed filter
+    if (activeTab === "completed" || activeTab === "Completed") {
+      console.log('Filtered completed orders:', filtered.map(o => ({ id: o.id, status: o.status })));
+    }
+    
+    return filtered;
   }, [normalizedOrders, activeTab]);
 
   // 2) Filter by search (case-insensitive)

@@ -80,7 +80,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return normalizedOrders
       .filter((o) => {
         if (filterStatus === "All") {
-          return true;
+          // Exclude completed orders from "All" tab - they should only show in "Completed" tab
+          const orderStatus = o.status?.toLowerCase() || '';
+          return !orderStatus.includes('completed');
         }
         return o.status?.toLowerCase() === filterStatus.toLowerCase();
       })
@@ -109,7 +111,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     const currentFilteredIds = normalizedOrders
       .filter((o) => {
         if (filterStatus === "All") {
-          return true;
+          // Exclude completed orders from "All" tab - they should only show in "Completed" tab
+          const orderStatus = o.status?.toLowerCase() || '';
+          return !orderStatus.includes('completed');
         }
         return o.status?.toLowerCase() === filterStatus.toLowerCase();
       })

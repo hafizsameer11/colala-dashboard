@@ -234,11 +234,11 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
   const { showToast } = useToast();
 
   // Fetch user addresses
-  const { data: addressesData, isLoading: isLoadingAddresses, error: addressesError } = useQuery({
+  const { data: addressesData, isLoading: isLoadingAddresses, error: addressesError, refetch: refetchAddresses } = useQuery({
     queryKey: ['userAddresses', userData?.user_info?.id],
     queryFn: () => getUserAddresses(userData?.user_info?.id),
     enabled: !!userData?.user_info?.id && activeTab === "address",
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 0, // Always refetch to get latest data
   });
 
   // Update user mutation
@@ -262,11 +262,16 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
   const createAddressMutation = useMutation({
     mutationFn: ({ userId, addressData }: { userId: number | string; addressData: any }) =>
       createUserAddress(userId, addressData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAddresses', userData?.user_info?.id] });
+    onSuccess: async () => {
+      // Close form first
       setShowAddAddressForm(false);
       setAddressData({ phoneNumber: "", state: "", localGovernment: "", fullAddress: "" });
       setEditingAddressId(null);
+      
+      // Invalidate and refetch addresses to show updated values
+      queryClient.invalidateQueries({ queryKey: ['userAddresses', userData?.user_info?.id] });
+      await refetchAddresses();
+      
       showToast('Address created successfully!', 'success');
     },
     onError: (error: any) => {
@@ -277,13 +282,20 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
 
   // Update address mutation
   const updateAddressMutation = useMutation({
-    mutationFn: ({ userId, addressId, addressData }: { userId: number | string; addressId: number | string; addressData: any }) =>
-      updateUserAddress(userId, addressId, addressData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAddresses', userData?.user_info?.id] });
+    mutationFn: ({ userId, addressId, addressData }: { userId: number | string; addressId: number | string; addressData: any }) => {
+      console.log('Update mutation called with:', { userId, addressId, addressData });
+      return updateUserAddress(userId, addressId, addressData);
+    },
+    onSuccess: async () => {
+      // Close form first
       setShowAddAddressForm(false);
       setAddressData({ phoneNumber: "", state: "", localGovernment: "", fullAddress: "" });
       setEditingAddressId(null);
+      
+      // Invalidate and refetch addresses to show updated values
+      queryClient.invalidateQueries({ queryKey: ['userAddresses', userData?.user_info?.id] });
+      await refetchAddresses();
+      
       showToast('Address updated successfully!', 'success');
     },
     onError: (error: any) => {
@@ -296,8 +308,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
   const deleteAddressMutation = useMutation({
     mutationFn: ({ userId, addressId }: { userId: number | string; addressId: number | string }) =>
       deleteUserAddress(userId, addressId),
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate and refetch addresses to show updated values
       queryClient.invalidateQueries({ queryKey: ['userAddresses', userData?.user_info?.id] });
+      await refetchAddresses();
       showToast('Address deleted successfully!', 'success');
     },
     onError: (error: any) => {
@@ -347,6 +361,26 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
       });
     }
   }, [userData]);
+
+  // Reset address form state when modal closes or tab changes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all address-related state when modal closes
+      setShowAddAddressForm(false);
+      setEditingAddressId(null);
+      setAddressData({ phoneNumber: "", state: "", localGovernment: "", fullAddress: "" });
+    }
+  }, [isOpen]);
+
+  // Reset address form when switching tabs
+  useEffect(() => {
+    if (activeTab !== "address") {
+      // Reset address form when switching away from address tab
+      setShowAddAddressForm(false);
+      setEditingAddressId(null);
+      setAddressData({ phoneNumber: "", state: "", localGovernment: "", fullAddress: "" });
+    }
+  }, [activeTab]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const target = e.target;
@@ -419,13 +453,19 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
     const addressPayload = {
       phone: addressData.phoneNumber,
       state: addressData.state,
-      local_government: addressData.localGovernment,
+      city: addressData.localGovernment, // API stores local government in 'city' field
+      local_government: addressData.localGovernment, // Keep both for compatibility
       line1: addressLines[0] || addressData.fullAddress, // First part or entire address
       line2: addressLines.length > 1 ? addressLines.slice(1).join(', ') : undefined, // Rest if multiple parts
     };
 
-    if (editingAddressId) {
+    // Debug: Log the editing state
+    console.log('Address Submit - editingAddressId:', editingAddressId);
+    console.log('Address Payload:', addressPayload);
+
+    if (editingAddressId !== null && editingAddressId !== undefined) {
       // Update existing address
+      console.log('Updating address with ID:', editingAddressId);
       updateAddressMutation.mutate({
         userId: userData.user_info.id,
         addressId: editingAddressId,
@@ -433,6 +473,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
       });
     } else {
       // Create new address
+      console.log('Creating new address');
       createAddressMutation.mutate({
         userId: userData.user_info.id,
         addressData: addressPayload,
@@ -441,11 +482,27 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
   };
 
   const handleEditAddress = (address: Address) => {
+    // Properly construct fullAddress by combining line1 and line2
+    let fullAddress = "";
+    if (address.line1) {
+      fullAddress = address.line1;
+      if (address.line2) {
+        fullAddress = `${address.line1}, ${address.line2}`;
+      }
+    }
+    
+    // API stores local government in 'city' field, so prioritize city over local_government
+    const localGovernmentValue = address.city || address.local_government || "";
+    
+    // Debug: Log the address being edited
+    console.log('Editing address:', address);
+    console.log('Setting editingAddressId to:', address.id);
+    
     setAddressData({
       phoneNumber: address.phone || "",
       state: address.state || "",
-      localGovernment: address.local_government || address.city || "",
-      fullAddress: address.line1 || (address.line2 ? `${address.line1 || ''}, ${address.line2}`.trim() : address.line1 || ""),
+      localGovernment: localGovernmentValue,
+      fullAddress: fullAddress,
     });
     setEditingAddressId(address.id);
     setShowAddAddressForm(true);
@@ -937,7 +994,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                                 </p>
                               </div>
 
-                              {/* State and City */}
+                              {/* State and Local Government */}
                               <div className="flex flex-row gap-10">
                                 <div>
                                   <label className="text-gray-500 text-sm block mb-1">
@@ -949,10 +1006,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                                 </div>
                                 <div>
                                   <label className="text-gray-500 text-sm block mb-1">
-                                    City
+                                    Local Government
                                   </label>
                                   <p className="text-gray-800 font-medium">
-                                    {address.city || 'N/A'}
+                                    {address.city || address.local_government || 'N/A'}
                                   </p>
                                 </div>
                               </div>

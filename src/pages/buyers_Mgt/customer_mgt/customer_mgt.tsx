@@ -93,7 +93,7 @@ const customer_mgt = () => {
 
     // Extract and normalize statistics values - ensure we get the actual numbers
     const stats = {
-      total_users: getStatValue(rawStatistics?.total_users?.value),
+      total_users: getStatValue(rawStatistics?.total_users),
       buyer_users: getStatValue(rawStatistics?.buyer_users),
       seller_users: getStatValue(rawStatistics?.seller_users),
       active_users: getStatValue(rawStatistics?.active_users),
@@ -174,19 +174,19 @@ const customer_mgt = () => {
                 icon={images.Users}
                 title="Total Users"
                 value={statistics.total_users}
-                subtitle={`${statistics.buyer_users} buyers, ${statistics.seller_users} sellers`}
+                // subtitle={`${statistics.buyer_users} buyers, ${statistics.seller_users} sellers`}
               />
               <StatCard
                 icon={images.Users}
                 title="Active Users"
                 value={statistics.active_users}
-                subtitle={`${statistics.inactive_users} inactive users`}
+                // subtitle={`${statistics.inactive_users} inactive users`}
               />
               <StatCard
                 icon={images.Users}
                 title="New Users"
                 value={newUsersCount}
-                subtitle="Users registered in the last 30 days"
+                // subtitle="Users registered in the last 30 days"
               />
             </StatCardGrid>
           )}
@@ -201,7 +201,7 @@ const customer_mgt = () => {
                   dataType="users"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:gap-5">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-5">
                 <div>
                   <button
                     onClick={() => setShowModal(true)}

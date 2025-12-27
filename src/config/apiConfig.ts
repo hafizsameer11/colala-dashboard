@@ -46,8 +46,8 @@ const API_ENDPOINTS = {
     Delete: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // DELETE
     Addresses: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // GET
     CreateAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST
-    UpdateAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST (with address_id in body)
-    DeleteAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST (with address_id and _method: DELETE in body)
+    UpdateAddress: (userId: number | string, addressId: number | string) => `${API_DOMAIN}/admin/all-users/${userId}/addresses/${addressId}`, // PUT
+    DeleteAddress: (userId: number | string, addressId: number | string) => `${API_DOMAIN}/admin/all-users/${userId}/addresses/${addressId}`, // DELETE
   },
 
   // CHATS

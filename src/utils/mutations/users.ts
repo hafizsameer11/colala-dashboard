@@ -355,7 +355,8 @@ export const createUserAddress = async (
   addressData: {
     phone: string;
     state: string;
-    local_government: string;
+    local_government?: string;
+    city?: string;
     line1: string;
     line2?: string;
     is_default?: boolean;
@@ -390,6 +391,7 @@ export const updateUserAddress = async (
     phone?: string;
     state?: string;
     local_government?: string;
+    city?: string;
     line1?: string;
     line2?: string;
     is_default?: boolean;
@@ -401,18 +403,38 @@ export const updateUserAddress = async (
   }
 
   try {
-    // Include address_id in the body for update
-    const payload = {
-      address_id: addressId,
-      ...addressData,
-    };
+    // Use PUT method with addressId in URL path
+    const payload: any = {};
+    
+    // Add all address data fields
+    if (addressData.phone !== undefined) payload.phone = addressData.phone;
+    if (addressData.state !== undefined) payload.state = addressData.state;
+    if (addressData.city !== undefined) {
+      payload.city = addressData.city;
+    } else if (addressData.local_government !== undefined) {
+      payload.city = addressData.local_government; // API uses 'city' field for local government
+    }
+    if (addressData.local_government !== undefined) payload.local_government = addressData.local_government;
+    if (addressData.line1 !== undefined) payload.line1 = addressData.line1;
+    if (addressData.line2 !== undefined && addressData.line2 !== null && addressData.line2 !== '') {
+      payload.line2 = addressData.line2;
+    }
+    if (addressData.is_default !== undefined) payload.is_default = addressData.is_default;
+    
+    const endpoint = API_ENDPOINTS.ALL_USERS.UpdateAddress(userId, addressId);
+    
+    console.log('Update address payload:', JSON.stringify(payload, null, 2));
+    console.log('Update address endpoint:', endpoint);
+    console.log('Using PUT method with addressId in URL:', addressId);
     
     const response = await apiCall(
-      API_ENDPOINTS.ALL_USERS.UpdateAddress(userId),
-      "POST",
+      endpoint,
+      "PUT",
       payload,
       token
     );
+    
+    console.log('Update address response:', response);
     return response;
   } catch (error) {
     console.error("Update user address API call error:", error);
@@ -433,18 +455,20 @@ export const deleteUserAddress = async (
   }
 
   try {
-    // Send address_id in POST body - backend should recognize this as delete operation
-    // Some Laravel APIs use the presence of address_id with specific endpoint to determine delete
-    const payload = {
-      address_id: addressId,
-    };
+    // Use DELETE method with addressId in URL path
+    const endpoint = API_ENDPOINTS.ALL_USERS.DeleteAddress(userId, addressId);
+    
+    console.log('Delete address endpoint:', endpoint);
+    console.log('Using DELETE method with addressId in URL:', addressId);
     
     const response = await apiCall(
-      API_ENDPOINTS.ALL_USERS.DeleteAddress(userId),
-      "POST",
-      payload,
+      endpoint,
+      "DELETE",
+      undefined, // No payload needed for DELETE
       token
     );
+    
+    console.log('Delete address response:', response);
     return response;
   } catch (error) {
     console.error("Delete user address API call error:", error);

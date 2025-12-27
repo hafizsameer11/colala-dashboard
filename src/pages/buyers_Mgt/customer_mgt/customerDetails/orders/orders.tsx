@@ -22,6 +22,7 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
     "pending",
     "out_for_delivery",
     "delivered",
+    "completed",
   ];
 
   // Fetch user orders data from API
@@ -172,7 +173,13 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
             onRowSelect={handleUserSelection}
             activeTab={activeTab}
             searchQuery={debouncedQuery}
-            orders={ordersData?.data?.orders?.data || []}
+            orders={
+              ordersData?.data?.store_orders?.data || 
+              ordersData?.data?.orders?.data || 
+              ordersData?.data?.recent_orders || 
+              ordersData?.data?.orders || 
+              []
+            }
             pagination={ordersData?.data?.pagination || null}
             isLoading={isLoading}
             error={error?.message || null}

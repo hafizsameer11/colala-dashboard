@@ -204,8 +204,15 @@ const Dashboard = () => {
       });
     }
     
-    // Apply status filter if not "All"
-    if (activeTab !== "All") {
+    // Apply status filter
+    if (activeTab === "All") {
+      // Exclude completed orders from "All" tab - they should only show in "Completed" tab
+      filtered = filtered.filter((o: any) => {
+        if (!o.status) return true; // Include orders without status
+        const orderStatus = String(o.status).toLowerCase().trim();
+        return !orderStatus.includes('completed');
+      });
+    } else {
       const filterStatusLower = activeTab.toLowerCase().trim();
       filtered = filtered.filter((o: any) => {
         if (!o.status) return false;
