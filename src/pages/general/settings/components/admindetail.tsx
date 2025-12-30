@@ -138,7 +138,7 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
       <div className="flex items-center gap-3">
         {/* Main Tabs Group */}
         <div className="flex items-center bg-white border border-gray-300 rounded-lg p-2 overflow-x-auto">
-          {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map((tab) => {
+          {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button

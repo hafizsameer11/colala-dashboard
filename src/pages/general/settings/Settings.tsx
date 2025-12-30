@@ -5,6 +5,7 @@ import ManagementSettingTable from "./components/managementsettingtable";
 import AddNewAdmin from "./components/addnewadmin";
 import AdminDetail from "./components/admindetail";
 import Categories from "./components/categories";
+import ServiceCategories from "./components/serviceCategories";
 import BrandsManagement from "./components/brandsManagement";
 import KnowledgeBase from "./components/knowledgeBase";
 import QuestionModal from "./components/questionmodal";
@@ -489,6 +490,13 @@ const AllUsers = () => {
           isThisWeekDropdownOpen={isThisWeekDropdownOpen}
           setIsThisWeekDropdownOpen={setIsThisWeekDropdownOpen}
         />
+      ) : activeTab === "Service Categories" ? (
+        <ServiceCategories
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isThisWeekDropdownOpen={isThisWeekDropdownOpen}
+          setIsThisWeekDropdownOpen={setIsThisWeekDropdownOpen}
+        />
       ) : activeTab === "Brands" ? (
         <BrandsManagement
           activeTab={activeTab}
@@ -511,7 +519,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
         {/* Main Tabs Group */}
         <div className="flex items-center bg-white border border-[#989898] rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-          {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+          {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
             (tab) => {
               const isActive = activeTab === tab;
               return (
@@ -739,7 +747,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+                {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -828,7 +836,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+                {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -1201,7 +1209,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-                {["General", "Admin Management", "Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+                {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (

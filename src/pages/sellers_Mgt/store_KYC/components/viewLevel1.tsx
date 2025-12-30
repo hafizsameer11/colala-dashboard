@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import images from "../../../../constants/images";
+import RejectFieldModal from "../../../../components/RejectFieldModal";
+import { getFieldByKey } from "../../../../constants/onboardingFields";
+import type { OnboardingFieldKey } from "../../../../constants/onboardingFields";
 
 interface ViewLevel1Props {
   storeDetails?: any;
   onStatusUpdate: (status: string, notes?: string, sendNotification?: boolean) => void;
   onLevelUpdate: (level: number, notes?: string) => void;
   isLoading?: boolean;
+  storeId?: number | string;
 }
 
 const ViewLevel1: React.FC<ViewLevel1Props> = ({
@@ -13,6 +17,7 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
   onStatusUpdate,
   onLevelUpdate,
   isLoading = false,
+  storeId,
 }) => {
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [showLevelUpdate, setShowLevelUpdate] = useState(false);
@@ -22,10 +27,36 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
   const [sendNotification, setSendNotification] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedFieldKey, setSelectedFieldKey] = useState<OnboardingFieldKey | null>(null);
 
   const storeInfo = storeDetails?.store_info;
   const ownerInfo = storeDetails?.owner_info;
   const level1Data = storeDetails?.level_1_data;
+  const progressFields = storeDetails?.onboarding_progress?.fields || [];
+
+  // Helper function to get field rejection status
+  const getFieldRejectionStatus = (fieldKey: OnboardingFieldKey) => {
+    const field = progressFields.find((f: any) => f.key === fieldKey);
+    if (field && (field.status === 'rejected' || field.is_rejected)) {
+      return {
+        isRejected: true,
+        reason: field.rejection_reason || 'No reason provided',
+      };
+    }
+    return { isRejected: false, reason: null };
+  };
+
+  const handleRejectClick = (fieldKey: OnboardingFieldKey) => {
+    setSelectedFieldKey(fieldKey);
+    setShowRejectModal(true);
+  };
+
+  const handleRejectSuccess = () => {
+    setToastMessage('Field rejected successfully!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   const handleStatusSubmit = () => {
     onStatusUpdate(status, notes, sendNotification);
@@ -61,19 +92,45 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
     <div className="space-y-6">
       {/* Store Information */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-[#E53E3E] rounded-lg flex items-center justify-center">
-            <img 
-              src={images.store} 
-              alt="Store" 
-              className="w-6 h-6"
-              onError={(e) => {
-                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgM1YyMUgyMVYzSDNaTTUgNUgxOVYxOUg1VjVaIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=';
-              }}
-            />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#E53E3E] rounded-lg flex items-center justify-center">
+              <img 
+                src={images.store} 
+                alt="Store" 
+                className="w-6 h-6"
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgM1YyMUgyMVYzSDNaTTUgNUgxOVYxOUg1VjVaIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=';
+                }}
+              />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900">Store Information</h3>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900">Store Information</h3>
+          {storeId && (
+            <button
+              onClick={() => handleRejectClick('level1.basic')}
+              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Reject
+            </button>
+          )}
         </div>
+        {getFieldRejectionStatus('level1.basic').isRejected && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level1.basic').reason}</p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Store Name</label>
@@ -163,6 +220,35 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
         </div>
         
         {/* Profile & Banner Images */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Profile & Banner Images</h4>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level1.profile_media')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level1.profile_media').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level1.profile_media').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Profile Image</label>
@@ -212,6 +298,33 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
 
         {/* Categories */}
         <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Categories & Social Links</label>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level1.categories_social')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level1.categories_social').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level1.categories_social').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <label className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3 block">Categories</label>
           <div className="flex flex-wrap gap-2">
             {level1Data?.categories?.length > 0 ? (
@@ -326,6 +439,21 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reject Field Modal */}
+      {showRejectModal && storeId && (
+        <RejectFieldModal
+          isOpen={showRejectModal}
+          onClose={() => {
+            setShowRejectModal(false);
+            setSelectedFieldKey(null);
+          }}
+          storeId={storeId}
+          level={1}
+          onSuccess={handleRejectSuccess}
+          preselectedField={selectedFieldKey || undefined}
+        />
       )}
 
       {/* Success Toast Notification */}

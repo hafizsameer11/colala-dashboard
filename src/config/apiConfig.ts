@@ -292,6 +292,7 @@ const API_ENDPOINTS = {
     Progress: API_DOMAIN + "/admin/create-seller/progress", // GET
     Categories: API_DOMAIN + "/admin/create-seller/categories", // GET
     SetApprovalStatus: API_DOMAIN + "/admin/create-seller/set-approval-status", // POST
+    RejectField: API_DOMAIN + "/admin/create-seller/reject-field", // POST
   },
 
   // STORE DATA RETRIEVAL
@@ -327,6 +328,17 @@ const API_ENDPOINTS = {
     Create: API_DOMAIN + "/create-category", // POST
     Update: (id: number | string) => `${API_DOMAIN}/update-category/${id}`, // POST
     Delete: (id: number | string) => `${API_DOMAIN}/categories/${id}`, // DELETE
+  },
+
+  // SERVICE CATEGORIES
+  SERVICE_CATEGORIES: {
+    List: API_DOMAIN + "/service-categories", // GET (public)
+    GetById: (id: number | string) => `${API_DOMAIN}/service-categories/${id}`, // GET (public)
+    AdminList: API_DOMAIN + "/admin/service-categories", // GET (admin, paginated)
+    AdminGetById: (id: number | string) => `${API_DOMAIN}/admin/service-categories/${id}`, // GET (admin)
+    Create: API_DOMAIN + "/admin/service-categories", // POST
+    Update: (id: number | string) => `${API_DOMAIN}/admin/service-categories/${id}`, // PUT
+    Delete: (id: number | string) => `${API_DOMAIN}/admin/service-categories/${id}`, // DELETE
   },
 
   // BRANDS

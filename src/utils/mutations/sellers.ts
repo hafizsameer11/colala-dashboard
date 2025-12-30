@@ -1,6 +1,7 @@
 import { apiCall } from '../customApiCall';
 import { API_ENDPOINTS } from '../../config/apiConfig';
 import Cookies from 'js-cookie';
+import type { OnboardingFieldKey } from '../../constants/onboardingFields';
 
 /**
  * Level 1 - Create Store (Basic Information)
@@ -234,6 +235,65 @@ export const createSellerLevel3 = async (storeDetailsData: {
     return response;
   } catch (error) {
     console.error('Create seller level 3 API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reject an onboarding field
+ * 
+ * This function allows admins to reject specific onboarding fields with a reason.
+ * When a field is rejected, the seller must re-upload it before they can proceed.
+ * 
+ * @param storeId - The ID of the store
+ * @param fieldKey - The field key to reject (e.g., 'level1.basic', 'level2.documents')
+ * @param rejectionReason - The reason for rejection (max 1000 characters)
+ * 
+ * @returns Promise with the rejection response including updated progress
+ * 
+ * @example
+ * ```typescript
+ * await rejectOnboardingField(123, 'level2.documents', 'Document quality is too low. Please upload a clearer image.');
+ * ```
+ */
+export const rejectOnboardingField = async (
+  storeId: number | string,
+  fieldKey: OnboardingFieldKey,
+  rejectionReason: string
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  if (!rejectionReason || rejectionReason.trim().length === 0) {
+    throw new Error('Rejection reason is required');
+  }
+
+  if (rejectionReason.length > 1000) {
+    throw new Error('Rejection reason must be 1000 characters or less');
+  }
+
+  try {
+    const payload = {
+      store_id: typeof storeId === 'string' ? parseInt(storeId, 10) : storeId,
+      field_key: fieldKey,
+      rejection_reason: rejectionReason.trim(),
+    };
+
+    console.log('Rejecting onboarding field:', payload);
+
+    const response = await apiCall(
+      API_ENDPOINTS.SELLER_CREATION.RejectField,
+      'POST',
+      payload,
+      token
+    );
+
+    console.log('Reject field response:', response);
+    return response;
+  } catch (error) {
+    console.error('Reject onboarding field API call error:', error);
     throw error;
   }
 };

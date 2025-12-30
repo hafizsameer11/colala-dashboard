@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import images from "../../../../constants/images";
+import RejectFieldModal from "../../../../components/RejectFieldModal";
+import type { OnboardingFieldKey } from "../../../../constants/onboardingFields";
 
 interface ViewLevel3Props {
   storeDetails?: any;
   onStatusUpdate: (status: string, notes?: string, sendNotification?: boolean) => void;
   onLevelUpdate: (level: number, notes?: string) => void;
   isLoading?: boolean;
+  storeId?: number | string;
 }
 
 const ViewLevel3: React.FC<ViewLevel3Props> = ({
@@ -13,6 +16,7 @@ const ViewLevel3: React.FC<ViewLevel3Props> = ({
   onStatusUpdate,
   onLevelUpdate,
   isLoading = false,
+  storeId,
 }) => {
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [showLevelUpdate, setShowLevelUpdate] = useState(false);
@@ -22,9 +26,35 @@ const ViewLevel3: React.FC<ViewLevel3Props> = ({
   const [sendNotification, setSendNotification] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedFieldKey, setSelectedFieldKey] = useState<OnboardingFieldKey | null>(null);
 
   const storeInfo = storeDetails?.store_info;
   const level3Data = storeDetails?.level_3_data;
+  const progressFields = storeDetails?.onboarding_progress?.fields || [];
+
+  // Helper function to get field rejection status
+  const getFieldRejectionStatus = (fieldKey: OnboardingFieldKey) => {
+    const field = progressFields.find((f: any) => f.key === fieldKey);
+    if (field && (field.status === 'rejected' || field.is_rejected)) {
+      return {
+        isRejected: true,
+        reason: field.rejection_reason || 'No reason provided',
+      };
+    }
+    return { isRejected: false, reason: null };
+  };
+
+  const handleRejectClick = (fieldKey: OnboardingFieldKey) => {
+    setSelectedFieldKey(fieldKey);
+    setShowRejectModal(true);
+  };
+
+  const handleRejectSuccess = () => {
+    setToastMessage('Field rejected successfully!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   const handleStatusSubmit = () => {
     onStatusUpdate(status, notes, sendNotification);
@@ -79,6 +109,37 @@ const ViewLevel3: React.FC<ViewLevel3Props> = ({
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Level 3 Data</h3>
         
+        {/* Physical Store Information */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-gray-600">Physical Store Information</h4>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level3.physical_store')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level3.physical_store').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level3.physical_store').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Store Contact & Location */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
@@ -101,9 +162,66 @@ const ViewLevel3: React.FC<ViewLevel3Props> = ({
           </div>
         </div>
 
+        {/* Theme Color */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-gray-600">Theme Color</h4>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level3.theme')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level3.theme').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level3.theme').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Addresses */}
         <div className="mb-4">
-          <h4 className="text-md font-medium text-gray-700 mb-2">Store Addresses</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-md font-medium text-gray-700">Store Addresses</h4>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level3.addresses')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level3.addresses').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level3.addresses').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
           {level3Data?.addresses?.length > 0 ? (
             <div className="space-y-3">
               {level3Data.addresses.map((address: any, index: number) => (
@@ -142,9 +260,66 @@ const ViewLevel3: React.FC<ViewLevel3Props> = ({
           )}
         </div>
 
+        {/* Utility Bill */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-md font-medium text-gray-700">Utility Bill</h4>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level3.utility_bill')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level3.utility_bill').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level3.utility_bill').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Delivery Pricing */}
         <div>
-          <h4 className="text-md font-medium text-gray-700 mb-2">Delivery Pricing</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-md font-medium text-gray-700">Delivery Pricing</h4>
+            {storeId && (
+              <button
+                onClick={() => handleRejectClick('level3.delivery_pricing')}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </button>
+            )}
+          </div>
+          {getFieldRejectionStatus('level3.delivery_pricing').isRejected && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">This field has been rejected</p>
+                  <p className="text-sm text-red-700 mt-1">{getFieldRejectionStatus('level3.delivery_pricing').reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
           {level3Data?.delivery_pricing?.length > 0 ? (
             <div className="space-y-3">
               {level3Data.delivery_pricing.map((pricing: any, index: number) => (
@@ -250,6 +425,21 @@ const ViewLevel3: React.FC<ViewLevel3Props> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reject Field Modal */}
+      {showRejectModal && storeId && (
+        <RejectFieldModal
+          isOpen={showRejectModal}
+          onClose={() => {
+            setShowRejectModal(false);
+            setSelectedFieldKey(null);
+          }}
+          storeId={storeId}
+          level={3}
+          onSuccess={handleRejectSuccess}
+          preselectedField={selectedFieldKey || undefined}
+        />
       )}
 
       {/* Success Toast Notification */}

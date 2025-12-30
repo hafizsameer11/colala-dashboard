@@ -152,6 +152,7 @@ const ViewStoreModal: React.FC<ViewStoreModalProps> = ({
                     onStatusUpdate={handleStatusUpdate}
                     onLevelUpdate={handleLevelUpdate}
                     isLoading={updateStatusMutation.isPending || updateLevelMutation.isPending}
+                    storeId={storeId}
                   />
                 )}
                 {activeTab === "Level 2" && (
@@ -160,6 +161,7 @@ const ViewStoreModal: React.FC<ViewStoreModalProps> = ({
                     onStatusUpdate={handleStatusUpdate}
                     onLevelUpdate={handleLevelUpdate}
                     isLoading={updateStatusMutation.isPending || updateLevelMutation.isPending}
+                    storeId={storeId}
                   />
                 )}
                 {activeTab === "Level 3" && (
@@ -168,6 +170,7 @@ const ViewStoreModal: React.FC<ViewStoreModalProps> = ({
                     onStatusUpdate={handleStatusUpdate}
                     onLevelUpdate={handleLevelUpdate}
                     isLoading={updateStatusMutation.isPending || updateLevelMutation.isPending}
+                    storeId={storeId}
                   />
                 )}
               </div>
