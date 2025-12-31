@@ -9,6 +9,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserStats, getUsersList } from "../../../utils/queries/users";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 const customer_mgt = () => {
   // ============================================================================
@@ -45,10 +46,30 @@ const customer_mgt = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Calculate new users (users created in the last 30 days)
+  // Date period filter - synchronized with PageHeader
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
+
+  // Filter users by selected period
+  const allUsers = usersData?.data?.users || usersData?.data?.data || [];
+  const filteredUsers = useMemo(() => {
+    return filterByPeriod(
+      allUsers,
+      selectedPeriod,
+      ['created_at', 'formatted_date', 'date']
+    );
+  }, [allUsers, selectedPeriod]);
+
+  // Calculate new users (users created in the last 30 days) from filtered users
   const newUsersCount = useMemo(() => {
-    // Check both possible paths: usersData?.data?.users or usersData?.data?.data
-    const users = usersData?.data?.users || usersData?.data?.data || [];
+    const users = filteredUsers;
     if (!users || users.length === 0) return 0;
     
     const thirtyDaysAgo = new Date();
@@ -59,7 +80,7 @@ const customer_mgt = () => {
       const createdDate = new Date(user.created_at);
       return createdDate >= thirtyDaysAgo;
     }).length;
-  }, [usersData]);
+  }, [filteredUsers]);
 
   // Extract statistics - ALWAYS prioritize usersData since it includes stats in the response
   // Use useMemo to ensure stable reference and proper extraction
@@ -126,8 +147,6 @@ const customer_mgt = () => {
     setSelectedUsers(users);
   };
 
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
     setCurrentPage(1);
@@ -151,7 +170,12 @@ const customer_mgt = () => {
 
   return (
     <>
-      <PageHeader title="User Management" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="User Management" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
 
       <div className="bg-[#F5F5F5]">
         <div className="p-3 sm:p-4 md:p-5">
@@ -196,7 +220,7 @@ const customer_mgt = () => {
               <div>
                 <BulkActionDropdown 
                   onActionSelect={handleBulkActionSelect}
-                  orders={usersData?.data?.data || []}
+                  orders={filteredUsers}
                   selectedOrders={selectedUsers}
                   dataType="users"
                 />
@@ -247,7 +271,7 @@ const customer_mgt = () => {
               onSelectedUsersChange={handleSelectedUsersChange}
               onUsersDeleted={handleUsersDeleted}
               searchQuery={debouncedQuery}
-              users={usersData?.data?.users || usersData?.data?.data || []}
+              users={filteredUsers}
               pagination={usersData?.data || null}
               onPageChange={handlePageChange}
               isLoading={usersLoading}

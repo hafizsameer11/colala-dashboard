@@ -1,6 +1,6 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import SubscriptionTable from "./subscriptionTable";
 import PlansModal from "../Modals/planModal";
@@ -8,6 +8,7 @@ import ViewPlansModal from "../Modals/viewPlansModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAdminSubscriptions, getAdminSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan } from "../../../utils/queries/users";
 import { useToast } from "../../../contexts/ToastContext";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -56,6 +57,21 @@ const Subscription = () => {
   // search (debounced)
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+  
+  // Date period filter
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // API data fetching
   const { data: subscriptionsData, isLoading, error } = useQuery({
@@ -72,7 +88,17 @@ const Subscription = () => {
   const { showToast } = useToast();
 
   // Extract data
-  const subscriptions = subscriptionsData?.data?.subscriptions || [];
+  const allSubscriptions = subscriptionsData?.data?.subscriptions || [];
+  
+  // Filter subscriptions by selected period
+  const subscriptions = useMemo(() => {
+    return filterByPeriod(
+      allSubscriptions,
+      selectedPeriod,
+      ['formatted_date', 'created_at', 'start_date', 'end_date', 'date']
+    );
+  }, [allSubscriptions, selectedPeriod]);
+  
   const statistics = subscriptionsData?.data?.statistics || {};
   const pagination = subscriptionsData?.data?.pagination;
   const plans = plansData?.data?.plans || [];
@@ -179,11 +205,51 @@ const Subscription = () => {
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Orders:", action);
   };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1);
+  };
+  
+  // Handle PageHeader period change
+  const handlePageHeaderPeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
 
 
   return (
     <div>
-      <PageHeader title="Subscriptions" />
+      <PageHeader 
+        title="Subscriptions" 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+        onPeriodChange={handlePageHeaderPeriodChange}
+      />
 
       <div className="p-3 sm:p-4 md:p-5">
         {/* stat cards (unchanged) */}
@@ -249,14 +315,40 @@ const Subscription = () => {
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative" ref={dateDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleDatePeriodSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={subscriptions}
+                dataType="subscriptions"
+              />
             </div>
           </div>
 

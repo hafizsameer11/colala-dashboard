@@ -1,11 +1,12 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
 import UserBalanceDetailsModal from "./components/userBalanceDetailsModal";
 import { useQuery } from "@tanstack/react-query";
 import { getBalanceData } from "../../../utils/queries/users";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
@@ -14,7 +15,18 @@ const Balance = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
   const tabs: Tab[] = ["All", "Buyers", "Sellers"];
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // Debounced search
   const [searchInput, setSearchInput] = useState("");
@@ -32,8 +44,53 @@ const Balance = () => {
   });
 
   const statistics = balanceData?.data?.statistics;
-  const users = balanceData?.data?.users || [];
+  const usersRaw = balanceData?.data?.users || [];
   const pagination = balanceData?.data?.pagination;
+  
+  // Transform users for export with balance information
+  const usersForExportRaw = useMemo(() => {
+    return usersRaw.map((user: any) => ({
+      id: user.id?.toString() || '',
+      full_name: user.full_name || 'Unknown User',
+      userName: user.full_name || 'Unknown User',
+      email: user.email || 'No email',
+      phone: user.phone || 'No phone',
+      phoneNumber: user.phone || 'No phone',
+      role: user.role || 'buyer',
+      userType: user.role === 'seller' ? 'Seller' : 'Buyer',
+      shopping_balance: user.shopping_balance || 0,
+      reward_balance: user.reward_balance || 0,
+      referral_balance: user.referral_balance || 0,
+      loyalty_points: user.loyalty_points || 0,
+      escrow_balance: user.escrow_balance || 0,
+      created_at: user.created_at || user.formatted_date || null,
+      createdAt: user.created_at || user.formatted_date || null,
+      formatted_date: user.formatted_date || user.created_at || null,
+      date: user.formatted_date || user.created_at || null,
+      is_active: true,
+      isActive: true,
+    }));
+  }, [usersRaw]);
+  
+  // Filter users by selected period
+  const usersForExport = useMemo(() => {
+    const filtered = filterByPeriod(
+      usersForExportRaw,
+      selectedPeriod,
+      ['formatted_date', 'created_at', 'date', 'createdAt']
+    );
+    return filtered as typeof usersForExportRaw;
+  }, [usersForExportRaw, selectedPeriod]);
+  
+  // Filter original users for table display
+  const users = useMemo(() => {
+    const filtered = filterByPeriod(
+      usersRaw,
+      selectedPeriod,
+      ['formatted_date', 'created_at', 'date']
+    );
+    return filtered as typeof usersRaw;
+  }, [usersRaw, selectedPeriod]);
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
@@ -71,10 +128,20 @@ const Balance = () => {
     setShowUserDetailsModal(false);
     setSelectedUserId(null);
   };
+  
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1);
+  };
 
   return (
     <>
-      <PageHeader title="Balance" />
+      <PageHeader 
+        title="Balance"
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+        onPeriodChange={handlePeriodChange}
+      />
       <div className="p-3 sm:p-4 md:p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Total Shopping wallet balance */}
@@ -209,7 +276,11 @@ const Balance = () => {
               <TabButtons />
             </div>
             <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={usersForExport as any}
+                dataType="users"
+              />
             </div>
           </div>
           <div className="">

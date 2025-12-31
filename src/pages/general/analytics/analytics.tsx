@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import images from "../../../constants/images";
+import { filterByPeriod } from "../../../utils/periodFilter";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,6 +36,7 @@ const Analytics = () => {
   const [selectedSubRevenue, setSelectedSubRevenue] = useState("Sub Revenue");
   const [selectedPromRevenue, setSelectedPromRevenue] =
     useState("Prom Revenue");
+  const timeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch analytics data
   const { data: analyticsData, isLoading, error } = useQuery({
@@ -48,13 +50,34 @@ const Analytics = () => {
 
   // Extract data from API response
   const siteStats = analyticsData?.data?.site_statistics || {};
-  const userTrends = analyticsData?.data?.user_trends || [];
-  const orderTrends = analyticsData?.data?.order_trends || [];
-  const revenueTrends = analyticsData?.data?.revenue_trends || [];
-  const topStores = analyticsData?.data?.top_stores || [];
-  const categoryBreakdown = analyticsData?.data?.category_breakdown || [];
+  const allUserTrends = analyticsData?.data?.user_trends || [];
+  const allOrderTrends = analyticsData?.data?.order_trends || [];
+  const allRevenueTrends = analyticsData?.data?.revenue_trends || [];
+  const allTopStores = analyticsData?.data?.top_stores || [];
+  const allCategoryBreakdown = analyticsData?.data?.category_breakdown || [];
   const chatAnalytics = analyticsData?.data?.chat_analytics || {};
   const socialAnalytics = analyticsData?.data?.social_analytics || {};
+  
+  // Filter trends data by selected period
+  const userTrends = useMemo(() => {
+    return filterByPeriod(allUserTrends, selectedPeriod, ['date', 'created_at', 'formatted_date']);
+  }, [allUserTrends, selectedPeriod]);
+  
+  const orderTrends = useMemo(() => {
+    return filterByPeriod(allOrderTrends, selectedPeriod, ['date', 'created_at', 'formatted_date']);
+  }, [allOrderTrends, selectedPeriod]);
+  
+  const revenueTrends = useMemo(() => {
+    return filterByPeriod(allRevenueTrends, selectedPeriod, ['date', 'created_at', 'formatted_date']);
+  }, [allRevenueTrends, selectedPeriod]);
+  
+  const topStores = useMemo(() => {
+    return filterByPeriod(allTopStores, selectedPeriod, ['date', 'created_at', 'formatted_date']);
+  }, [allTopStores, selectedPeriod]);
+  
+  const categoryBreakdown = useMemo(() => {
+    return filterByPeriod(allCategoryBreakdown, selectedPeriod, ['date', 'created_at', 'formatted_date']);
+  }, [allCategoryBreakdown, selectedPeriod]);
 
   // Type definitions for API data
   interface TrendData {
@@ -101,6 +124,28 @@ const Analytics = () => {
   const handleTimeToggle = () => {
     setIsTimeDropdownOpen(!isTimeDropdownOpen);
   };
+  
+  const handleTimeSelect = (option: string) => {
+    setSelectedPeriod(option);
+    setIsTimeDropdownOpen(false);
+  };
+  
+  // Close time dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) {
+        setIsTimeDropdownOpen(false);
+      }
+    };
+
+    if (isTimeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTimeDropdownOpen]);
 
   const handleSubRevenueToggle = () => {
     setIsSubRevenueDropdownOpen(!isSubRevenueDropdownOpen);
@@ -686,21 +731,40 @@ const Analytics = () => {
     }
   };
 
-  const handleTimeSelect = (option: string) => {
-    setSelectedPeriod(option);
-    setIsTimeDropdownOpen(false);
+  // Helper function to calculate max value for chart with padding
+  const calculateMaxValue = (values: number[], paddingPercent: number = 20): number => {
+    if (!values || values.length === 0) return 100;
+    const maxValue = Math.max(...values);
+    if (maxValue === 0) return 100;
+    const paddedMax = maxValue * (1 + paddingPercent / 100);
+    // Round up to nearest nice number (10, 50, 100, 500, 1000, etc.)
+    const magnitude = Math.pow(10, Math.floor(Math.log10(paddedMax)));
+    const normalized = paddedMax / magnitude;
+    let rounded;
+    if (normalized <= 1) rounded = 1;
+    else if (normalized <= 2) rounded = 2;
+    else if (normalized <= 5) rounded = 5;
+    else rounded = 10;
+    return rounded * magnitude;
   };
+
+  // Calculate max values for charts
+  const ordersData = orderTrends.slice(-12).map((trend: TrendData) => trend.total_orders || 0);
+  const usersData = userTrends.slice(-12).map((trend: TrendData) => trend.total_users || 0);
+  const combinedData = [...ordersData, ...usersData];
+  const chartMaxValue = calculateMaxValue(combinedData, 20);
+  const chartStepSize = chartMaxValue <= 100 ? 20 : chartMaxValue <= 500 ? 50 : chartMaxValue <= 1000 ? 100 : 200;
 
   // Chart data based on API data - Site Statistics
   const chartData = {
-    labels: userTrends.slice(-12).map((trend: TrendData) => {
+    labels: orderTrends.slice(-12).map((trend: TrendData) => {
       const date = new Date(trend.date);
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }),
     datasets: [
       {
         label: "Orders",
-        data: orderTrends.slice(-12).map((trend: TrendData) => trend.total_orders || 0),
+        data: ordersData,
         backgroundColor: "#E53E3E",
         borderRadius: 50,
         barThickness: 20,
@@ -708,7 +772,7 @@ const Analytics = () => {
       },
       {
         label: "Users",
-        data: userTrends.slice(-12).map((trend: TrendData) => trend.total_users || 0),
+        data: usersData,
         backgroundColor: "#008000",
         borderRadius: 50,
         barThickness: 20,
@@ -755,9 +819,9 @@ const Analytics = () => {
       },
       y: {
         beginAtZero: true,
-        max: 1200,
+        max: chartMaxValue,
         ticks: {
-          stepSize: 200,
+          stepSize: chartStepSize,
         },
         grid: {
           display: false,
@@ -793,6 +857,19 @@ const Analytics = () => {
     ],
   };
 
+  // Calculate max value for revenue chart
+  const totalRevenueData = revenueTrends.slice(-11).map((trend: TrendData) => {
+    const value = String(trend.total_revenue || 0).replace(/[₦,]/g, '');
+    return parseFloat(value) || 0;
+  });
+  const successfulRevenueData = revenueTrends.slice(-11).map((trend: TrendData) => {
+    const value = String(trend.successful_revenue || 0).replace(/[₦,]/g, '');
+    return parseFloat(value) || 0;
+  });
+  const revenueCombinedData = [...totalRevenueData, ...successfulRevenueData];
+  const revenueMaxValue = calculateMaxValue(revenueCombinedData, 20);
+  const revenueStepSize = revenueMaxValue <= 100 ? 20 : revenueMaxValue <= 500 ? 50 : revenueMaxValue <= 1000 ? 100 : revenueMaxValue <= 5000 ? 500 : 1000;
+
   // Revenue chart data for Subscription Revenue vs Promotions Revenue
   const revenueChartData = {
     labels: revenueTrends.slice(-11).map((trend: TrendData) => {
@@ -802,7 +879,7 @@ const Analytics = () => {
     datasets: [
       {
         label: "Total Revenue",
-        data: revenueTrends.slice(-11).map((trend: TrendData) => parseFloat(String(trend.total_revenue)) || 0),
+        data: totalRevenueData,
         backgroundColor: "#E53E3E",
         borderRadius: 5,
         barThickness: 33,
@@ -810,7 +887,7 @@ const Analytics = () => {
       },
       {
         label: "Successful Revenue",
-        data: revenueTrends.slice(-11).map((trend: TrendData) => parseFloat(String(trend.successful_revenue)) || 0),
+        data: successfulRevenueData,
         backgroundColor: "#000",
         borderRadius: 5,
         barThickness: 33,
@@ -861,9 +938,9 @@ const Analytics = () => {
       y: {
         stacked: true,
         beginAtZero: true,
-        max: 1400,
+        max: revenueMaxValue,
         ticks: {
-          stepSize: 200,
+          stepSize: revenueStepSize,
           color: "#666666",
         },
         grid: {
@@ -956,9 +1033,9 @@ const Analytics = () => {
             </div>
 
             {/* Time Period Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={timeDropdownRef}>
               <div
-                className="flex flex-row border border-[#989898] rounded-lg p-3 cursor-pointer"
+                className="flex flex-row border border-[#989898] rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={handleTimeToggle}
               >
                 <div className="flex items-center">
@@ -968,7 +1045,7 @@ const Analytics = () => {
                   <img
                     src={images.dropdown}
                     alt="dropdown"
-                    className="w-4 h-4"
+                    className={`w-4 h-4 transition-transform ${isTimeDropdownOpen ? 'rotate-180' : ''}`}
                   />
                 </div>
               </div>
@@ -978,7 +1055,9 @@ const Analytics = () => {
                   {timeOptions.map((option) => (
                     <div
                       key={option}
-                      className="px-4 py-3 hover:bg-gray-200 rounded-lg cursor-pointer text-left"
+                      className={`px-4 py-3 hover:bg-gray-200 rounded-lg cursor-pointer text-left transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
                       onClick={() => handleTimeSelect(option)}
                     >
                       {option}

@@ -2,12 +2,13 @@ import PageHeader from "../../../components/PageHeader";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import DepositDropdown from "../../../components/DepositsDropdown";
 import TransactionTable from "../customer_mgt/customerDetails/transaction/transactionTable";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminTransactions } from "../../../utils/queries/users";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -63,8 +64,20 @@ const Transactions = () => {
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // period/date filter
+  // period/date filter - synchronized with PageHeader
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Date period options matching PageHeader
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // selected transactions for bulk actions
   const [selectedTransactions, setSelectedTransactions] = useState<Array<{
@@ -78,38 +91,6 @@ const Transactions = () => {
     userEmail: string;
     statusColor: string;
   }>>([]);
-
-  // Helper function to filter transactions by period
-  const filterTransactionsByPeriod = (transactions: any[], period: string) => {
-    if (period === "All time") return transactions;
-    
-    const now = new Date();
-    let startDate: Date;
-    
-    switch (period) {
-      case "This Week":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "Last Month":
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        break;
-      case "Last 6 Months":
-        startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-        break;
-      case "Last Year":
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        break;
-      default:
-        return transactions;
-    }
-    
-    return transactions.filter((tx) => {
-      const txDate = tx.created_at || tx.date || tx.formatted_date;
-      if (!txDate) return false;
-      const date = new Date(txDate);
-      return date >= startDate && date <= now;
-    });
-  };
 
   // API data fetching
   const { data: transactionsData, isLoading, error } = useQuery({
@@ -126,9 +107,31 @@ const Transactions = () => {
   const allTransactions = transactionsData?.data?.transactions || [];
   const pagination = transactionsData?.data?.pagination;
 
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
+
   // Filter transactions by selected period, status, and type
   const transactions = useMemo(() => {
-    let filtered = filterTransactionsByPeriod(allTransactions, selectedPeriod);
+    // First filter by period using the utility function
+    let filtered = filterByPeriod(
+      allTransactions,
+      selectedPeriod,
+      ['formatted_date', 'created_at', 'date']
+    );
     
     // Apply status filter if not "All"
     if (activeTab !== "All") {
@@ -230,6 +233,18 @@ const Transactions = () => {
     setSelectedPeriod(period);
     setCurrentPage(1); // Reset to first page when period changes
   };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1); // Reset to first page when period changes
+  };
 
   return (
     <>
@@ -237,6 +252,7 @@ const Transactions = () => {
         title="Transactions" 
         onPeriodChange={handlePeriodChange}
         defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
       />
 
       <div className="p-3 sm:p-4 md:p-5">
@@ -278,11 +294,33 @@ const Transactions = () => {
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative" ref={dateDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleDatePeriodSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <DepositDropdown onActionSelect={handleDepositActionSelect} />

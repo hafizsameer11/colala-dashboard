@@ -1,9 +1,9 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import DisputesTable from "./components/disputeTable";
-import { getDisputeStatistics } from "../../../utils/queries/disputes";
+import { getDisputeStatistics, getDisputesList } from "../../../utils/queries/disputes";
 import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Pending" | "On Hold" | "Resolved";
@@ -11,7 +11,19 @@ type Tab = "All" | "Pending" | "On Hold" | "Resolved";
 const Disputes = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
   const tabs: Tab[] = ["All", "Pending", "On Hold", "Resolved"];
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // --- Search with debounce ---
   const [searchInput, setSearchInput] = useState("");
@@ -28,6 +40,10 @@ const Disputes = () => {
     disputes_by_status: []
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  
+  // Fetch all disputes for export
+  const [allDisputes, setAllDisputes] = useState<any[]>([]);
+  const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
@@ -80,10 +96,109 @@ const Disputes = () => {
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
   };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
+  
+  // Fetch all disputes for export (without pagination to get all data)
+  useEffect(() => {
+    const fetchAllDisputes = async () => {
+      try {
+        setIsLoadingDisputes(true);
+        const response = await getDisputesList({
+          page: 1,
+          per_page: 1000, // Large number to get all disputes
+        });
+        if (response.status === 'success') {
+          setAllDisputes(response.data.disputes || []);
+        }
+      } catch (error) {
+        console.error('Error fetching disputes for export:', error);
+      } finally {
+        setIsLoadingDisputes(false);
+      }
+    };
+    
+    fetchAllDisputes();
+  }, []);
+  
+  // Filter disputes by period
+  const periodFilteredDisputes = filterByPeriod(allDisputes, selectedPeriod, ['created_at', 'updated_at', 'resolved_at', 'closed_at', 'date', 'formatted_date']);
+  
+  // Transform disputes for BulkActionDropdown export
+  const disputesForExport = useMemo(() => {
+    return periodFilteredDisputes.map((dispute: any) => {
+      // Get user and store names from nested structures
+      const userName = dispute.user_name || dispute.userName || dispute.user?.name || dispute.dispute_chat?.buyer?.name || 'N/A';
+      const userEmail = dispute.user_email || dispute.userEmail || dispute.user?.email || dispute.dispute_chat?.buyer?.email || 'N/A';
+      const storeName = dispute.store_name || dispute.storeName || dispute.dispute_chat?.store?.name || 'N/A';
+      const sellerName = dispute.seller_name || dispute.sellerName || dispute.dispute_chat?.seller?.name || 'N/A';
+      
+      return {
+        id: dispute.id?.toString() || '',
+        category: dispute.category || 'N/A',
+        details: dispute.details || 'N/A',
+        status: dispute.status || 'N/A',
+        won_by: dispute.won_by || dispute.wonBy || '',
+        wonBy: dispute.won_by || dispute.wonBy || '',
+        resolution_notes: dispute.resolution_notes || dispute.resolutionNotes || '',
+        resolutionNotes: dispute.resolution_notes || dispute.resolutionNotes || '',
+        user_name: userName,
+        userName: userName,
+        user_email: userEmail,
+        userEmail: userEmail,
+        store_name: storeName,
+        storeName: storeName,
+        seller_name: sellerName,
+        sellerName: sellerName,
+        created_at: dispute.created_at || '',
+        createdAt: dispute.created_at || '',
+        updated_at: dispute.updated_at || '',
+        updatedAt: dispute.updated_at || '',
+        resolved_at: dispute.resolved_at || '',
+        resolvedAt: dispute.resolved_at || '',
+        closed_at: dispute.closed_at || '',
+        closedAt: dispute.closed_at || '',
+        formatted_date: dispute.formatted_date || dispute.created_at || '',
+        formattedDate: dispute.formatted_date || dispute.created_at || '',
+        date: dispute.formatted_date || dispute.created_at || '',
+      };
+    });
+  }, [periodFilteredDisputes]);
 
   return (
     <>
-      <PageHeader title="Disputes" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="Disputes" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
 
       <div className="p-3 sm:p-4 md:p-5">
         <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
@@ -174,15 +289,41 @@ const Disputes = () => {
               <TabButtons />
             </div>
 
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative" ref={dateDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleDatePeriodSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={disputesForExport}
+                dataType="disputes"
+              />
             </div>
           </div>
 
@@ -219,9 +360,13 @@ const Disputes = () => {
         </div>
       </div>
 
-      {/* Table gets tab + debounced search */}
+      {/* Table gets tab + debounced search + date period */}
       <div>
-        <DisputesTable activeTab={activeTab} search={debouncedSearch} />
+        <DisputesTable 
+          activeTab={activeTab} 
+          search={debouncedSearch} 
+          selectedPeriod={selectedPeriod}
+        />
       </div>
     </>
   );

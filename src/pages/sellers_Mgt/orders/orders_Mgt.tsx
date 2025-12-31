@@ -203,6 +203,24 @@ const OrdersMgt = () => {
     return filtered;
   }, [orders, selectedPeriod]);
 
+  // Transform orders for BulkActionDropdown export
+  const ordersForExport = useMemo(() => {
+    return filteredOrders.map((order: any) => ({
+      id: order.store_order_id?.toString() || order.id?.toString() || '',
+      order_no: order.order_number || order.order_no || '',
+      store_name: order.store_name || '',
+      storeName: order.store_name || '',
+      buyer_name: order.customer_name || order.buyer_name || '',
+      buyerName: order.customer_name || order.buyer_name || '',
+      product_name: order.product_name || order.product?.name || 'N/A',
+      productName: order.product_name || order.product?.name || 'N/A',
+      price: order.total_amount || order.price || '0',
+      order_date: order.formatted_date || order.order_date || order.created_at || '',
+      orderDate: order.formatted_date || order.order_date || order.created_at || '',
+      status: order.status || '',
+    }));
+  }, [filteredOrders]);
+
   return (
     <>
       <PageHeader 
@@ -278,7 +296,7 @@ const OrdersMgt = () => {
             <div>
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
-                orders={filteredOrders}
+                orders={ordersForExport}
                 dataType="orders"
               />
             </div>

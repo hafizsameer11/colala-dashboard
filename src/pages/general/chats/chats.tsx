@@ -2,7 +2,7 @@ import ChatsTable from "./components/chattable";
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getChats } from "../../../utils/queries/chats";
 import StatCard from "../../../components/StatCard";
@@ -18,7 +18,19 @@ const Chats = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | number | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
   const tabs: Tab[] = ["General", "Unread", "Support", "Dispute"];
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // Debounced search
   const [searchInput, setSearchInput] = useState("");
@@ -80,14 +92,74 @@ const Chats = () => {
     setSelectedPeriod(period);
     setCurrentPage(1);
   };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
 
-  // Filter chats by period
-  const allChats = chatsData?.data?.chats || [];
-  const filteredChats = filterByPeriod(allChats, selectedPeriod, ['last_message_at', 'created_at', 'chat_date']);
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
+
+  // Transform and filter chats by period
+  const allChatsRaw = chatsData?.data?.chats || [];
+  
+  // Transform chat data to match BulkActionDropdown interface
+  const allChats = useMemo(() => {
+    return allChatsRaw.map((chat: any) => ({
+      id: chat.id?.toString() || '',
+      store_name: chat.store_info?.store_name || 'Unknown Store',
+      storeName: chat.store_info?.store_name || 'Unknown Store',
+      user_name: chat.customer_info?.customer_name || 'Unknown User',
+      userName: chat.customer_info?.customer_name || 'Unknown User',
+      last_message: chat.last_message || 'No messages yet',
+      lastMessage: chat.last_message || 'No messages yet',
+      chat_date: chat.formatted_date || chat.created_at || chat.last_message_at || null,
+      chatDate: chat.formatted_date || chat.created_at || chat.last_message_at || null,
+      is_read: chat.is_read !== undefined ? chat.is_read : true,
+      isRead: chat.is_read !== undefined ? chat.is_read : true,
+      is_dispute: chat.type === 'dispute' || chat.is_dispute || false,
+      isDispute: chat.type === 'dispute' || chat.is_dispute || false,
+      unread_count: chat.unread_count || 0,
+      unreadCount: chat.unread_count || 0,
+      created_at: chat.created_at || chat.formatted_date || null,
+      last_message_at: chat.last_message_at || chat.created_at || null,
+    }));
+  }, [allChatsRaw]);
+  
+  const filteredChats = useMemo(() => {
+    return filterByPeriod(allChats, selectedPeriod, ['last_message_at', 'created_at', 'chat_date', 'chatDate']);
+  }, [allChats, selectedPeriod]);
 
   return (
     <>
-      <PageHeader title="All Chats" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="All Chats" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
       <div className="p-3 sm:p-4 md:p-5">
         {isLoadingChats ? (
           <div className="flex justify-center items-center h-32">
@@ -127,9 +199,33 @@ const Chats = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
             <div className="overflow-x-auto w-full sm:w-auto"><TabButtons /></div>
 
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div><img className="w-3 h-3 mt-1" src={images.dropdown} alt="" /></div>
+            <div className="relative" ref={dateDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
+              </div>
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleDatePeriodSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import images from "../../../../constants/images";
+import { filterByPeriod } from "../../../../utils/periodFilter";
 
 interface BannerData {
   id: number;
@@ -34,6 +35,7 @@ interface BannerTableProps {
   onPageChange?: (page: number) => void;
   onEditBanner?: (banner: BannerData) => void;
   onDeleteBanner?: (bannerId: number) => void;
+  selectedPeriod?: string;
 }
 
 const BannerTable: React.FC<BannerTableProps> = ({
@@ -46,11 +48,12 @@ const BannerTable: React.FC<BannerTableProps> = ({
   onPageChange,
   onEditBanner,
   onDeleteBanner,
+  selectedPeriod = "All time",
 }) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
   // Transform API data to match component expectations
-  const banners: BannerData[] = useMemo(() => {
+  const allBanners: BannerData[] = useMemo(() => {
     if (!bannersData?.data?.banners) return [];
     
     return bannersData.data.banners.map((banner: any) => ({
@@ -73,10 +76,18 @@ const BannerTable: React.FC<BannerTableProps> = ({
     }));
   }, [bannersData]);
 
+  // Filter by date period
+  const periodFilteredBanners = useMemo(() => {
+    if (selectedPeriod === "All time") {
+      return allBanners;
+    }
+    return filterByPeriod(allBanners, selectedPeriod, ['created_at', 'start_date', 'end_date', 'formatted_date', 'date']);
+  }, [allBanners, selectedPeriod]);
+
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return banners;
-    return banners.filter(
+    if (!q) return periodFilteredBanners;
+    return periodFilteredBanners.filter(
       (b) =>
         b.title.toLowerCase().includes(q) ||
         (b.link && b.link.toLowerCase().includes(q)) ||
@@ -84,7 +95,7 @@ const BannerTable: React.FC<BannerTableProps> = ({
         b.audience_type.toLowerCase().includes(q) ||
         (b.is_active ? 'active' : 'inactive').includes(q)
     );
-  }, [searchTerm, banners]);
+  }, [searchTerm, periodFilteredBanners]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {

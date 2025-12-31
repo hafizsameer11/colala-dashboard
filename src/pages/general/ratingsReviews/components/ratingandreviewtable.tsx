@@ -5,6 +5,7 @@ import { useToast } from "../../../../contexts/ToastContext";
 import ProductRatingModal from "./productrating";
 import StoreRatingModal from "./storerating";
 import images from "../../../../constants/images";
+import { filterByPeriod } from "../../../../utils/periodFilter";
 
 type RowType = "Store" | "Product";
 
@@ -38,12 +39,14 @@ interface RatingAndReviewTableProps {
   onRowSelect?: (selectedIds: string[]) => void;
   tabFilter?: "All" | "Store" | "Product";
   searchQuery?: string; // debounced text
+  selectedPeriod?: string; // date period filter
 }
 
 const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
   onRowSelect,
   tabFilter = "All",
   searchQuery = "",
+  selectedPeriod = "All time",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -118,7 +121,7 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
   console.log('Store Reviews Debug:', storeReviewsData);
 
   // Transform API data to RatingReview format
-  const ratingReviews: RatingReview[] = useMemo(() => {
+  const allRatingReviews: RatingReview[] = useMemo(() => {
     const productReviews = productReviewsData?.data?.reviews?.map((review: any) => ({
       id: `product-${review.id}`,
       type: "Product" as RowType,
@@ -150,6 +153,14 @@ const RatingAndReviewTable: React.FC<RatingAndReviewTableProps> = ({
 
     return [...productReviews, ...storeReviews];
   }, [productReviewsData, storeReviewsData]);
+  
+  // Filter by date period
+  const ratingReviews = useMemo(() => {
+    if (selectedPeriod === "All time") {
+      return allRatingReviews;
+    }
+    return filterByPeriod(allRatingReviews, selectedPeriod, ['created_at', 'formatted_date', 'lastRating', 'date']);
+  }, [allRatingReviews, selectedPeriod]);
 
   // Get pagination data (use product or store pagination based on active filter)
   const pagination = useMemo(() => {

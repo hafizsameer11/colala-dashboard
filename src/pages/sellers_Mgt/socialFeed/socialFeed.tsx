@@ -6,6 +6,7 @@ import StatCardGrid from "../../../components/StatCardGrid";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminSocialFeed, getAdminSocialFeedStatistics } from "../../../utils/queries/users";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -136,6 +137,21 @@ const SocialFeed = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const storeDropdownRef = useRef<HTMLDivElement | null>(null);
+  
+  // Date period filter
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement | null>(null);
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   const debouncedSearch = useDebouncedValue(search, 450);
 
@@ -165,7 +181,7 @@ const SocialFeed = () => {
   };
 
   // Transform API data to component format
-  const posts = useMemo(() => {
+  const allPosts = useMemo(() => {
     if (!socialFeedData?.data?.posts) return [];
 
     return socialFeedData.data.posts.map((post: any) => ({
@@ -183,8 +199,20 @@ const SocialFeed = () => {
       recentComments: post.recent_comments || [],
       store: post.store,
       user: post.user,
+      formatted_date: post.formatted_date || post.created_at || null,
+      created_at: post.created_at || null,
+      date: post.date || null,
     }));
   }, [socialFeedData]);
+  
+  // Filter posts by selected period
+  const posts = useMemo(() => {
+    return filterByPeriod(
+      allPosts,
+      selectedPeriod,
+      ['formatted_date', 'created_at', 'date']
+    );
+  }, [allPosts, selectedPeriod]);
 
   // Unique store options for dropdown
   const storeOptions = useMemo(
@@ -202,10 +230,35 @@ const SocialFeed = () => {
       ) {
         setIsStoreDropdownOpen(false);
       }
+      if (
+        isDateDropdownOpen &&
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
+      }
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [isStoreDropdownOpen]);
+  }, [isStoreDropdownOpen, isDateDropdownOpen]);
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1);
+  };
+  
+  // Handle PageHeader period change
+  const handlePageHeaderPeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1);
+  };
 
   // Filter posts by search + selected store
   const filteredPosts = useMemo(() => {
@@ -263,20 +316,43 @@ const SocialFeed = () => {
   return (
     <>
       <div>
-        <PageHeader title="Social Feed" />
+        <PageHeader 
+          title="Social Feed"
+          defaultPeriod={selectedPeriod}
+          timeOptions={datePeriodOptions}
+          onPeriodChange={handlePageHeaderPeriodChange}
+        />
         <div className="p-3 sm:p-4 md:p-5 flex flex-col lg:flex-row gap-4 sm:gap-5">
           <div className="flex flex-col flex-1">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-1.5 w-full sm:w-auto">
-                <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-                  <div>Today</div>
-                  <div>
-                    <img
-                      className="w-3 h-3 mt-1"
-                      src={images.dropdown}
-                      alt=""
+                <div className="relative" ref={dateDropdownRef}>
+                  <div 
+                    className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                    onClick={handleDateDropdownToggle}
+                  >
+                    <div>{selectedPeriod}</div>
+                    <img 
+                      className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                      src={images.dropdown} 
+                      alt="" 
                     />
                   </div>
+                  {isDateDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                      {datePeriodOptions.map((option) => (
+                        <div
+                          key={option}
+                          onClick={() => handleDatePeriodSelect(option)}
+                          className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                            selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                          }`}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="relative w-full sm:w-auto" ref={storeDropdownRef}>
                   <button

@@ -267,7 +267,28 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
               <div className="flex flex-row justify-between p-4 bg-[#EDEDED] border border-[#CACACA] rounded-b-2xl rounded-t-lg">
                 <div className="text-[#00000080] text-xl">Status</div>
                 <div className="text-xl font-semibold text-[#008000]">
-                  {promotionDetails.data.promotion_info?.status?.toUpperCase() || "N/A"}
+                  {(() => {
+                    const status = promotionDetails.data.promotion_info?.status?.toUpperCase() || "N/A";
+                    const createdDate = promotionDetails.data.promotion_info?.created_at;
+                    const duration = promotionDetails.data.promotion_info?.duration;
+                    
+                    // Check if promotion has ended
+                    if (createdDate && duration) {
+                      const created = new Date(createdDate);
+                      const endDate = new Date(created);
+                      endDate.setDate(endDate.getDate() + parseInt(duration));
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+                      endDate.setHours(0, 0, 0, 0);
+                      
+                      // If end date is less than today, show "ENDED"
+                      if (endDate < today) {
+                        return "ENDED";
+                      }
+                    }
+                    
+                    return status;
+                  })()}
                 </div>
               </div>
             </div>

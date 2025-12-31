@@ -1,5 +1,5 @@
 import images from "../../../constants/images";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
@@ -8,7 +8,7 @@ import AllUsersTable from "./components/allUsersTable";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import AddUserModal from "../../../components/addUserModel";
-import { getAllUsersStats } from "../../../utils/queries/users";
+import { getAllUsersStats, getAllUsers } from "../../../utils/queries/users";
 import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Buyers" | "Sellers";
@@ -29,12 +29,45 @@ const AllUsers = () => {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Fetch all users data (currently not used in this component)
-  // const { data: allUsersData, isLoading: isLoadingUsers, error: usersError } = useQuery({
-  //   queryKey: ['allUsers', currentPage, debouncedSearch],
-  //   queryFn: () => getAllUsers(currentPage, debouncedSearch || undefined),
-  //   staleTime: 5 * 60 * 1000, // 5 minutes
-  // });
+  // Fetch all users data for export
+  const { data: allUsersData } = useQuery({
+    queryKey: ['allUsers', currentPage, debouncedSearch],
+    queryFn: () => getAllUsers(currentPage, debouncedSearch || undefined),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Extract and transform users for export
+  const allUsersRaw = useMemo(() => {
+    if (!allUsersData?.data?.users) return [];
+    
+    return allUsersData.data.users.map((user: any) => ({
+      id: user.id?.toString() || '',
+      full_name: user.full_name || 'Unknown User',
+      userName: user.full_name || 'Unknown User',
+      email: user.email || 'No email',
+      phone: user.phone || 'No phone',
+      phoneNumber: user.phone || 'No phone',
+      wallet_balance: user.wallet_balance || 0,
+      walletBalance: user.wallet_balance ? `₦${user.wallet_balance}` : '₦0',
+      role: user.role || 'buyer',
+      userType: user.role === 'seller' ? 'Seller' : 'Buyer',
+      created_at: user.created_at || user.formatted_date || null,
+      createdAt: user.created_at || user.formatted_date || null,
+      formatted_date: user.formatted_date || user.created_at || null,
+      date: user.formatted_date || user.created_at || null,
+      is_active: user.is_active !== undefined ? user.is_active : true,
+      isActive: user.is_active !== undefined ? user.is_active : true,
+    }));
+  }, [allUsersData]);
+  
+  // Filter users by selected period
+  const allUsers = useMemo(() => {
+    return filterByPeriod(
+      allUsersRaw,
+      selectedPeriod,
+      ['formatted_date', 'created_at', 'date', 'createdAt']
+    );
+  }, [allUsersRaw, selectedPeriod]);
 
   // Fetch statistics
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
@@ -99,6 +132,16 @@ const AllUsers = () => {
     setShowAddUserModal(false);
   };
 
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
+
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
     setCurrentPage(1);
@@ -106,7 +149,12 @@ const AllUsers = () => {
 
   return (
     <>
-      <PageHeader title="All Users" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="All Users" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
       <div className="p-3 sm:p-4 md:p-5">
         {isLoadingStats ? (
           <div className="flex justify-center items-center h-32">
@@ -204,7 +252,11 @@ const AllUsers = () => {
               <TabButtons />
             </div>
             <div className="w-full sm:w-auto">
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={allUsers}
+                dataType="users"
+              />
             </div>
           </div>
           

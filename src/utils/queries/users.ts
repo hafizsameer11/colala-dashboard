@@ -1046,6 +1046,23 @@ export const getAdminProducts = async (page: number = 1, status?: string) => {
 };
 
 /**
+ * Update product status
+ */
+export const updateProductStatus = async (productId: number | string, statusData: { status: string; is_sold?: boolean; is_unavailable?: boolean }) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_PRODUCTS.UpdateStatus(productId), 'PUT', statusData, token);
+    return response;
+  } catch (error) {
+    console.error('Update product status API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get admin product details
  */
 export const getAdminProductDetails = async (productId: number | string) => {

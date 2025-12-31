@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import NewNotification from "./newnotification";
 import NewBanner from "./newbanner";
@@ -13,6 +13,11 @@ interface NotificationsFiltersProps {
   onTabChange?: (tab: string) => void;
   activeTab?: string;
   onSearchChange?: (term: string) => void; // <- NEW
+  notificationsForExport?: any[];
+  bannersForExport?: any[];
+  selectedPeriod?: string;
+  onPeriodChange?: (period: string) => void;
+  datePeriodOptions?: string[];
 }
 
 const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
@@ -20,12 +25,19 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
   onTabChange,
   activeTab: externalActiveTab,
   onSearchChange, // <- NEW
+  notificationsForExport = [],
+  bannersForExport = [],
+  selectedPeriod = "All time",
+  onPeriodChange,
+  datePeriodOptions = ["Today", "This Week", "Last Month", "Last 6 Months", "Last Year", "All time"],
 }) => {
   const [internalActiveTab, setInternalActiveTab] = useState("Notification");
   const [isNewNotificationModalOpen, setIsNewNotificationModalOpen] =
     useState(false);
   const [isNewBannerModalOpen, setIsNewBannerModalOpen] = useState(false);
   const [search, setSearch] = useState(""); // <- NEW
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
   const debounced = useDebouncedValue(search, 450); // <- debounce delay
 
   const queryClient = useQueryClient();
@@ -55,6 +67,34 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
   useEffect(() => {
     onSearchChange?.(debounced.trim());
   }, [debounced, onSearchChange]);
+
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    onPeriodChange?.(period);
+    setIsDateDropdownOpen(false);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
 
   const activeTab = externalActiveTab || internalActiveTab;
   const tabs = ["Notification", "Banner"];
@@ -148,14 +188,40 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
             <TabButtons />
           </div>
 
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
-            <div>Today</div>
-            <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+          <div className="relative" ref={dateDropdownRef}>
+            <div 
+              className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={handleDateDropdownToggle}
+            >
+              <div>{selectedPeriod}</div>
+              <img 
+                className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                src={images.dropdown} 
+                alt="" 
+              />
             </div>
+            {isDateDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                {datePeriodOptions.map((option) => (
+                  <div
+                    key={option}
+                    onClick={() => handleDatePeriodSelect(option)}
+                    className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                      selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                    }`}
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+          <BulkActionDropdown 
+            onActionSelect={handleBulkActionSelect}
+            orders={activeTab === "Notification" ? notificationsForExport : bannersForExport}
+            dataType={activeTab === "Notification" ? "notifications" : "banners"}
+          />
         </div>
 
         <div className="flex flex-row gap-2">

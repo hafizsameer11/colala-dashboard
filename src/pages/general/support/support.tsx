@@ -1,7 +1,7 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
 import SupportTable from "./components/supporttable";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { FilterDropdown } from "./components/FilterDropdown";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,21 @@ const AllSupport = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const [selectedUserType, setSelectedUserType] = useState<string>("All");
+  const [isUserTypeDropdownOpen, setIsUserTypeDropdownOpen] = useState(false);
+  const userTypeDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // Issue type
   const [issueType, setIssueType] = useState<IssueType>("All Types");
@@ -78,14 +93,104 @@ const AllSupport = () => {
     setSelectedPeriod(period);
     setCurrentPage(1);
   };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1);
+  };
+  
+  // Handle user type dropdown toggle
+  const handleUserTypeDropdownToggle = () => {
+    setIsUserTypeDropdownOpen(!isUserTypeDropdownOpen);
+  };
+  
+  // Handle user type selection
+  const handleUserTypeSelect = (userType: string) => {
+    setSelectedUserType(userType);
+    setIsUserTypeDropdownOpen(false);
+    setCurrentPage(1);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+      if (userTypeDropdownRef.current && !userTypeDropdownRef.current.contains(event.target as Node)) {
+        setIsUserTypeDropdownOpen(false);
+      }
+    };
 
-  // Filter tickets by period
+    if (isDateDropdownOpen || isUserTypeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen, isUserTypeDropdownOpen]);
+
+  // Filter tickets by period and user type
   const allTickets = ticketsData?.data?.tickets || [];
-  const filteredTickets = filterByPeriod(allTickets, selectedPeriod, ['created_at', 'date', 'updated_at']);
+  const periodFilteredTickets = filterByPeriod(allTickets, selectedPeriod, ['created_at', 'date', 'updated_at', 'formatted_date']);
+  
+  // Filter by user type (Seller/Buyer)
+  const filteredTickets = useMemo(() => {
+    if (selectedUserType === "All") {
+      return periodFilteredTickets;
+    }
+    return periodFilteredTickets.filter((ticket: any) => {
+      const userRole = ticket.user?.role || ticket.user_role || ticket.role || '';
+      const userType = ticket.user?.user_type || ticket.user_type || '';
+      
+      if (selectedUserType === "Sellers") {
+        return userRole?.toLowerCase() === 'seller' || userType?.toLowerCase() === 'seller';
+      } else if (selectedUserType === "Buyers") {
+        return userRole?.toLowerCase() === 'buyer' || userType?.toLowerCase() === 'buyer';
+      }
+      return true;
+    });
+  }, [periodFilteredTickets, selectedUserType]);
+  
+  // Transform tickets for BulkActionDropdown export
+  const ticketsForExport = useMemo(() => {
+    return filteredTickets.map((ticket: any) => ({
+      id: ticket.id?.toString() || '',
+      user_name: ticket.user_name || ticket.user?.name || 'Unknown User',
+      userName: ticket.user_name || ticket.user?.name || 'Unknown User',
+      user_email: ticket.user_email || ticket.user?.email || 'N/A',
+      userEmail: ticket.user_email || ticket.user?.email || 'N/A',
+      category: ticket.category || ticket.issue_type || 'N/A',
+      issue_type: ticket.issue_type || ticket.category || 'N/A',
+      issueType: ticket.issue_type || ticket.category || 'N/A',
+      description: ticket.description || ticket.message || 'No description',
+      status: ticket.status || 'N/A',
+      created_at: ticket.created_at || ticket.formatted_date || '',
+      createdAt: ticket.created_at || ticket.formatted_date || '',
+      formatted_date: ticket.formatted_date || ticket.created_at || '',
+      formattedDate: ticket.formatted_date || ticket.created_at || '',
+      updated_at: ticket.updated_at || '',
+      updatedAt: ticket.updated_at || '',
+      date: ticket.formatted_date || ticket.created_at || '',
+    }));
+  }, [filteredTickets]);
 
   return (
     <>
-      <PageHeader title="Support" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="Support" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
       <div className="p-3 sm:p-4 md:p-5">
         {isLoadingTickets ? (
           <div className="flex justify-center items-center h-32">
@@ -134,21 +239,69 @@ const AllSupport = () => {
                 className="ml-0 sm:ml-1"
               />
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Sellers</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative" ref={userTypeDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleUserTypeDropdownToggle}
+              >
+                <div>{selectedUserType}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isUserTypeDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+              {isUserTypeDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-32 z-50 shadow-lg">
+                  {["All", "Sellers", "Buyers"].map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleUserTypeSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedUserType === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative" ref={dateDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleDatePeriodSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={ticketsForExport}
+                dataType="support"
+              />
             </div>
           </div>
           <div className="w-full sm:w-auto">

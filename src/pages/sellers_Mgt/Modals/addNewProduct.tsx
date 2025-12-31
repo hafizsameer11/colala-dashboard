@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createProduct, updateSellerProduct, getCategories, getBrands, getCSVTemplate, uploadBulkProductsCSV } from "../../../utils/queries/users";
+import { createProduct, updateSellerProduct, getCategories, getCSVTemplate, uploadBulkProductsCSV } from "../../../utils/queries/users";
 import images from "../../../constants/images";
-import AddAddressModal from "./addAddressModal";
 import AddNewDeliveryPricing from "./addNewDeliveryPricing";
 import AddVariantModal from "./AddVariantModal";
 import { useToast } from "../../../contexts/ToastContext";
@@ -19,7 +18,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // Fetch categories and brands data
+  // Fetch categories data
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
@@ -27,17 +26,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: brandsData, isLoading: brandsLoading } = useQuery({
-    queryKey: ['brands'],
-    queryFn: getBrands,
-    enabled: isOpen,
-    staleTime: 5 * 60 * 1000,
-  });
-
   // Form field states
   const [productName, setProductName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [fullDescription, setFullDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -48,14 +39,12 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const [selectedCoupon, setSelectedCoupon] = useState("");
   const [loyaltyPoints, setLoyaltyPoints] = useState(false);
   const [hasVariants, setHasVariants] = useState(false);
-  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [showAddDeliveryModal, setShowAddDeliveryModal] = useState(false);
 
   // Variant states
   const [informationTag1, setInformationTag1] = useState("");
   const [informationTag2, setInformationTag2] = useState("");
   const [informationTag3, setInformationTag3] = useState("");
-  const [selectedAvailableLocation, setSelectedAvailableLocation] = useState("");
   const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState("");
 
   // New Variant States
@@ -84,8 +73,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
 
   const [dropdownStates, setDropdownStates] = useState({
     category: false,
-    brand: false,
-    availableLocation: false,
     deliveryLocation: false,
   });
 
@@ -93,12 +80,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const [errors, setErrors] = useState({
     productName: "",
     category: "",
-    brand: "",
     shortDescription: "",
     fullDescription: "",
     price: "",
     coupon: "",
-    availableLocation: "",
     deliveryLocation: "",
     productImages: "",
     quantity: "",
@@ -110,7 +95,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const resetForm = () => {
     setProductName("");
     setSelectedCategory("");
-    setSelectedBrand("");
     setShortDescription("");
     setFullDescription("");
     setPrice("");
@@ -122,12 +106,10 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     setErrors({
       productName: "",
       category: "",
-      brand: "",
       shortDescription: "",
       fullDescription: "",
       price: "",
       coupon: "",
-      availableLocation: "",
       deliveryLocation: "",
       productImages: "",
       quantity: "",
@@ -245,7 +227,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       if (productInfo) {
         setProductName(productInfo.name || "");
         setSelectedCategory(productInfo.category_id?.toString() || "");
-        setSelectedBrand(productInfo.brand || "");
         setShortDescription(productInfo.description || "");
         setFullDescription(productInfo.description || "");
         setPrice(productInfo.price?.toString() || "");
@@ -298,9 +279,8 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     }
   }, [editMode, initialProductData]);
 
-  // Extract categories and brands from API data
+  // Extract categories from API data
   const categories = categoriesData?.data || [];
-  const brands = brandsData?.data || [];
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -328,8 +308,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const closeAllDropdowns = () => {
     setDropdownStates({
       category: false,
-      brand: false,
-      availableLocation: false,
       deliveryLocation: false,
     });
   };
@@ -339,10 +317,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     closeAllDropdowns();
   };
 
-  const handleBrandSelect = (brand: string) => {
-    setSelectedBrand(brand);
-    closeAllDropdowns();
-  };
 
 
   // File upload handlers
@@ -379,7 +353,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     const newErrors = {
       productName: productName.trim() === "" ? "Product name is required" : "",
       category: selectedCategory === "" ? "Category is required" : "",
-      brand: selectedBrand === "" ? "Brand is required" : "",
       shortDescription:
         shortDescription.trim() === "" ? "Short description is required" : "",
       fullDescription:
@@ -446,10 +419,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         formData.append('category_id', selectedCategory);
       } else {
         formData.append('category_id', '1'); // Default category
-      }
-
-      if (selectedBrand) {
-        formData.append('brand', selectedBrand);
       }
 
       if (fullDescription) {
@@ -854,55 +823,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 )}
               </div>
 
-              {/* Brand Dropdown */}
-              <div className="">
-                <label className="block text-lg mb-2">Brand</label>
-                <div className="relative">
-                  <div
-                    className={`flex items-center justify-between w-full p-5 border rounded-2xl cursor-pointer transition-colors ${errors.brand ? "border-red-500" : "border-[#989898]"
-                      }`}
-                    onClick={() => toggleDropdown("brand")}
-                  >
-                    <div
-                      className={
-                        selectedBrand ? "text-black" : "text-[#00000080]"
-                      }
-                    >
-                      {selectedBrand || "Select Brand"}
-                    </div>
-                    <div
-                      className={`transform transition-transform duration-200 ${dropdownStates.brand ? "rotate-90" : ""
-                        }`}
-                    >
-                      <img src={images?.rightarrow} alt="arrow" />
-                    </div>
-                  </div>
-
-                  {dropdownStates.brand && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#989898] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {brandsLoading ? (
-                        <div className="p-4 text-center text-gray-500">Loading brands...</div>
-                      ) : brands.length > 0 ? (
-                        brands.map((brand: any) => (
-                          <div
-                            key={brand.id}
-                            className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
-                            onClick={() => handleBrandSelect(brand.name)}
-                          >
-                            {brand.name}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-gray-500">No brands available</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {errors.brand && (
-                  <p className="text-red-500 text-sm mt-1">{errors.brand}</p>
-                )}
-              </div>
-
               <div className="mt-5 flex flex-col gap-2">
                 <label htmlFor="shortDescription" className="text-lg">
                   Short Description
@@ -1111,33 +1031,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 />
               </div>
 
-              {/* Availability locations Dropdown */}
-              <div className="mt-5">
-                <label className="block text-lg mb-2">
-                  Availability locations
-                </label>
-                <div className="relative">
-                  <div
-                    className="flex items-center justify-between w-full p-5 border border-[#989898] rounded-2xl cursor-pointer transition-colors"
-                    onClick={() => setShowAddAddressModal(true)}
-                  >
-                    <div
-                      className={
-                        selectedAvailableLocation
-                          ? "text-black"
-                          : "text-[#00000080]"
-                      }
-                    >
-                      {selectedAvailableLocation || "Available locations"}
-                    </div>
-                    <div className="transform transition-transform duration-200">
-                      <img src={images?.rightarrow} alt="arrow" />
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
               {/* Delivery locations Dropdown */}
 
               <div className="mt-5">
@@ -1251,16 +1144,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
           </div>
         </div>
       </div>
-
-      {/* Add Address Modal */}
-      <AddAddressModal
-        isOpen={showAddAddressModal}
-        onClose={() => setShowAddAddressModal(false)}
-        onAddressSaved={() => {
-          setShowAddAddressModal(false);
-          // You can add logic here to update the selected available location
-        }}
-      />
 
       {/* Add Delivery Modal */}
       <AddNewDeliveryPricing

@@ -1,5 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import ProductDetailsModal from "../../Modals/productDetailsModal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateProductStatus } from "../../../../utils/queries/users";
+import { useToast } from "../../../../contexts/ToastContext";
+import images from "../../../../constants/images";
 
 interface ApiProduct {
   id: number;
@@ -34,6 +38,8 @@ interface Product {
   quantity: number;
   reviewsCount: number;
   averageRating: number;
+  is_sold?: number;
+  is_unavailable?: number;
 }
 
 interface ProductsTableProps {
@@ -72,6 +78,27 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState<{ [key: string]: boolean }>({});
+  const statusDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  
+  // Status update mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ productId, statusData }: { productId: number | string; statusData: { status: string; is_sold?: boolean; is_unavailable?: boolean } }) =>
+      updateProductStatus(productId, statusData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      showToast('Product status updated successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Update product status error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update product status. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
 
   // Normalize API data to UI format
   const normalizedProducts: Product[] = useMemo(() => {
@@ -88,6 +115,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
       quantity: product.quantity,
       reviewsCount: product.reviews_count,
       averageRating: product.average_rating,
+      is_sold: product.is_sold,
+      is_unavailable: product.is_unavailable,
     }));
   }, [products]);
 
@@ -165,9 +194,69 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
         quantity: originalProduct.quantity,
         reviewsCount: originalProduct.reviews_count,
         averageRating: originalProduct.average_rating,
+        is_sold: originalProduct.is_sold,
+        is_unavailable: originalProduct.is_unavailable,
       });
       setShowModal(true);
     }
+  };
+  
+  const handleStatusToggle = (productId: string) => {
+    setStatusDropdownOpen(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+  
+  const handleStatusChange = (productId: string, newStatus: string) => {
+    const product = normalizedProducts.find(p => p.id === productId);
+    if (!product) return;
+    
+    const statusData: { status: string; is_sold?: boolean; is_unavailable?: boolean } = {
+      status: newStatus,
+    };
+    
+    // Include is_sold and is_unavailable if they exist
+    if (product.is_sold !== undefined) {
+      statusData.is_sold = Boolean(product.is_sold);
+    }
+    if (product.is_unavailable !== undefined) {
+      statusData.is_unavailable = Boolean(product.is_unavailable);
+    }
+    
+    updateStatusMutation.mutate({ productId, statusData });
+    setStatusDropdownOpen(prev => ({
+      ...prev,
+      [productId]: false
+    }));
+  };
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      Object.keys(statusDropdownRefs.current).forEach((productId) => {
+        if (statusDropdownRefs.current[productId] && !statusDropdownRefs.current[productId]?.contains(event.target as Node)) {
+          setStatusDropdownOpen(prev => ({
+            ...prev,
+            [productId]: false
+          }));
+        }
+      });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  const getStatusDisplay = (status: string) => {
+    const statusMap: { [key: string]: { label: string; color: string } } = {
+      'active': { label: 'Active', color: 'bg-green-500' },
+      'inactive': { label: 'Inactive', color: 'bg-red-500' },
+      'draft': { label: 'Draft', color: 'bg-gray-500' },
+    };
+    return statusMap[status] || { label: status.charAt(0).toUpperCase() + status.slice(1), color: 'bg-gray-500' };
   };
 
   return (
@@ -191,6 +280,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
               <th className="p-4 text-left font-normal">Product name</th>
               <th className="p-4 text-left font-normal">Price</th>
               <th className="p-4 text-left font-normal">Date</th>
+              <th className="p-4 text-center font-normal">Status</th>
               <th className="p-4 text-center font-normal">Sponsored</th>
               <th className="p-4 text-center font-normal">Other</th>
             </tr>
@@ -198,7 +288,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="p-6 text-center">
+                <td colSpan={8} className="p-6 text-center">
                   <div className="flex justify-center items-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
                   </div>
@@ -206,13 +296,13 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-red-500">
+                <td colSpan={8} className="p-6 text-center text-red-500">
                   <p className="text-sm">Error loading products</p>
                 </td>
               </tr>
             ) : visibleProducts.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-500">
+                <td colSpan={8} className="p-6 text-center text-gray-500">
                   No products found.
                 </td>
               </tr>
@@ -254,6 +344,49 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                   </td>
                   <td className="p-4 text-left">
                     <span className="text-gray-600">{product.date}</span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <div className="relative inline-block" ref={(el) => { statusDropdownRefs.current[product.id] = el; }}>
+                      <button
+                        onClick={() => handleStatusToggle(product.id)}
+                        disabled={updateStatusMutation.isPending}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          product.status === 'active' 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : product.status === 'inactive'
+                            ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        } ${updateStatusMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${getStatusDisplay(product.status).color}`}></span>
+                        {getStatusDisplay(product.status).label}
+                        <img 
+                          src={images.dropdown} 
+                          alt="" 
+                          className={`w-3 h-3 transition-transform ${statusDropdownOpen[product.id] ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {statusDropdownOpen[product.id] && (
+                        <div className="absolute z-10 mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px]">
+                          <button
+                            onClick={() => handleStatusChange(product.id, 'active')}
+                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg ${
+                              product.status === 'active' ? 'bg-green-50 font-semibold' : ''
+                            }`}
+                          >
+                            Active
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(product.id, 'inactive')}
+                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors last:rounded-b-lg ${
+                              product.status === 'inactive' ? 'bg-red-50 font-semibold' : ''
+                            }`}
+                          >
+                            Inactive
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="p-4 text-center">
                     <div className="flex justify-center">

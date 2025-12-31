@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import DisputesModal from "./DisputesModal";
 import { getDisputesList } from "../../../../utils/queries/disputes";
+import { filterByPeriod } from "../../../../utils/periodFilter";
 
 export interface Dispute {
   id: string | number;
@@ -91,12 +92,14 @@ interface DisputesTableProps {
   onRowSelect?: (selectedIds: string[]) => void;
   activeTab: Tab; // ⬅️ new
   search: string; // ⬅️ new (debounced)
+  selectedPeriod?: string; // ⬅️ new (date period filter)
 }
 
 const DisputesTable: React.FC<DisputesTableProps> = ({
   onRowSelect,
   activeTab,
   search,
+  selectedPeriod = "All time",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -170,6 +173,14 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
   useEffect(() => {
     fetchDisputes();
   }, [fetchDisputes]);
+  
+  // Filter disputes by selected period
+  const filteredDisputes = useMemo(() => {
+    if (selectedPeriod === "All time") {
+      return disputes;
+    }
+    return filterByPeriod(disputes, selectedPeriod, ['created_at', 'updated_at', 'resolved_at', 'closed_at', 'date', 'formatted_date']);
+  }, [disputes, selectedPeriod]);
 
   // Helper function to get display values from dispute object
   const getDisputeDisplayValues = (dispute: Dispute) => {
@@ -248,7 +259,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
       newSelectedRows = [...selectedRows, disputeId];
     }
     setSelectedRows(newSelectedRows);
-    setSelectAll(newSelectedRows.length === disputes.length && disputes.length > 0);
+    setSelectAll(newSelectedRows.length === filteredDisputes.length && filteredDisputes.length > 0);
     onRowSelect?.(newSelectedRows);
   };
 
@@ -264,7 +275,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
               <th className="text-center p-3 font-normal w-12">
                 <input
                   type="checkbox"
-                  checked={selectAll && disputes.length > 0}
+                  checked={selectAll && filteredDisputes.length > 0}
                   onChange={handleSelectAll}
                   className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                 />
@@ -290,13 +301,13 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
                 </td>
               </tr>
             ) : (
-              disputes.map((dispute, index) => {
+              filteredDisputes.map((dispute, index) => {
                 const displayValues = getDisputeDisplayValues(dispute);
                 return (
                   <tr
                     key={dispute.id}
                     className={`border-t border-[#E5E5E5] transition-colors ${
-                      index === disputes.length - 1 ? "" : "border-b"
+                      index === filteredDisputes.length - 1 ? "" : "border-b"
                     }`}
                   >
                     <td className="p-4">
@@ -334,7 +345,7 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
               })
             )}
 
-            {!isLoading && disputes.length === 0 && (
+            {!isLoading && filteredDisputes.length === 0 && (
               <tr>
                 <td colSpan={8} className="p-6 text-center text-sm text-[#555]">
                   No disputes found.

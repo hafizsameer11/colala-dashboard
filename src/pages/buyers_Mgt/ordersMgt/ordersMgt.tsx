@@ -1,7 +1,7 @@
 import PageHeader from "../../../components/PageHeader";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import LatestOrders from "../customer_mgt/customerDetails/orders/latestOrders";
@@ -20,7 +20,19 @@ const OrdersMgt = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrders, setSelectedOrders] = useState<unknown[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
   const [showChatModal, setShowChatModal] = useState(false);
+  
+  // Date period options matching PageHeader
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
   const [selectedChatData, setSelectedChatData] = useState<{
     id: string | number;
     storeName: string;
@@ -247,14 +259,54 @@ const OrdersMgt = () => {
     setSelectedPeriod(period);
     setCurrentPage(1);
   };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
 
   // Filter orders by period
   const allOrders = ordersData?.data?.store_orders?.data || [];
-  const filteredOrders = filterByPeriod(allOrders, selectedPeriod, ['order_date', 'created_at', 'date']);
+  const filteredOrders = useMemo(() => {
+    return filterByPeriod(
+      allOrders,
+      selectedPeriod,
+      ['order_date', 'created_at', 'date', 'formatted_date']
+    );
+  }, [allOrders, selectedPeriod]);
 
   return (
     <>
-      <PageHeader title="Orders Management" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="Orders Management" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
 
       <div className="p-3 sm:p-4 md:p-5">
         <StatCardGrid columns={3}>
@@ -282,11 +334,33 @@ const OrdersMgt = () => {
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative" ref={dateDropdownRef}>
+              <div 
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => handleDatePeriodSelect(option)}
+                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <BulkActionDropdown 

@@ -4,6 +4,7 @@ import images from "../../../../constants/images";
 import NewNotification from "./newnotification";
 import { createNotification, updateNotificationStatus, deleteNotification } from "../../../../utils/mutations/notifications";
 import { useToast } from "../../../../contexts/ToastContext";
+import { filterByPeriod } from "../../../../utils/periodFilter";
 
 interface NotificationData {
   id: number;
@@ -35,6 +36,7 @@ interface NotificationTableProps {
   error?: any;
   currentPage?: number;
   onPageChange?: (page: number) => void;
+  selectedPeriod?: string;
 }
 
 const NotificationTable: React.FC<NotificationTableProps> = ({
@@ -45,6 +47,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
   error,
   currentPage = 1,
   onPageChange,
+  selectedPeriod = "All time",
 }) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [isNewNotificationModalOpen, setIsNewNotificationModalOpen] = useState(false);
@@ -102,7 +105,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
   });
 
   // Transform API data to match component expectations
-  const notifications: NotificationData[] = useMemo(() => {
+  const allNotifications: NotificationData[] = useMemo(() => {
     if (!notificationsData?.data?.notifications) return [];
     
     return notificationsData.data.notifications.map((notification: any) => ({
@@ -124,10 +127,18 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
     }));
   }, [notificationsData]);
 
+  // Filter by date period
+  const periodFilteredNotifications = useMemo(() => {
+    if (selectedPeriod === "All time") {
+      return allNotifications;
+    }
+    return filterByPeriod(allNotifications, selectedPeriod, ['created_at', 'sent_at', 'scheduled_for', 'formatted_date', 'date']);
+  }, [allNotifications, selectedPeriod]);
+
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return notifications;
-    return notifications.filter(
+    if (!q) return periodFilteredNotifications;
+    return periodFilteredNotifications.filter(
       (n) =>
         n.title.toLowerCase().includes(q) ||
         n.message.toLowerCase().includes(q) ||
@@ -135,7 +146,7 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
         n.status.toLowerCase().includes(q) ||
         n.audience_type.toLowerCase().includes(q)
     );
-  }, [searchTerm, notifications]);
+  }, [searchTerm, periodFilteredNotifications]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {

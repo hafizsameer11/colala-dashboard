@@ -1,9 +1,10 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { useQuery } from "@tanstack/react-query";
-import { getRatingsReviewsSummary } from "../../../utils/queries/users";
+import { getRatingsReviewsSummary, getProductReviews, getStoreReviews } from "../../../utils/queries/users";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 import RatingAndReviewTable from "./components/ratingandreviewtable";
 
@@ -11,7 +12,20 @@ type Tab = "All" | "Store" | "Product";
 
 const AllRatingAndReview = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
   const tabs: Tab[] = ["All", "Store", "Product"];
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // --- Search (debounced) ---
   const [searchInput, setSearchInput] = useState("");
@@ -28,6 +42,136 @@ const AllRatingAndReview = () => {
     queryFn: getRatingsReviewsSummary,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Fetch all product reviews for export (fetch multiple pages to get all data)
+  const [allProductReviews, setAllProductReviews] = useState<any[]>([]);
+  const [allStoreReviews, setAllStoreReviews] = useState<any[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+
+  useEffect(() => {
+    const fetchAllReviews = async () => {
+      try {
+        setIsLoadingReviews(true);
+        
+        // Fetch all product reviews by checking pagination
+        const allProducts: any[] = [];
+        let productPage = 1;
+        let hasMoreProducts = true;
+        
+        while (hasMoreProducts && productPage <= 100) { // Safety limit
+          const result = await getProductReviews(productPage);
+          const reviews = result?.data?.reviews || [];
+          if (reviews.length > 0) {
+            allProducts.push(...reviews);
+            const pagination = result?.data?.pagination;
+            if (pagination && productPage >= pagination.last_page) {
+              hasMoreProducts = false;
+            } else {
+              productPage++;
+            }
+          } else {
+            hasMoreProducts = false;
+          }
+        }
+        setAllProductReviews(allProducts);
+        
+        // Fetch all store reviews by checking pagination
+        const allStores: any[] = [];
+        let storePage = 1;
+        let hasMoreStores = true;
+        
+        while (hasMoreStores && storePage <= 100) { // Safety limit
+          const result = await getStoreReviews(storePage);
+          const reviews = result?.data?.reviews || [];
+          if (reviews.length > 0) {
+            allStores.push(...reviews);
+            const pagination = result?.data?.pagination;
+            if (pagination && storePage >= pagination.last_page) {
+              hasMoreStores = false;
+            } else {
+              storePage++;
+            }
+          } else {
+            hasMoreStores = false;
+          }
+        }
+        setAllStoreReviews(allStores);
+      } catch (error) {
+        console.error('Error fetching reviews for export:', error);
+      } finally {
+        setIsLoadingReviews(false);
+      }
+    };
+    
+    fetchAllReviews();
+  }, []);
+
+  // Filter reviews by period
+  const periodFilteredProductReviews = filterByPeriod(allProductReviews, selectedPeriod, ['created_at', 'formatted_date', 'date']);
+  const periodFilteredStoreReviews = filterByPeriod(allStoreReviews, selectedPeriod, ['created_at', 'formatted_date', 'date']);
+
+  // Transform reviews for BulkActionDropdown export
+  const reviewsForExport = useMemo(() => {
+    const productReviews = periodFilteredProductReviews.map((review: any) => ({
+      id: `product-${review.id}`,
+      type: 'Product',
+      reviewType: 'Product',
+      storeName: review.store?.store_name || review.store?.name || 'N/A',
+      productName: review.product?.name || 'N/A',
+      userName: review.user?.full_name || review.user?.name || 'N/A',
+      user_name: review.user?.full_name || review.user?.name || 'N/A',
+      userEmail: review.user?.email || 'N/A',
+      user_email: review.user?.email || 'N/A',
+      rating: review.rating,
+      averageRating: review.rating,
+      comment: review.comment || 'N/A',
+      review: review.comment || 'N/A',
+      created_at: review.created_at || '',
+      createdAt: review.created_at || '',
+      formatted_date: review.formatted_date || review.created_at || '',
+      formattedDate: review.formatted_date || review.created_at || '',
+      lastRating: review.formatted_date || review.created_at || '',
+      date: review.formatted_date || review.created_at || '',
+      noOfReviews: 1,
+      user: review.user,
+      store: review.store,
+      product: review.product,
+    }));
+
+    const storeReviews = periodFilteredStoreReviews.map((review: any) => ({
+      id: `store-${review.id}`,
+      type: 'Store',
+      reviewType: 'Store',
+      storeName: review.store?.store_name || review.store?.name || 'N/A',
+      productName: 'N/A',
+      userName: review.user?.full_name || review.user?.name || 'N/A',
+      user_name: review.user?.full_name || review.user?.name || 'N/A',
+      userEmail: review.user?.email || 'N/A',
+      user_email: review.user?.email || 'N/A',
+      rating: review.rating,
+      averageRating: review.rating,
+      comment: review.comment || 'N/A',
+      review: review.comment || 'N/A',
+      created_at: review.created_at || '',
+      createdAt: review.created_at || '',
+      formatted_date: review.formatted_date || review.created_at || '',
+      formattedDate: review.formatted_date || review.created_at || '',
+      lastRating: review.formatted_date || review.created_at || '',
+      date: review.formatted_date || review.created_at || '',
+      noOfReviews: 1,
+      user: review.user,
+      store: review.store,
+    }));
+
+    // Filter based on active tab
+    if (activeTab === 'Product') {
+      return productReviews;
+    } else if (activeTab === 'Store') {
+      return storeReviews;
+    } else {
+      return [...productReviews, ...storeReviews];
+    }
+  }, [periodFilteredProductReviews, periodFilteredStoreReviews, activeTab]);
 
   // Debug logging
   console.log('Ratings Reviews Summary Debug - API data:', summaryData);
@@ -55,9 +199,46 @@ const AllRatingAndReview = () => {
     console.log("Bulk action selected in Orders:", action);
   };
 
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+  };
+  
+  // Handle local date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+  
+  // Handle local date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+  };
+  
+  // Close date dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
+
   return (
     <>
-      <PageHeader title="Ratings and Reviews" />
+      <PageHeader 
+        title="Ratings and Reviews" 
+        onPeriodChange={handlePeriodChange}
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
       <div className="p-3 sm:p-4 md:p-5">
         <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
           {/* Card 1 - Total Store Reviews */}
@@ -160,15 +341,41 @@ const AllRatingAndReview = () => {
               <div className="overflow-x-auto w-full sm:w-auto">
                 <TabButtons />
               </div>
-              <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-                <div>Today</div>
-                <div>
-                  <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+              <div className="relative" ref={dateDropdownRef}>
+                <div 
+                  className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                  onClick={handleDateDropdownToggle}
+                >
+                  <div>{selectedPeriod}</div>
+                  <img 
+                    className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                    src={images.dropdown} 
+                    alt="" 
+                  />
                 </div>
+                {isDateDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
+                    {datePeriodOptions.map((option) => (
+                      <div
+                        key={option}
+                        onClick={() => handleDatePeriodSelect(option)}
+                        className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
+                          selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
+                        }`}
+                      >
+                        {option}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
-                <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+                <BulkActionDropdown 
+                  onActionSelect={handleBulkActionSelect}
+                  orders={reviewsForExport}
+                  dataType="ratings"
+                />
               </div>
             </div>
             <div className="w-full sm:w-auto">
@@ -206,6 +413,7 @@ const AllRatingAndReview = () => {
         <RatingAndReviewTable
           tabFilter={activeTab}
           searchQuery={debouncedSearch}
+          selectedPeriod={selectedPeriod}
           onRowSelect={(selectedIds: string[]) =>
             console.log("Selected ratings:", selectedIds)
           }
