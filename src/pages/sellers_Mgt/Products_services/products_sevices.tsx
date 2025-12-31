@@ -12,6 +12,7 @@ import { getAdminProducts, getAdminServices } from "../../../utils/queries/users
 import { apiCall } from "../../../utils/customApiCall";
 import { API_ENDPOINTS } from "../../../config/apiConfig";
 import Cookies from "js-cookie";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -46,10 +47,20 @@ const Products_Services = () => {
   const debouncedSearch = useDebouncedValue(search, 450);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Date filter
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("All Time");
+  // Date filter - synchronized with PageHeader
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("All time");
   const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
   const dateFilterRef = useRef<HTMLDivElement>(null);
+  
+  // Date period options matching PageHeader
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // Category filter
   const [selectedCategory, setSelectedCategory] = useState<string>("All Categories");
@@ -259,33 +270,10 @@ const Products_Services = () => {
     };
   }, []);
 
-  // Helper function to filter by date
-  const filterByDate = (items: any[], dateFilter: string) => {
-    if (dateFilter === "All Time") return items;
-    
-    const now = new Date();
-    let startDate: Date;
-    
-    switch (dateFilter) {
-      case "Today":
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case "This Week":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "This Month":
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      default:
-        return items;
-    }
-    
-    return items.filter((item) => {
-      const itemDate = item.created_at || item.formatted_date;
-      if (!itemDate) return false;
-      const date = new Date(itemDate);
-      return date >= startDate && date <= now;
-    });
+  // Handler for PageHeader period change
+  const handlePageHeaderPeriodChange = (period: string) => {
+    setSelectedDateFilter(period);
+    setCurrentPage(1); // Reset to first page when filter changes
   };
 
   // Helper function to filter by category
@@ -484,7 +472,11 @@ const Products_Services = () => {
 
   // Apply filters to current data
   // Only apply category filter for Products, not for Services
-  const dateFilteredData = filterByDate(currentData, selectedDateFilter);
+  const dateFilteredData = filterByPeriod(
+    currentData, 
+    selectedDateFilter, 
+    ['formatted_date', 'created_at', 'date']
+  );
   const filteredData = selectedProductType === "Products" 
     ? filterByCategory(dateFilteredData, selectedCategory)
     : dateFilteredData; // Services don't use category filter
@@ -512,7 +504,12 @@ const Products_Services = () => {
   return (
     <>
       <div>
-        <PageHeader title="Products / Services" />
+        <PageHeader 
+          title="Products / Services" 
+          defaultPeriod={selectedDateFilter}
+          timeOptions={datePeriodOptions}
+          onPeriodChange={handlePageHeaderPeriodChange}
+        />
         <div className="p-3 sm:p-4 md:p-5">
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
             {/* Card 1 */}
@@ -605,11 +602,15 @@ const Products_Services = () => {
                   onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
                 >
                   <div>{selectedDateFilter}</div>
-                  <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+                  <img 
+                    className={`w-3 h-3 mt-1 transition-transform ${isDateFilterOpen ? 'rotate-180' : ''}`} 
+                    src={images.dropdown} 
+                    alt="" 
+                  />
                 </div>
                 {isDateFilterOpen && (
                   <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                    {["Today", "This Week", "This Month", "All Time"].map((option) => (
+                    {datePeriodOptions.map((option) => (
                       <div
                         key={option}
                         onClick={() => {
@@ -677,7 +678,11 @@ const Products_Services = () => {
                 </div>
               )}
 
-              <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+              <BulkActionDropdown 
+                onActionSelect={handleBulkActionSelect}
+                orders={filteredData}
+                dataType={selectedProductType === "Products" ? "products" : "services"}
+              />
             </div>
 
             <div className="flex gap-2">

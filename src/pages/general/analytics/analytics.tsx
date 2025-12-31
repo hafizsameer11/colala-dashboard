@@ -68,6 +68,7 @@ const Analytics = () => {
   }
 
   const exportOptions = [
+    "All Analytics Data",
     "All User data",
     "All Revenue Data",
     "All Buyer app data",
@@ -119,10 +120,570 @@ const Analytics = () => {
     setIsPromRevenueDropdownOpen(false);
   };
 
+  // Helper function to convert data to CSV format
+  const convertToCSV = (data: any[], headers: string[]): string => {
+    if (!data || data.length === 0) {
+      return headers.join(',') + '\n';
+    }
+
+    // Create a mapping function to get value from row based on header
+    const getValue = (row: any, header: string): string => {
+      // Try multiple key formats: exact match, lowercase, snake_case, camelCase
+      const headerLower = header.toLowerCase();
+      const headerSnake = headerLower.replace(/\s+/g, '_');
+      const headerCamel = headerLower.replace(/\s+(.)/g, (_, c) => c.toUpperCase());
+      
+      const value = row[header] || row[headerLower] || row[headerSnake] || row[headerCamel] || '';
+      return String(value);
+    };
+
+    // Create CSV rows
+    const rows = data.map((row) => {
+      return headers.map((header) => {
+        const value = getValue(row, header);
+        
+        // Escape commas, quotes, and newlines in values
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(',');
+    });
+
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  // Helper function to download CSV file
+  const downloadCSV = (csvContent: string, filename: string) => {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleExportSelect = (option: string) => {
     setIsExportDropdownOpen(false);
-    // Handle export logic here
-    console.log("Export option selected:", option);
+    
+    if (!analyticsData?.data) {
+      alert('No data available to export');
+      return;
+    }
+
+    try {
+      let csvContent = '';
+      let filename = '';
+
+      switch (option) {
+        case 'All Analytics Data':
+          // Export comprehensive analytics data
+          const comprehensiveData: any[] = [];
+
+          // Site Statistics Summary
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Users',
+            'Value': siteStats.total_users || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Buyers',
+            'Value': siteStats.total_buyers || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Sellers',
+            'Value': siteStats.total_sellers || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Orders',
+            'Value': siteStats.total_orders || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Active Orders',
+            'Value': siteStats.active_orders || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Completed Orders',
+            'Value': siteStats.completed_orders || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Revenue',
+            'Value': siteStats.total_revenue || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Products',
+            'Value': siteStats.total_products || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Chats',
+            'Value': siteStats.total_chats || 0,
+            'Date': '',
+            'Details': '',
+          });
+          comprehensiveData.push({
+            'Section': 'Site Statistics',
+            'Metric': 'Total Posts',
+            'Value': siteStats.total_posts || 0,
+            'Date': '',
+            'Details': '',
+          });
+
+          // User Trends
+          userTrends.forEach((trend: TrendData) => {
+            comprehensiveData.push({
+              'Section': 'User Trends',
+              'Date': trend.date || '',
+              'Metric': 'Total Users',
+              'Value': trend.total_users || 0,
+              'Details': `Buyers: ${trend.buyers || 0}, Sellers: ${trend.sellers || 0}`,
+            });
+          });
+
+          // Order Trends
+          orderTrends.forEach((trend: TrendData) => {
+            comprehensiveData.push({
+              'Section': 'Order Trends',
+              'Date': trend.date || '',
+              'Metric': 'Total Orders',
+              'Value': trend.total_orders || 0,
+              'Details': '',
+            });
+          });
+
+          // Revenue Trends
+          revenueTrends.forEach((trend: TrendData) => {
+            comprehensiveData.push({
+              'Section': 'Revenue Trends',
+              'Date': trend.date || '',
+              'Metric': 'Total Revenue',
+              'Value': typeof trend.total_revenue === 'string'
+                ? trend.total_revenue.replace(/[₦,]/g, '')
+                : trend.total_revenue || 0,
+              'Details': `Successful: ${typeof trend.successful_revenue === 'string'
+                ? trend.successful_revenue.replace(/[₦,]/g, '')
+                : trend.successful_revenue || 0}`,
+            });
+          });
+
+          // Top Stores
+          topStores.forEach((store: any, index: number) => {
+            comprehensiveData.push({
+              'Section': 'Top Stores',
+              'Date': '',
+              'Metric': `Store #${index + 1}`,
+              'Value': typeof store.total_revenue === 'string'
+                ? store.total_revenue.replace(/[₦,]/g, '')
+                : store.total_revenue || 0,
+              'Details': `${store.store_name || store.name || 'N/A'} | Orders: ${store.total_orders || 0} | Products: ${store.total_products || 0} | Rating: ${store.average_rating || 0}`,
+            });
+          });
+
+          // Category Breakdown
+          categoryBreakdown.forEach((category: any) => {
+            comprehensiveData.push({
+              'Section': 'Category Breakdown',
+              'Date': '',
+              'Metric': category.category_name || category.name || 'N/A',
+              'Value': typeof category.total_revenue === 'string'
+                ? category.total_revenue.replace(/[₦,]/g, '')
+                : category.total_revenue || 0,
+              'Details': `Products: ${category.total_products || 0}`,
+            });
+          });
+
+          // Chat Analytics
+          if (chatAnalytics && Object.keys(chatAnalytics).length > 0) {
+            Object.entries(chatAnalytics).forEach(([key, value]) => {
+              comprehensiveData.push({
+                'Section': 'Chat Analytics',
+                'Date': '',
+                'Metric': key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                'Value': value || 0,
+                'Details': '',
+              });
+            });
+          }
+
+          // Social Analytics
+          if (socialAnalytics && Object.keys(socialAnalytics).length > 0) {
+            Object.entries(socialAnalytics).forEach(([key, value]) => {
+              comprehensiveData.push({
+                'Section': 'Social Analytics',
+                'Date': '',
+                'Metric': key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                'Value': value || 0,
+                'Details': '',
+              });
+            });
+          }
+
+          const comprehensiveHeaders = ['Section', 'Date', 'Metric', 'Value', 'Details'];
+          csvContent = convertToCSV(comprehensiveData, comprehensiveHeaders);
+          filename = `analytics_comprehensive_${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+
+        case 'All User data':
+          // Export user trends data
+          const userHeaders = ['Date', 'Total Users', 'Buyers', 'Sellers'];
+          const userData = userTrends.map((trend: TrendData) => ({
+            'Date': trend.date || '',
+            'Total Users': trend.total_users || 0,
+            'Buyers': trend.buyers || 0,
+            'Sellers': trend.sellers || 0,
+          }));
+          csvContent = convertToCSV(userData, userHeaders);
+          filename = `analytics_user_data_${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+
+        case 'All Revenue Data':
+          // Export revenue trends data
+          const revenueHeaders = ['Date', 'Total Revenue', 'Successful Revenue'];
+          const revenueData = revenueTrends.map((trend: TrendData) => ({
+            'Date': trend.date || '',
+            'Total Revenue': typeof trend.total_revenue === 'string' 
+              ? trend.total_revenue.replace(/[₦,]/g, '') 
+              : trend.total_revenue || 0,
+            'Successful Revenue': typeof trend.successful_revenue === 'string'
+              ? trend.successful_revenue.replace(/[₦,]/g, '')
+              : trend.successful_revenue || 0,
+          }));
+          csvContent = convertToCSV(revenueData, revenueHeaders);
+          filename = `analytics_revenue_data_${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+
+        case 'All Buyer app data':
+          // Export buyer-related data: user trends (buyers), order trends, site stats
+          const buyerData: any[] = [];
+          
+          // Add site statistics summary first
+          buyerData.push({
+            'category': 'Site Statistics',
+            'date': '',
+            'metric': 'Total Buyers',
+            'buyers': siteStats.total_buyers || 0,
+            'total_users': '',
+            'total_orders': '',
+            'value': '',
+          });
+          buyerData.push({
+            'category': 'Site Statistics',
+            'date': '',
+            'metric': 'Total Orders',
+            'buyers': '',
+            'total_users': '',
+            'total_orders': siteStats.total_orders || 0,
+            'value': '',
+          });
+          buyerData.push({
+            'category': 'Site Statistics',
+            'date': '',
+            'metric': 'Active Orders',
+            'buyers': '',
+            'total_users': '',
+            'total_orders': siteStats.active_orders || 0,
+            'value': '',
+          });
+          buyerData.push({
+            'category': 'Site Statistics',
+            'date': '',
+            'metric': 'Completed Orders',
+            'buyers': '',
+            'total_users': '',
+            'total_orders': siteStats.completed_orders || 0,
+            'value': '',
+          });
+
+          // Add user trends with buyer focus
+          userTrends.forEach((trend: TrendData) => {
+            buyerData.push({
+              'category': 'User Trend',
+              'date': trend.date || '',
+              'metric': 'Buyer Count',
+              'buyers': trend.buyers || 0,
+              'total_users': trend.total_users || 0,
+              'total_orders': '',
+              'value': '',
+            });
+          });
+
+          // Add order trends
+          orderTrends.forEach((trend: TrendData) => {
+            buyerData.push({
+              'category': 'Order Trend',
+              'date': trend.date || '',
+              'metric': 'Total Orders',
+              'buyers': '',
+              'total_users': '',
+              'total_orders': trend.total_orders || 0,
+              'value': '',
+            });
+          });
+
+          const buyerHeaders = ['Category', 'Date', 'Metric', 'Buyers', 'Total Users', 'Total Orders', 'Value'];
+          csvContent = convertToCSV(buyerData, buyerHeaders);
+          filename = `analytics_buyer_data_${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+
+        case 'All Seller data':
+          // Export seller-related data: top stores, seller trends, site stats
+          const sellerData: any[] = [];
+
+          // Add site statistics summary first
+          sellerData.push({
+            'category': 'Site Statistics',
+            'date': '',
+            'metric': 'Total Sellers',
+            'store_name': '',
+            'store_id': '',
+            'sellers': siteStats.total_sellers || 0,
+            'total_users': '',
+            'total_revenue': '',
+            'total_orders': '',
+            'total_products': '',
+            'rating': '',
+            'value': '',
+          });
+          sellerData.push({
+            'category': 'Site Statistics',
+            'date': '',
+            'metric': 'Total Products',
+            'store_name': '',
+            'store_id': '',
+            'sellers': '',
+            'total_users': '',
+            'total_revenue': '',
+            'total_orders': '',
+            'total_products': siteStats.total_products || 0,
+            'rating': '',
+            'value': '',
+          });
+
+          // Add top stores
+          topStores.forEach((store: any) => {
+            sellerData.push({
+              'category': 'Top Store',
+              'date': '',
+              'metric': 'Store Performance',
+              'store_name': store.store_name || store.name || '',
+              'store_id': store.store_id || store.id || '',
+              'sellers': '',
+              'total_users': '',
+              'total_revenue': typeof store.total_revenue === 'string'
+                ? store.total_revenue.replace(/[₦,]/g, '')
+                : store.total_revenue || 0,
+              'total_orders': store.total_orders || 0,
+              'total_products': store.total_products || 0,
+              'rating': store.average_rating || 0,
+              'value': '',
+            });
+          });
+
+          // Add user trends with seller focus
+          userTrends.forEach((trend: TrendData) => {
+            sellerData.push({
+              'category': 'User Trend',
+              'date': trend.date || '',
+              'metric': 'Seller Count',
+              'store_name': '',
+              'store_id': '',
+              'sellers': trend.sellers || 0,
+              'total_users': trend.total_users || 0,
+              'total_revenue': '',
+              'total_orders': '',
+              'total_products': '',
+              'rating': '',
+              'value': '',
+            });
+          });
+
+          const sellerHeaders = ['Category', 'Date', 'Metric', 'Store Name', 'Store ID', 'Sellers', 'Total Users', 'Total Revenue', 'Total Orders', 'Total Products', 'Rating', 'Value'];
+          csvContent = convertToCSV(sellerData, sellerHeaders);
+          filename = `analytics_seller_data_${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+
+        default:
+          // Export all analytics data
+          const allData: any[] = [];
+
+          // Site Statistics
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Users',
+            'Value': siteStats.total_users || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Buyers',
+            'Value': siteStats.total_buyers || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Sellers',
+            'Value': siteStats.total_sellers || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Orders',
+            'Value': siteStats.total_orders || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Active Orders',
+            'Value': siteStats.active_orders || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Completed Orders',
+            'Value': siteStats.completed_orders || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Revenue',
+            'Value': siteStats.total_revenue || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Products',
+            'Value': siteStats.total_products || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Chats',
+            'Value': siteStats.total_chats || 0,
+          });
+          allData.push({
+            'Category': 'Site Statistics',
+            'Metric': 'Total Posts',
+            'Value': siteStats.total_posts || 0,
+          });
+
+          // User Trends
+          userTrends.forEach((trend: TrendData) => {
+            allData.push({
+              'Category': 'User Trends',
+              'Date': trend.date || '',
+              'Total Users': trend.total_users || 0,
+              'Buyers': trend.buyers || 0,
+              'Sellers': trend.sellers || 0,
+            });
+          });
+
+          // Order Trends
+          orderTrends.forEach((trend: TrendData) => {
+            allData.push({
+              'Category': 'Order Trends',
+              'Date': trend.date || '',
+              'Total Orders': trend.total_orders || 0,
+            });
+          });
+
+          // Revenue Trends
+          revenueTrends.forEach((trend: TrendData) => {
+            allData.push({
+              'Category': 'Revenue Trends',
+              'Date': trend.date || '',
+              'Total Revenue': typeof trend.total_revenue === 'string'
+                ? trend.total_revenue.replace(/[₦,]/g, '')
+                : trend.total_revenue || 0,
+              'Successful Revenue': typeof trend.successful_revenue === 'string'
+                ? trend.successful_revenue.replace(/[₦,]/g, '')
+                : trend.successful_revenue || 0,
+            });
+          });
+
+          // Top Stores
+          topStores.forEach((store: any) => {
+            allData.push({
+              'Category': 'Top Stores',
+              'Store Name': store.store_name || store.name || '',
+              'Store ID': store.store_id || store.id || '',
+              'Total Revenue': typeof store.total_revenue === 'string'
+                ? store.total_revenue.replace(/[₦,]/g, '')
+                : store.total_revenue || 0,
+              'Total Orders': store.total_orders || 0,
+              'Total Products': store.total_products || 0,
+              'Rating': store.average_rating || 0,
+            });
+          });
+
+          // Category Breakdown
+          categoryBreakdown.forEach((category: any) => {
+            allData.push({
+              'Category': 'Category Breakdown',
+              'Category Name': category.category_name || category.name || '',
+              'Category ID': category.category_id || category.id || '',
+              'Total Products': category.total_products || 0,
+              'Total Revenue': typeof category.total_revenue === 'string'
+                ? category.total_revenue.replace(/[₦,]/g, '')
+                : category.total_revenue || 0,
+            });
+          });
+
+          // Chat Analytics
+          if (chatAnalytics && Object.keys(chatAnalytics).length > 0) {
+            Object.entries(chatAnalytics).forEach(([key, value]) => {
+              allData.push({
+                'Category': 'Chat Analytics',
+                'Metric': key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                'Value': value || 0,
+              });
+            });
+          }
+
+          // Social Analytics
+          if (socialAnalytics && Object.keys(socialAnalytics).length > 0) {
+            Object.entries(socialAnalytics).forEach(([key, value]) => {
+              allData.push({
+                'Category': 'Social Analytics',
+                'Metric': key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                'Value': value || 0,
+              });
+            });
+          }
+
+          const allHeaders = ['Category', 'Date', 'Metric', 'Value', 'Total Users', 'Buyers', 'Sellers', 'Total Orders', 'Total Revenue', 'Successful Revenue', 'Store Name', 'Store ID', 'Total Products', 'Rating', 'Category Name', 'Category ID'];
+          csvContent = convertToCSV(allData, allHeaders);
+          filename = `analytics_all_data_${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+      }
+
+      if (csvContent) {
+        downloadCSV(csvContent, filename);
+      } else {
+        alert('No data available to export for this option');
+      }
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   const handleTimeSelect = (option: string) => {

@@ -55,16 +55,36 @@ const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // period/date filter
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("Today");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time"
+  ];
 
   // Helper function to filter transactions by period
   const filterTransactionsByPeriod = (transactions: any[], period: string) => {
     if (period === "All time") return transactions;
     
     const now = new Date();
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     let startDate: Date;
     
     switch (period) {
+      case "Today":
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        return transactions.filter((tx) => {
+          const txDate = tx.created_at || tx.date || tx.formatted_date;
+          if (!txDate) return false;
+          const date = new Date(txDate);
+          return date >= startDate && date <= endOfToday;
+        });
       case "This Week":
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
@@ -128,7 +148,7 @@ const Transactions = () => {
   );
 
   const handleBulkActionSelect = (action: string) => {
-    console.log("Bulk action selected in Orders:", action);
+    console.log("Bulk action selected in Transactions:", action);
   };
 
   // Make the deposit dropdown functional: set the type filter
@@ -144,12 +164,43 @@ const Transactions = () => {
     setCurrentPage(1); // Reset to first page when period changes
   };
 
+  // Handle date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+
+  // Handle date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1); // Reset to first page when period changes
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isDateDropdownOpen && !target.closest('.date-dropdown-container')) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
+
   return (
     <>
       <PageHeader 
         title="Transactions - Stores" 
         onPeriodChange={handlePeriodChange}
-        defaultPeriod="All time"
+        defaultPeriod="Today"
+        timeOptions={datePeriodOptions}
       />
 
       <div className="p-3 sm:p-4 md:p-5">
@@ -192,15 +243,44 @@ const Transactions = () => {
               <TabButtons />
             </div>
 
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative date-dropdown-container">
+              <div
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
+              </div>
+
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-[140px] bg-white border border-[#989898] rounded-lg shadow-lg z-10">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      className={`px-4 py-3 hover:bg-gray-100 cursor-pointer text-left text-sm first:rounded-t-lg last:rounded-b-lg transition-colors ${
+                        selectedPeriod === option ? 'bg-gray-50 font-medium' : ''
+                      }`}
+                      onClick={() => handleDatePeriodSelect(option)}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* TYPE FILTER (DepositDropdown) */}
             <DepositDropdown onActionSelect={handleDepositActionSelect} />
 
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              orders={transactions}
+              dataType="transactions"
+            />
           </div>
 
           <div className="relative w-full sm:w-auto">

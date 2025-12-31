@@ -16,9 +16,15 @@ export function filterByPeriod<T extends Record<string, any>>(
   }
   
   const now = new Date();
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   let startDate: Date;
+  let endDate: Date = now;
   
   switch (period.trim()) {
+    case "Today":
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      endDate = endOfToday;
+      break;
     case "This Week":
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       break;
@@ -62,9 +68,11 @@ export function filterByPeriod<T extends Record<string, any>>(
     try {
       let date: Date;
       
-      // Handle custom format: "26-12-2025/20:10PM"
+      // Handle custom format: "26-12-2025/20:10PM" or "26-12-2025\/20:10PM"
       if (dateValue.includes('/') && dateValue.includes('-')) {
-        const parts = dateValue.split('/');
+        // Handle escaped backslash format
+        const normalizedDate = dateValue.replace(/\\\//g, '/').replace(/\\/g, '/');
+        const parts = normalizedDate.split('/');
         if (parts.length === 2) {
           const datePart = parts[0].trim(); // "26-12-2025"
           const timePart = parts[1].trim(); // "20:10PM"
@@ -98,17 +106,55 @@ export function filterByPeriod<T extends Record<string, any>>(
         } else {
           date = new Date(dateValue);
         }
+      } else if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+        // Handle ISO format: "2025-12-26T20:10:00.000000Z" or "2025-12-26 20:10:00"
+        date = new Date(dateValue);
+      } else if (typeof dateValue === 'string' && dateValue.includes('-')) {
+        // Handle DD-MM-YYYY format without time
+        const dateComponents = dateValue.split('-');
+        if (dateComponents.length === 3) {
+          const day = parseInt(dateComponents[0], 10);
+          const month = parseInt(dateComponents[1], 10) - 1;
+          const year = parseInt(dateComponents[2], 10);
+          date = new Date(year, month, day);
+        } else {
+          date = new Date(dateValue);
+        }
       } else {
+        // Try standard Date parsing
         date = new Date(dateValue);
       }
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
         // Invalid date, include it anyway (don't filter out)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('filterByPeriod: Invalid date parsed:', dateValue, 'Result:', date);
+        }
         return true;
       }
+      
       // Check if date is within the period range
-      return date >= startDate && date <= now;
+      // Use getTime() for more reliable comparison
+      const dateTime = date.getTime();
+      const startTime = startDate.getTime();
+      const endTime = endDate.getTime();
+      const isInRange = dateTime >= startTime && dateTime <= endTime;
+      
+      if (process.env.NODE_ENV === 'development' && period === "Today") {
+        console.log('Date check:', {
+          dateValue,
+          parsedDate: date.toISOString(),
+          parsedTime: dateTime,
+          startDate: startDate.toISOString(),
+          startTime,
+          endDate: endDate.toISOString(),
+          endTime,
+          isInRange
+        });
+      }
+      
+      return isInRange;
     } catch (error) {
       // Error parsing date, include it anyway (don't filter out)
       if (process.env.NODE_ENV === 'development') {

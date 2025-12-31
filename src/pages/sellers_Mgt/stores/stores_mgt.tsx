@@ -6,12 +6,13 @@ import AddStoreModal from "../Modals/addStoreModel";
 import SavedAddressModal from "../Modals/savedAddressModal";
 import AddAddressModal from "../Modals/addAddressModal";
 import DeliveryPricing from "../Modals/deliveryPricing";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerUsers } from "../../../utils/queries/users";
 import LevelDropdown from "../../../components/levelDropdown";
 import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
 import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -40,6 +41,17 @@ const stores_mgt = () => {
   const debouncedSearch = useDebouncedValue(search, 450);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
+  
+  // Date period filter - synchronized with PageHeader
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
 
   // Fetch seller users
   const { data: sellerData, isLoading, error } = useQuery({
@@ -50,7 +62,18 @@ const stores_mgt = () => {
 
   const summary = sellerData?.data?.summary_stats;
   const usersPage = sellerData?.data?.users;
-  const users = usersPage?.data || [];
+  const allUsers = usersPage?.data || [];
+  
+  // Filter users by date period
+  const filteredUsers = useMemo(() => {
+    return filterByPeriod(
+      allUsers,
+      selectedPeriod,
+      ['created_at', 'formatted_date', 'date']
+    );
+  }, [allUsers, selectedPeriod]);
+  
+  const users = filteredUsers;
 
   // Delivery pricing entries (unchanged)
   const [deliveryPricingEntries, setDeliveryPricingEntries] = useState<
@@ -104,10 +127,21 @@ const stores_mgt = () => {
     else if (level === "Level 3") setSelectedLevel(3);
     else setSelectedLevel("all");
   };
+  
+  // Handler for PageHeader period change
+  const handlePageHeaderPeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
 
   return (
     <>
-      <PageHeader title="User Management - Stores" />
+      <PageHeader 
+        title="User Management - Stores" 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+        onPeriodChange={handlePageHeaderPeriodChange}
+      />
       <div className="bg-[#F5F5F5]">
         <div className="p-3 sm:p-4 md:p-5">
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">

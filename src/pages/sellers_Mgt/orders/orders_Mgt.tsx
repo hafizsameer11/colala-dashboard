@@ -1,7 +1,7 @@
 import PageHeader from "../../../components/PageHeader";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { getAdminOrders, getSellerOrders, updateOrderStatus } from "../../../utils/queries/users";
@@ -24,8 +24,19 @@ const OrdersMgt = () => {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 450);
   const location = useLocation();
+
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time"
+  ];
 
   const queryClient = useQueryClient();
 
@@ -133,12 +144,73 @@ const OrdersMgt = () => {
     setCurrentPage(1);
   };
 
+  // Handle date dropdown toggle
+  const handleDateDropdownToggle = () => {
+    setIsDateDropdownOpen(!isDateDropdownOpen);
+  };
+
+  // Handle date period selection
+  const handleDatePeriodSelect = (period: string) => {
+    setSelectedPeriod(period);
+    setIsDateDropdownOpen(false);
+    setCurrentPage(1); // Reset to first page when period changes
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isDateDropdownOpen && !target.closest('.date-dropdown-container')) {
+        setIsDateDropdownOpen(false);
+      }
+    };
+
+    if (isDateDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDateDropdownOpen]);
+
   // Filter orders by period
-  const filteredOrders = filterByPeriod(orders, selectedPeriod, ['order_date', 'created_at', 'date']);
+  const filteredOrders = useMemo(() => {
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+      return [];
+    }
+    
+    const filtered = filterByPeriod(orders, selectedPeriod, ['formatted_date', 'created_at', 'order_date', 'date']);
+    
+    // Debug logging for filtering
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== FILTER DEBUG ===');
+      console.log('Selected Period:', selectedPeriod);
+      console.log('Total Orders:', orders.length);
+      console.log('Filtered Orders:', filtered.length);
+      if (orders.length > 0) {
+        console.log('Sample Order Date Fields:', {
+          formatted_date: orders[0]?.formatted_date,
+          created_at: orders[0]?.created_at,
+          order_date: orders[0]?.order_date,
+          date: orders[0]?.date,
+          allKeys: Object.keys(orders[0] || {})
+        });
+      }
+      console.log('=== END FILTER DEBUG ===');
+    }
+    
+    return filtered;
+  }, [orders, selectedPeriod]);
 
   return (
     <>
-      <PageHeader title="Orders Management - Stores" onPeriodChange={handlePeriodChange} defaultPeriod="All time" />
+      <PageHeader 
+        title="Orders Management - Stores" 
+        onPeriodChange={handlePeriodChange} 
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
+      />
       <div className="p-3 sm:p-4 md:p-5">
         {/* Debug Panel - Remove this after testing */}
        
@@ -174,11 +246,34 @@ const OrdersMgt = () => {
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm">
-              <div>Today</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+            <div className="relative date-dropdown-container">
+              <div
+                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
+                onClick={handleDateDropdownToggle}
+              >
+                <div>{selectedPeriod}</div>
+                <img 
+                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
+                  src={images.dropdown} 
+                  alt="" 
+                />
               </div>
+
+              {isDateDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-[140px] bg-white border border-[#989898] rounded-lg shadow-lg z-10">
+                  {datePeriodOptions.map((option) => (
+                    <div
+                      key={option}
+                      className={`px-4 py-3 hover:bg-gray-100 cursor-pointer text-left text-sm first:rounded-t-lg last:rounded-b-lg transition-colors ${
+                        selectedPeriod === option ? 'bg-gray-50 font-medium' : ''
+                      }`}
+                      onClick={() => handleDatePeriodSelect(option)}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <BulkActionDropdown 
