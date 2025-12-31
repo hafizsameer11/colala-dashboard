@@ -115,8 +115,31 @@ const LeaderBoard = () => {
   };
 
   const handleBulkActionSelect = (action: string) => {
-    console.log("Bulk action selected in Orders:", action);
+    console.log("Bulk action selected in LeaderBoard:", action);
   };
+
+  // Transform leaderboard stores for export
+  const storesForExport = useMemo(() => {
+    return filteredUsers.map((store: Store, index: number) => ({
+      id: store.store_id?.toString() || '',
+      store_id: store.store_id?.toString() || '',
+      store_name: store.store_name || 'N/A',
+      storeName: store.store_name || 'N/A',
+      seller_name: store.seller_name || 'N/A',
+      owner_name: store.seller_name || 'N/A',
+      ownerName: store.seller_name || 'N/A',
+      total_points: store.total_points || 0,
+      total_revenue: store.total_revenue || 0,
+      orders_count: store.orders_count || 0,
+      followers_count: store.followers_count || 0,
+      products_count: store.products_count || 0,
+      average_rating: store.average_rating || 0,
+      store_location: store.store_location || 'N/A',
+      store_status: store.store_status || 'N/A',
+      status: store.store_status || 'N/A',
+      position: startIndex + index + 1,
+    }));
+  }, [filteredUsers, startIndex]);
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -234,7 +257,11 @@ const LeaderBoard = () => {
               <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
                 <div className="flex flex-row items-center gap-2">
                   <div>
-                    <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+                    <BulkActionDropdown 
+                      onActionSelect={handleBulkActionSelect}
+                      orders={storesForExport}
+                      dataType="leaderboard"
+                    />
                   </div>
                 </div>
                 <div className="w-full sm:w-auto">

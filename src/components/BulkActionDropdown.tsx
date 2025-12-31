@@ -110,6 +110,7 @@ interface Service {
 
 interface Store {
   id: string | number;
+  store_id?: string | number;
   store_name?: string;
   storeName?: string;
   store_email?: string;
@@ -127,11 +128,21 @@ interface Store {
   banner_image?: string;
   bannerImage?: string;
   status?: string;
+  store_status?: string;
   level?: number;
   submission_date?: string;
   submissionDate?: string;
   formatted_date?: string;
   created_at?: string;
+  seller_name?: string;
+  total_points?: number;
+  followers_count?: number;
+  orders_count?: number;
+  products_count?: number;
+  total_revenue?: number;
+  average_rating?: number;
+  store_location?: string;
+  position?: number;
 }
 
 interface Subscription {
@@ -410,7 +421,7 @@ interface BulkActionDropdownProps {
   onActionSelect?: (action: string) => void;
   selectedOrders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
   orders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
-  dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities';
+  dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities' | 'leaderboard';
 }
 
 const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
@@ -609,6 +620,29 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
           'Level': store.level || 'N/A',
           'Status': statusValue,
           'Submission Date': dateValue
+        };
+      });
+    } else if (dataType === 'leaderboard') {
+      csvData = (dataToExport as Store[]).map((store, index) => {
+        // Format revenue properly
+        let revenueValue = 'N/A';
+        if (store.total_revenue !== undefined && store.total_revenue !== null) {
+          revenueValue = `₦${Number(store.total_revenue).toLocaleString()}`;
+        }
+
+        return {
+          'Position': (store.position !== undefined ? store.position : index + 1).toString(),
+          'Store ID': store.store_id?.toString() || store.id?.toString() || 'N/A',
+          'Store Name': store.store_name || store.storeName || 'N/A',
+          'Seller Name': store.seller_name || store.owner_name || store.ownerName || 'N/A',
+          'Total Points': store.total_points?.toLocaleString() || '0',
+          'Total Revenue': revenueValue,
+          'Orders Count': store.orders_count?.toLocaleString() || '0',
+          'Followers Count': store.followers_count?.toLocaleString() || '0',
+          'Products Count': store.products_count?.toLocaleString() || '0',
+          'Average Rating': store.average_rating?.toFixed(2) || 'N/A',
+          'Store Location': store.store_location || 'N/A',
+          'Store Status': (store.store_status || store.status || 'N/A').charAt(0).toUpperCase() + (store.store_status || store.status || 'N/A').slice(1).toLowerCase()
         };
       });
     } else if (dataType === 'subscriptions') {
@@ -1084,6 +1118,32 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
           String(store.level || 'N/A'),
           statusValue,
           dateValue
+        ];
+      });
+    } else if (dataType === 'leaderboard') {
+      headers = ['Position', 'Store ID', 'Store Name', 'Seller Name', 'Total Points', 'Total Revenue', 'Orders Count', 'Followers Count', 'Products Count', 'Average Rating', 'Store Location', 'Store Status'];
+      tableData = (dataToExport as Store[]).map((store, index) => {
+        // Format revenue properly
+        let revenueValue = 'N/A';
+        if (store.total_revenue !== undefined && store.total_revenue !== null) {
+          revenueValue = `₦${Number(store.total_revenue).toLocaleString()}`;
+        }
+
+        const statusValue = (store.store_status || store.status || 'N/A').charAt(0).toUpperCase() + (store.store_status || store.status || 'N/A').slice(1).toLowerCase();
+
+        return [
+          String(store.position !== undefined ? store.position : index + 1),
+          String(store.store_id || store.id || 'N/A'),
+          store.store_name || store.storeName || 'N/A',
+          store.seller_name || store.owner_name || store.ownerName || 'N/A',
+          store.total_points?.toLocaleString() || '0',
+          revenueValue,
+          store.orders_count?.toLocaleString() || '0',
+          store.followers_count?.toLocaleString() || '0',
+          store.products_count?.toLocaleString() || '0',
+          store.average_rating?.toFixed(2) || 'N/A',
+          store.store_location || 'N/A',
+          statusValue
         ];
       });
     } else if (dataType === 'subscriptions') {
