@@ -1,5 +1,5 @@
 import images from "../../../constants/images";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ManagementSettingTable from "./components/managementsettingtable";
 import AddNewAdmin from "./components/addnewadmin";
@@ -11,6 +11,7 @@ import KnowledgeBase from "./components/knowledgeBase";
 import QuestionModal from "./components/questionmodal";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
 import { getUserDetails, getAdminUsers } from "../../../utils/queries/users";
+import { filterByPeriod } from "../../../utils/periodFilter";
 import { 
   getFaqStatistics, 
   getFaqCategories, 
@@ -125,9 +126,23 @@ interface TermsData {
 const AllUsers = () => {
   const [selectedOption, setSelectedOption] = useState("Online");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("Admin Management");
   const [faqActiveTab, setFaqActiveTab] = useState("All");
   const [isThisWeekDropdownOpen, setIsThisWeekDropdownOpen] = useState(false);
+  const thisWeekDropdownRef = useRef<HTMLDivElement>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("This Week");
+  
+  // Date period options
+  const datePeriodOptions = [
+    "This Week",
+    "Last Week",
+    "This Month",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
   const [isAddAdminModalOpen, setIsAddAdminModalOpen] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
@@ -376,6 +391,71 @@ const AllUsers = () => {
 
   const dropdownOptions = ["Online", "All", "Active", "Inactive"];
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+      if (thisWeekDropdownRef.current && !thisWeekDropdownRef.current.contains(event.target as Node)) {
+        setIsThisWeekDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen || isThisWeekDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen, isThisWeekDropdownOpen]);
+
+  // Filter users by status and date period
+  const filteredUsers = useMemo(() => {
+    const allUsers = usersData?.data?.data || [];
+    
+    // Filter by status (Online/Active/Inactive/All)
+    let statusFiltered = allUsers;
+    if (selectedOption === "Active") {
+      statusFiltered = allUsers.filter((user: any) => {
+        const isActive = typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active;
+        return isActive === true;
+      });
+    } else if (selectedOption === "Inactive") {
+      statusFiltered = allUsers.filter((user: any) => {
+        const isActive = typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active;
+        return isActive === false;
+      });
+    } else if (selectedOption === "Online") {
+      // "Online" typically means active users, but you might want to check a different field
+      // For now, treating it as active users
+      statusFiltered = allUsers.filter((user: any) => {
+        const isActive = typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active;
+        return isActive === true;
+      });
+    }
+    // "All" means no status filtering
+    
+    // Filter by date period
+    const periodFiltered = filterByPeriod(statusFiltered, selectedPeriod, ['created_at', 'formatted_date', 'date']);
+    
+    return periodFiltered;
+  }, [usersData, selectedOption, selectedPeriod]);
+
+  // Paginate filtered users for display
+  const perPage = usersData?.data?.per_page || 15;
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, perPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedOption, selectedPeriod]);
+
   const handleAddNewAdmin = (adminData: {
     full_name: string;
     user_name: string;
@@ -434,14 +514,14 @@ const AllUsers = () => {
   };
 
   const DropdownComponent = () => (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="flex items-center gap-2 px-4 py-3.5 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white cursor-pointer"
+        className="flex items-center gap-2 px-4 py-3.5 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
       >
         {selectedOption}
         <svg
-          className="w-4 h-4"
+          className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -459,10 +539,13 @@ const AllUsers = () => {
           {dropdownOptions.map((option) => (
             <button
               key={option}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className={`block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors ${
+                selectedOption === option ? "bg-gray-50 font-semibold" : ""
+              }`}
               onClick={() => {
                 setSelectedOption(option);
                 setIsDropdownOpen(false);
+                setCurrentPage(1); // Reset to first page when filter changes
               }}
             >
               {option}
@@ -540,7 +623,7 @@ const AllUsers = () => {
         </div>
 
               {/* This Week Dropdown - Separate */}
-              <div className="relative">
+              <div className="relative" ref={thisWeekDropdownRef}>
                 <div className="bg-white border border-[#989898] rounded-lg cursor-pointer">
                   <button
                     onClick={() =>
@@ -548,7 +631,7 @@ const AllUsers = () => {
                     }
                     className="flex items-center p-4 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-xl transition-all duration-200 cursor-pointer"
                   >
-                    <span className="cursor-pointer">This Week</span>
+                    <span className="cursor-pointer">{selectedPeriod}</span>
                     <svg
                       className={`w-4 h-4 ml-2 transition-transform duration-200 ${
                         isThisWeekDropdownOpen ? "rotate-180" : ""
@@ -569,14 +652,18 @@ const AllUsers = () => {
 
                 {isThisWeekDropdownOpen && (
                   <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                    {["This Week", "Last Week", "This Month", "Last Month"].map(
+                    {datePeriodOptions.map(
                       (option) => (
                         <button
                           key={option}
                           onClick={() => {
+                            setSelectedPeriod(option);
                             setIsThisWeekDropdownOpen(false);
+                            setCurrentPage(1); // Reset to first page when period changes
                           }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                            selectedPeriod === option ? "bg-gray-50 font-semibold" : ""
+                          }`}
                         >
                           {option}
                         </button>
@@ -716,15 +803,15 @@ const AllUsers = () => {
                     </div>
                   ) : (
                     <ManagementSettingTable
-                      users={usersData?.data?.data || []}
+                      users={paginatedUsers}
                       newAdmin={newAdminData}
                       onAdminDetails={handleAdminDetails}
                       searchTerm={debouncedSearch}
                       pagination={{
-                        currentPage: usersData?.data?.current_page || 1,
-                        totalPages: usersData?.data?.last_page || 1,
-                        total: usersData?.data?.total || 0,
-                        perPage: usersData?.data?.per_page || 15,
+                        currentPage: currentPage,
+                        totalPages: Math.ceil(filteredUsers.length / perPage) || 1,
+                        total: filteredUsers.length,
+                        perPage: perPage,
                         onPageChange: setCurrentPage
                       }}
                     />

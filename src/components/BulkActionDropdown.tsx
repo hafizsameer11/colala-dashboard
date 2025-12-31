@@ -373,11 +373,44 @@ interface Banner {
   date?: string;
 }
 
+interface WithdrawalRequest {
+  id: string | number;
+  userId?: string | number;
+  userName?: string;
+  userEmail?: string;
+  userPhone?: string;
+  amount?: number | string;
+  amountFormatted?: string;
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  formattedDate?: string;
+  date?: string;
+  user?: {
+    id?: number;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+interface Activity {
+  id: string | number;
+  activity?: string;
+  created_at?: string;
+  createdAt?: string;
+  formattedDate?: string;
+  date?: string;
+}
+
 interface BulkActionDropdownProps {
   onActionSelect?: (action: string) => void;
-  selectedOrders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[];
-  orders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[];
-  dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners';
+  selectedOrders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
+  orders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
+  dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities';
 }
 
 const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
@@ -813,6 +846,47 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
           'Total Clicks': banner.total_clicks || banner.totalClicks || 0,
           'Click Through Rate': banner.click_through_rate || banner.clickThroughRate || 0,
           'Created Date': dateValue
+        };
+      });
+    } else if (dataType === 'withdrawals') {
+      csvData = (dataToExport as WithdrawalRequest[]).map((request) => {
+        // Format date properly
+        const dateValue = request.formattedDate || request.date || request.createdAt || request.created_at || 'N/A';
+        const updatedDateValue = request.updatedAt || request.updated_at || 'N/A';
+        
+        // Format amount properly
+        let amountValue = 'N/A';
+        if (request.amountFormatted) {
+          amountValue = request.amountFormatted;
+        } else if (typeof request.amount === 'number') {
+          amountValue = `₦${request.amount.toLocaleString()}`;
+        } else if (request.amount) {
+          amountValue = String(request.amount);
+        }
+        
+        // Get user info from nested structure or direct fields
+        const userName = request.userName || request.user?.full_name || 'N/A';
+        const userEmail = request.userEmail || request.user?.email || 'N/A';
+        const userPhone = request.userPhone || request.user?.phone || 'N/A';
+        
+        // Format status with proper capitalization
+        const statusValue = request.status 
+          ? request.status.charAt(0).toUpperCase() + request.status.slice(1).toLowerCase()
+          : 'N/A';
+
+        return {
+          'Request ID': request.id,
+          'User ID': request.userId || request.user?.id || 'N/A',
+          'User Name': userName,
+          'User Email': userEmail,
+          'User Phone': userPhone,
+          'Amount': amountValue,
+          'Bank Name': request.bankName || 'N/A',
+          'Account Name': request.accountName || 'N/A',
+          'Account Number': request.accountNumber || 'N/A',
+          'Status': statusValue,
+          'Created Date': dateValue,
+          'Updated Date': updatedDateValue
         };
       });
     } else {
@@ -1254,6 +1328,61 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
           String(banner.total_clicks || banner.totalClicks || 0),
           String(banner.click_through_rate || banner.clickThroughRate || 0),
           dateValue
+        ];
+      });
+    } else if (dataType === 'withdrawals') {
+      headers = ['Request ID', 'User ID', 'User Name', 'User Email', 'User Phone', 'Amount', 'Bank Name', 'Account Name', 'Account Number', 'Status', 'Created Date', 'Updated Date'];
+      tableData = (dataToExport as WithdrawalRequest[]).map((request) => {
+        // Format date properly
+        const dateValue = request.formattedDate || request.date || request.createdAt || request.created_at || 'N/A';
+        const updatedDateValue = request.updatedAt || request.updated_at || 'N/A';
+        
+        // Format amount properly
+        let amountValue = 'N/A';
+        if (request.amountFormatted) {
+          amountValue = request.amountFormatted;
+        } else if (typeof request.amount === 'number') {
+          amountValue = `₦${request.amount.toLocaleString()}`;
+        } else if (request.amount) {
+          amountValue = String(request.amount);
+        }
+        
+        // Get user info from nested structure or direct fields
+        const userName = request.userName || request.user?.full_name || 'N/A';
+        const userEmail = request.userEmail || request.user?.email || 'N/A';
+        const userPhone = request.userPhone || request.user?.phone || 'N/A';
+        
+        // Format status with proper capitalization
+        const statusValue = request.status 
+          ? request.status.charAt(0).toUpperCase() + request.status.slice(1).toLowerCase()
+          : 'N/A';
+
+        return [
+          String(request.id),
+          String(request.userId || request.user?.id || 'N/A'),
+          userName,
+          userEmail,
+          userPhone,
+          amountValue,
+          request.bankName || 'N/A',
+          request.accountName || 'N/A',
+          request.accountNumber || 'N/A',
+          statusValue,
+          dateValue,
+          updatedDateValue
+        ];
+      });
+    } else if (dataType === 'activities') {
+      headers = ['Activity ID', 'Activity', 'Date', 'Created At'];
+      tableData = (dataToExport as Activity[]).map((activity) => {
+        // Format date properly
+        const dateValue = activity.formattedDate || activity.date || activity.createdAt || activity.created_at || 'N/A';
+        
+        return [
+          String(activity.id),
+          activity.activity || 'N/A',
+          dateValue,
+          activity.created_at || activity.createdAt || 'N/A'
         ];
       });
     } else {

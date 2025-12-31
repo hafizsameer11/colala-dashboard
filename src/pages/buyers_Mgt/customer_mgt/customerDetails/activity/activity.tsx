@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bulkActionUsers, getUserNotifications } from "../../../../../utils/queries/users";
 import { topUpWallet, withdrawWallet } from "../../../../../utils/mutations/users";
@@ -52,7 +52,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<string>("Today");
+  const [selectedFilter, setSelectedFilter] = useState<string>("All Time");
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpDescription, setTopUpDescription] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -272,9 +272,12 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
     setIsFilterDropdownOpen(false);
   };
 
-  const filteredActivities = userData.activities 
-    ? filterActivities(userData.activities, selectedFilter)
-    : [];
+  const filteredActivities = useMemo(() => {
+    if (!userData?.activities || !Array.isArray(userData.activities) || userData.activities.length === 0) {
+      return [];
+    }
+    return filterActivities(userData.activities, selectedFilter);
+  }, [userData?.activities, selectedFilter]);
 
   const DotsDropdown = () => (
     <div className="relative" ref={dropdownRef}>
@@ -492,7 +495,11 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
             )}
           </div>
           <div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              orders={activitiesForExport}
+              dataType="activities"
+            />
           </div>
         </div>
 

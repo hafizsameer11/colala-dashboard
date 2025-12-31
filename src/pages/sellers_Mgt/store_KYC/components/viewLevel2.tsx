@@ -33,6 +33,13 @@ const ViewLevel2: React.FC<ViewLevel2Props> = ({
   const level2Data = storeDetails?.level_2_data;
   const progressFields = storeDetails?.onboarding_progress?.fields || [];
 
+  // Helper function to get storage URL
+  const getStorageUrl = (path: string | null | undefined): string => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `https://colala.hmstech.xyz/storage/${path}`;
+  };
+
   // Helper function to get field rejection status
   const getFieldRejectionStatus = (fieldKey: OnboardingFieldKey) => {
     const field = progressFields.find((f: any) => f.key === fieldKey);
@@ -197,91 +204,139 @@ const ViewLevel2: React.FC<ViewLevel2Props> = ({
           )}
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-gray-50 p-4 rounded-lg border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">NIN Document</label>
-                  {level2Data?.nin_document ? (
-                    <p className="text-sm text-gray-500 mt-1">Document available</p>
-                  ) : (
-                    <p className="text-sm text-gray-400 mt-1">No document uploaded</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">NIN Document</label>
+                    {level2Data?.nin_document ? (
+                      <p className="text-sm text-gray-500 mt-1">Document available</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-1">No document uploaded</p>
+                    )}
+                  </div>
+                  {level2Data?.nin_document && (
+                    <a 
+                      href={getStorageUrl(level2Data.nin_document)} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 cursor-pointer"
+                    >
+                      <img 
+                        src={images.DownloadSimple} 
+                        alt="Download" 
+                        className="w-4 h-4"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMkM4LjU1IDIgOSAyLjQ1IDkgM1Y5LjU5TDEwLjMgOC4yOUwxMSAxMEw4IDEzTDQgMTBMMTQuNyA4LjI5TDE1IDlWMTBIMTNWMTJDMTMgMTIuNTUgMTIuNTUgMTMgMTIgMTNINEMzLjQ1IDEzIDMgMTIuNTUgMyAxMlY5SDNWN0gxVjRIMFYySDhWNFYzQzggMi40NSA4IDIgOCAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        }}
+                      />
+                      View/Download
+                    </a>
                   )}
                 </div>
-                {level2Data?.nin_document && (
-                  <a 
-                    href={level2Data.nin_document} 
-                    download
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
-                  >
+                {level2Data?.nin_document && (level2Data.nin_document.includes('.jpg') || level2Data.nin_document.includes('.jpeg') || level2Data.nin_document.includes('.png')) && (
+                  <div className="mt-2">
                     <img 
-                      src={images.DownloadSimple} 
-                      alt="Download" 
-                      className="w-4 h-4"
+                      src={getStorageUrl(level2Data.nin_document)} 
+                      alt="NIN Document" 
+                      className="w-full max-w-md h-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(getStorageUrl(level2Data.nin_document), '_blank')}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMkM4LjU1IDIgOSAyLjQ1IDkgM1Y5LjU5TDEwLjMgOC4yOUwxMSAxMEw4IDEzTDQgMTBMMTQuNyA4LjI5TDE1IDlWMTBIMTNWMTJDMTMgMTIuNTUgMTIuNTUgMTMgMTIgMTNINEMzLjQ1IDEzIDMgMTIuNTUgMyAxMlY5SDNWN0gxVjRIMFYySDhWNFYzQzggMi40NSA4IDIgOCAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
-                    Download
-                  </a>
+                  </div>
                 )}
               </div>
             </div>
             
             <div className="bg-gray-50 p-4 rounded-lg border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">CAC Document</label>
-                  {level2Data?.cac_document ? (
-                    <p className="text-sm text-gray-500 mt-1">Document available</p>
-                  ) : (
-                    <p className="text-sm text-gray-400 mt-1">No document uploaded</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">CAC Document</label>
+                    {level2Data?.cac_document ? (
+                      <p className="text-sm text-gray-500 mt-1">Document available</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-1">No document uploaded</p>
+                    )}
+                  </div>
+                  {level2Data?.cac_document && (
+                    <a 
+                      href={getStorageUrl(level2Data.cac_document)} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 cursor-pointer"
+                    >
+                      <img 
+                        src={images.DownloadSimple} 
+                        alt="Download" 
+                        className="w-4 h-4"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMkM4LjU1IDIgOSAyLjQ1IDkgM1Y5LjU5TDEwLjMgOC4yOUwxMSAxMEw4IDEzTDQgMTBMMTQuNyA4LjI5TDE1IDlWMTBIMTNWMTJDMTMgMTIuNTUgMTIuNTUgMTMgMTIgMTNINEMzLjQ1IDEzIDMgMTIuNTUgMyAxMlY5SDNWN0gxVjRIMFYySDhWNFYzQzggMi40NSA4IDIgOCAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        }}
+                      />
+                      View/Download
+                    </a>
                   )}
                 </div>
-                {level2Data?.cac_document && (
-                  <a 
-                    href={level2Data.cac_document} 
-                    download
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
-                  >
+                {level2Data?.cac_document && (level2Data.cac_document.includes('.jpg') || level2Data.cac_document.includes('.jpeg') || level2Data.cac_document.includes('.png')) && (
+                  <div className="mt-2">
                     <img 
-                      src={images.DownloadSimple} 
-                      alt="Download" 
-                      className="w-4 h-4"
+                      src={getStorageUrl(level2Data.cac_document)} 
+                      alt="CAC Document" 
+                      className="w-full max-w-md h-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(getStorageUrl(level2Data.cac_document), '_blank')}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMkM4LjU1IDIgOSAyLjQ1IDkgM1Y5LjU5TDEwLjMgOC4yOUwxMSAxMEw4IDEzTDQgMTBMMTQuNyA4LjI5TDE1IDlWMTBIMTNWMTJDMTMgMTIuNTUgMTIuNTUgMTMgMTIgMTNINEMzLjQ1IDEzIDMgMTIuNTUgMyAxMlY5SDNWN0gxVjRIMFYySDhWNFYzQzggMi40NSA4IDIgOCAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
-                    Download
-                  </a>
+                  </div>
                 )}
               </div>
             </div>
             
             <div className="bg-gray-50 p-4 rounded-lg border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Utility Bill</label>
-                  {level2Data?.utility_bill ? (
-                    <p className="text-sm text-gray-500 mt-1">Document available</p>
-                  ) : (
-                    <p className="text-sm text-gray-400 mt-1">No document uploaded</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Utility Bill</label>
+                    {level2Data?.utility_bill ? (
+                      <p className="text-sm text-gray-500 mt-1">Document available</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-1">No document uploaded</p>
+                    )}
+                  </div>
+                  {level2Data?.utility_bill && (
+                    <a 
+                      href={getStorageUrl(level2Data.utility_bill)} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 cursor-pointer"
+                    >
+                      <img 
+                        src={images.DownloadSimple} 
+                        alt="Download" 
+                        className="w-4 h-4"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMkM4LjU1IDIgOSAyLjQ1IDkgM1Y5LjU5TDEwLjMgOC4yOUwxMSAxMEw4IDEzTDQgMTBMMTQuNyA4LjI5TDE1IDlWMTBIMTNWMTJDMTMgMTIuNTUgMTIuNTUgMTMgMTIgMTNINEMzLjQ1IDEzIDMgMTIuNTUgMyAxMlY5SDNWN0gxVjRIMFYySDhWNFYzQzggMi40NSA4IDIgOCAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        }}
+                      />
+                      View/Download
+                    </a>
                   )}
                 </div>
-                {level2Data?.utility_bill && (
-                  <a 
-                    href={level2Data.utility_bill} 
-                    download
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
-                  >
+                {level2Data?.utility_bill && (level2Data.utility_bill.includes('.jpg') || level2Data.utility_bill.includes('.jpeg') || level2Data.utility_bill.includes('.png')) && (
+                  <div className="mt-2">
                     <img 
-                      src={images.DownloadSimple} 
-                      alt="Download" 
-                      className="w-4 h-4"
+                      src={getStorageUrl(level2Data.utility_bill)} 
+                      alt="Utility Bill" 
+                      className="w-full max-w-md h-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(getStorageUrl(level2Data.utility_bill), '_blank')}
                       onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMkM4LjU1IDIgOSAyLjQ1IDkgM1Y5LjU5TDEwLjMgOC4yOUwxMSAxMEw4IDEzTDQgMTBMMTQuNyA4LjI5TDE1IDlWMTBIMTNWMTJDMTMgMTIuNTUgMTIuNTUgMTMgMTIgMTNINEMzLjQ1IDEzIDMgMTIuNTUgMyAxMlY5SDNWN0gxVjRIMFYySDhWNFYzQzggMi40NSA4IDIgOCAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
-                    Download
-                  </a>
+                  </div>
                 )}
               </div>
             </div>
@@ -294,9 +349,10 @@ const ViewLevel2: React.FC<ViewLevel2Props> = ({
           {level2Data?.store_video ? (
             <div className="mt-1">
               <video 
-                src={level2Data.store_video} 
+                src={getStorageUrl(level2Data.store_video)} 
                 controls 
-                className="w-full max-w-md h-48 object-cover rounded-lg"
+                className="w-full max-w-2xl h-auto rounded-lg shadow-md"
+                preload="metadata"
               >
                 Your browser does not support the video tag.
               </video>

@@ -35,6 +35,13 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
   const level1Data = storeDetails?.level_1_data;
   const progressFields = storeDetails?.onboarding_progress?.fields || [];
 
+  // Helper function to get storage URL
+  const getStorageUrl = (path: string | null | undefined): string => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `https://colala.hmstech.xyz/storage/${path}`;
+  };
+
   // Helper function to get field rejection status
   const getFieldRejectionStatus = (fieldKey: OnboardingFieldKey) => {
     const field = progressFields.find((f: any) => f.key === fieldKey);
@@ -255,12 +262,13 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
             {level1Data?.profile_image ? (
               <div className="relative">
                 <img 
-                  src={level1Data.profile_image} 
+                  src={getStorageUrl(level1Data.profile_image)} 
                   alt="Profile" 
-                  className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200"
+                  className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDgiIGN5PSI0OCIgcj0iNDgiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTQ4IDI0QzUzLjUyMjggMjQgNTggMjguNDc3MiA1OCAzNFM1My41MjI4IDQ0IDQ4IDQ0UzM4IDM5LjUyMjggMzggMzRTNDIuNDc3MiAyNCA0OCAyNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                   }}
+                  onClick={() => window.open(getStorageUrl(level1Data.profile_image), '_blank')}
                 />
               </div>
             ) : (
@@ -277,12 +285,13 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
             {level1Data?.banner_image ? (
               <div className="relative">
                 <img 
-                  src={level1Data.banner_image} 
+                  src={getStorageUrl(level1Data.banner_image)} 
                   alt="Banner" 
-                  className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200"
+                  className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
                   onError={(e) => {
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00OCA0OEw2MCA2MEw0OCA3MkwzNiA2MEw0OCA0OFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                   }}
+                  onClick={() => window.open(getStorageUrl(level1Data.banner_image), '_blank')}
                 />
               </div>
             ) : (

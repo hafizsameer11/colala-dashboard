@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "../../../components/PageHeader";
+import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { useToast } from "../../../contexts/ToastContext";
 import {
     approveWithdrawalRequest,
@@ -8,6 +9,7 @@ import {
     getWithdrawalRequests,
     rejectWithdrawalRequest,
 } from "../../../utils/queries";
+import { filterByPeriod } from "../../../utils/periodFilter";
 
 type WithdrawalRequestUser = {
     id: number;
@@ -77,6 +79,9 @@ const WithdrawalRequests = () => {
         type: "approved" | "rejected";
         message: string;
     } | null>(null);
+    const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+    const [allWithdrawalRequests, setAllWithdrawalRequests] = useState<WithdrawalRequestListItem[]>([]);
+    const [isLoadingExportData, setIsLoadingExportData] = useState(false);
     const queryClient = useQueryClient();
     const { showToast } = useToast();
 
@@ -104,6 +109,79 @@ const WithdrawalRequests = () => {
         };
 
     const requests = paginatedRequests.data || [];
+
+    // Fetch all withdrawal requests for export
+    useEffect(() => {
+        const fetchAllWithdrawalRequests = async () => {
+            try {
+                setIsLoadingExportData(true);
+                const allRequests: WithdrawalRequestListItem[] = [];
+                let page = 1;
+                let hasMore = true;
+
+                while (hasMore && page <= 100) { // Safety limit
+                    const result = await getWithdrawalRequests(page);
+                    const response = result?.data as PaginatedResponse<WithdrawalRequestListItem> | undefined;
+                    
+                    if (response?.data && response.data.length > 0) {
+                        allRequests.push(...response.data);
+                        if (page >= response.last_page) {
+                            hasMore = false;
+                        } else {
+                            page++;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                
+                setAllWithdrawalRequests(allRequests);
+            } catch (error) {
+                console.error('Error fetching all withdrawal requests for export:', error);
+            } finally {
+                setIsLoadingExportData(false);
+            }
+        };
+
+        fetchAllWithdrawalRequests();
+    }, []);
+
+    // Filter withdrawal requests by period
+    const periodFilteredRequests = useMemo(() => {
+        return filterByPeriod(allWithdrawalRequests, selectedPeriod, ['created_at', 'updated_at', 'formatted_date', 'date']);
+    }, [allWithdrawalRequests, selectedPeriod]);
+
+    // Transform withdrawal requests for export
+    const withdrawalRequestsForExport = useMemo(() => {
+        return periodFilteredRequests.map((request: WithdrawalRequestListItem) => ({
+            id: request.id?.toString() || '',
+            userId: request.user?.id?.toString() || '',
+            userName: request.user?.full_name || 'N/A',
+            userEmail: request.user?.email || 'N/A',
+            userPhone: request.user?.phone || 'N/A',
+            amount: request.amount || 0,
+            amountFormatted: formatCurrency(request.amount || 0),
+            bankName: request.bank_name || 'N/A',
+            accountName: request.account_name || 'N/A',
+            accountNumber: request.account_number || 'N/A',
+            status: request.status || 'N/A',
+            createdAt: request.created_at || '',
+            updatedAt: request.updated_at || '',
+            formattedDate: request.created_at || '',
+            date: request.created_at || '',
+        }));
+    }, [periodFilteredRequests]);
+
+    // Filter displayed requests by period
+    const filteredDisplayRequests = useMemo(() => {
+        return filterByPeriod(requests, selectedPeriod, ['created_at', 'updated_at', 'formatted_date', 'date']);
+    }, [requests, selectedPeriod]);
+
+    // Handle period change from PageHeader
+    const handlePeriodChange = useCallback((period: string) => {
+        setSelectedPeriod(period);
+        setCurrentPage(1); // Reset to first page when period changes
+    }, []);
 
     const {
         data: detailData,
@@ -246,17 +324,17 @@ const WithdrawalRequests = () => {
                                             : "Failed to load withdrawal requests"}
                                     </td>
                                 </tr>
-                            ) : requests.length === 0 ? (
+                            ) : filteredDisplayRequests.length === 0 ? (
                                 <tr>
                                     <td
                                         colSpan={7}
                                         className="px-6 py-10 text-center text-gray-500"
                                     >
-                                        No withdrawal requests found.
+                                        No withdrawal requests found for the selected period.
                                     </td>
                                 </tr>
                             ) : (
-                                requests.map((request) => {
+                                filteredDisplayRequests.map((request) => {
                                     const statusKey =
                                         request.status?.toLowerCase?.() || request.status || "";
                                     const statusConfig =
