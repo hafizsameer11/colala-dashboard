@@ -108,24 +108,30 @@ const Dashboard = () => {
   /**
    * Fetch dashboard data using React Query
    * Includes buyer stats, seller stats, site stats, latest chats, and latest orders
-   * Note: Period filter is applied client-side, so we don't need to include it in queryKey
+   * Note: Period filter can be applied server-side or client-side
+   * For now, we'll try server-side first, fallback to client-side if API doesn't support it
    */
   const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: getDashboardData,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    queryKey: ['dashboard', selectedPeriod],
+    queryFn: () => getDashboardData(selectedPeriod),
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes (shorter for better updates)
+    enabled: true,
   });
 
-  // Helper function to parse order_date format: "26-12-2025/20:10PM"
+  // Helper function to parse order_date format: "29-12-2025\/21:12PM" or "26-12-2025/20:10PM"
   const parseOrderDate = (dateString: string): Date | null => {
     if (!dateString) return null;
     
     try {
-      // Handle format: "26-12-2025/20:10PM"
-      const parts = dateString.split('/');
+      // Handle escaped backslash format: "29-12-2025\/21:12PM"
+      // Replace escaped backslash with regular forward slash
+      const normalizedDate = dateString.replace(/\\\//g, '/').replace(/\\/g, '/');
+      
+      // Handle format: "26-12-2025/20:10PM" or "29-12-2025/21:12PM"
+      const parts = normalizedDate.split('/');
       if (parts.length === 2) {
-        const datePart = parts[0].trim(); // "26-12-2025"
-        const timePart = parts[1].trim(); // "20:10PM"
+        const datePart = parts[0].trim(); // "26-12-2025" or "29-12-2025"
+        const timePart = parts[1].trim(); // "20:10PM" or "21:12PM"
         
         // Parse date part: DD-MM-YYYY
         const dateComponents = datePart.split('-');
@@ -133,6 +139,12 @@ const Dashboard = () => {
           const day = parseInt(dateComponents[0], 10);
           const month = parseInt(dateComponents[1], 10) - 1; // Month is 0-indexed
           const year = parseInt(dateComponents[2], 10);
+          
+          // Validate parsed values
+          if (isNaN(day) || isNaN(month) || isNaN(year)) {
+            console.warn('Invalid date components:', { day, month, year, dateString });
+            return null;
+          }
           
           // Parse time part: HH:MMAM/PM
           let hours = 0;
@@ -144,17 +156,29 @@ const Dashboard = () => {
             if (timeComponents.length >= 2) {
               hours = parseInt(timeComponents[0], 10);
               minutes = parseInt(timeComponents[1], 10);
+              if (isNaN(hours) || isNaN(minutes)) {
+                console.warn('Invalid time components:', { hours, minutes, timePart, dateString });
+                return null;
+              }
               if (isPM && hours !== 12) hours += 12;
               if (!isPM && hours === 12) hours = 0;
             }
           }
           
-          return new Date(year, month, day, hours, minutes);
+          const parsedDate = new Date(year, month, day, hours, minutes);
+          
+          // Validate the parsed date
+          if (isNaN(parsedDate.getTime())) {
+            console.warn('Invalid parsed date:', { year, month, day, hours, minutes, dateString });
+            return null;
+          }
+          
+          return parsedDate;
         }
       }
       
       // Fallback to standard Date parsing
-      const parsed = new Date(dateString);
+      const parsed = new Date(normalizedDate);
       if (!isNaN(parsed.getTime())) {
         return parsed;
       }
@@ -195,12 +219,34 @@ const Dashboard = () => {
       
       filtered = filtered.filter((o: any) => {
         const orderDate = o.order_date || o.created_at || o.date;
-        if (!orderDate) return true; // Include items without dates
+        if (!orderDate) {
+          // Exclude items without dates when filtering by period
+          return false;
+        }
         
         const parsedDate = parseOrderDate(String(orderDate));
-        if (!parsedDate) return true; // Include items with unparseable dates
+        if (!parsedDate) {
+          // Exclude items with unparseable dates when filtering by period
+          console.warn('Could not parse order date:', orderDate, 'for order:', o.id);
+          return false;
+        }
         
-        return parsedDate >= startDate && parsedDate <= now;
+        // Check if order date is within the selected period
+        const isInPeriod = parsedDate >= startDate && parsedDate <= now;
+        
+        // Debug logging for development
+        if (process.env.NODE_ENV === 'development' && !isInPeriod) {
+          console.log('Order filtered out by period:', {
+            orderId: o.id,
+            orderDate: orderDate,
+            parsedDate: parsedDate.toISOString(),
+            startDate: startDate.toISOString(),
+            now: now.toISOString(),
+            period: selectedPeriod
+          });
+        }
+        
+        return isInPeriod;
       });
     }
     
@@ -296,58 +342,100 @@ const Dashboard = () => {
     // Calculate statistics from filtered orders
     const totalOrders = orders.length;
     const completedOrders = orders.filter((o: any) => {
-      const status = String(o.status || '').toLowerCase();
+      const status = String(o.status || '').toLowerCase().trim();
       return status === 'completed' || status.includes('completed');
     }).length;
     
-    // For total_users and total_transactions, we use API values since they're not derivable from orders
-    // But if filters are applied, we might want to show 0 or keep API values
-    // For now, we'll keep API values for users and transactions, but update orders counts
+    // Calculate total transaction value from filtered orders
+    // Price format: "1,040.00" or "378,800.00" - need to remove commas and parse
+    const totalTransactionValue = orders.reduce((sum: number, o: any) => {
+      try {
+        const priceStr = String(o.price || '0').replace(/,/g, '').trim();
+        const price = parseFloat(priceStr) || 0;
+        return sum + price;
+      } catch (error) {
+        console.warn('Error parsing price for order:', o.id, o.price, error);
+        return sum;
+      }
+    }, 0);
+    
+    // Use API stats when "All time" is selected, otherwise use filtered data
     const useApiStats = selectedPeriod === "All time" && activeTab === "All";
+    
+    // Get base stats from API
+    const buyerStats = dashboardData?.data?.buyer_stats || {};
+    const sellerStats = dashboardData?.data?.seller_stats || {};
+    
+    // For "All time", use API values; otherwise, calculate from filtered orders
+    // Users can't be calculated from orders, so always use API value
+    const buyerTotalUsers = buyerStats.total_users?.value || 0;
+    const sellerTotalUsers = sellerStats.total_users?.value || 0;
+    
+    // Transactions: use calculated value from filtered orders when filtering
+    const buyerTotalTransactions = useApiStats
+      ? (buyerStats.total_transactions?.value || 0)
+      : Math.round(totalTransactionValue);
+    
+    const sellerTotalTransactions = useApiStats
+      ? (sellerStats.total_transactions?.value || 0)
+      : Math.round(totalTransactionValue);
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard Statistics Calculation:', {
+        period: selectedPeriod,
+        activeTab,
+        totalOrders,
+        completedOrders,
+        totalTransactionValue,
+        buyerTotalTransactions,
+        sellerTotalTransactions,
+        useApiStats,
+        filteredOrdersCount: orders.length,
+        sampleOrders: orders.slice(0, 3).map((o: any) => ({
+          id: o.id,
+          price: o.price,
+          order_date: o.order_date,
+          status: o.status
+        }))
+      });
+    }
     
     return {
       buyer: {
         total_users: {
-          value: useApiStats 
-            ? (dashboardData?.data?.buyer_stats?.total_users?.value || 0)
-            : (dashboardData?.data?.buyer_stats?.total_users?.value || 0), // Keep API value
-          increase: dashboardData?.data?.buyer_stats?.total_users?.increase || 0,
+          value: buyerTotalUsers,
+          increase: useApiStats ? (buyerStats.total_users?.increase || 0) : 0,
         },
         total_orders: {
           value: totalOrders,
-          increase: dashboardData?.data?.buyer_stats?.total_orders?.increase || 0,
+          increase: useApiStats ? (buyerStats.total_orders?.increase || 0) : 0,
         },
         completed_orders: {
           value: completedOrders,
-          increase: dashboardData?.data?.buyer_stats?.completed_orders?.increase || 0,
+          increase: useApiStats ? (buyerStats.completed_orders?.increase || 0) : 0,
         },
         total_transactions: {
-          value: useApiStats
-            ? (dashboardData?.data?.buyer_stats?.total_transactions?.value || 0)
-            : (dashboardData?.data?.buyer_stats?.total_transactions?.value || 0), // Keep API value
-          increase: dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0,
+          value: buyerTotalTransactions,
+          increase: useApiStats ? (buyerStats.total_transactions?.increase || 0) : 0,
         },
       },
       seller: {
         total_users: {
-          value: useApiStats
-            ? (dashboardData?.data?.seller_stats?.total_users?.value || 0)
-            : (dashboardData?.data?.seller_stats?.total_users?.value || 0), // Keep API value
-          increase: dashboardData?.data?.seller_stats?.total_users?.increase || 0,
+          value: sellerTotalUsers,
+          increase: useApiStats ? (sellerStats.total_users?.increase || 0) : 0,
         },
         total_orders: {
           value: totalOrders,
-          increase: dashboardData?.data?.seller_stats?.total_orders?.increase || 0,
+          increase: useApiStats ? (sellerStats.total_orders?.increase || 0) : 0,
         },
         completed_orders: {
           value: completedOrders,
-          increase: dashboardData?.data?.seller_stats?.completed_orders?.increase || 0,
+          increase: useApiStats ? (sellerStats.completed_orders?.increase || 0) : 0,
         },
         total_transactions: {
-          value: useApiStats
-            ? (dashboardData?.data?.seller_stats?.total_transactions?.value || 0)
-            : (dashboardData?.data?.seller_stats?.total_transactions?.value || 0), // Keep API value
-          increase: dashboardData?.data?.seller_stats?.total_transactions?.increase || 0,
+          value: sellerTotalTransactions,
+          increase: useApiStats ? (sellerStats.total_transactions?.increase || 0) : 0,
         },
       },
     };
@@ -414,12 +502,15 @@ const Dashboard = () => {
   /**
    * Handle period change for dashboard data
    * This updates the period filter which affects orders and chats display
+   * Triggers a refetch of dashboard data with the new period
    */
   const handlePeriodChange = (period: string) => {
     console.log("Period changed to:", period);
     setSelectedPeriod(period);
     // Reset selected orders when period changes
     setSelectedOrders([]);
+    // Refetch data with new period (React Query will handle this via queryKey change)
+    // The queryKey includes selectedPeriod, so it will automatically refetch
   };
 
   /**
@@ -477,43 +568,113 @@ const Dashboard = () => {
   /**
    * Prepare chart data from API response
    * Maps site statistics to Chart.js format
+   * Chart data updates when period filter changes
    */
-  const usersData = dashboardData?.data?.site_stats?.chart_data?.map((item: { users: number }) => item.users) ||
-    new Array(12).fill(0);
-  const ordersData = dashboardData?.data?.site_stats?.chart_data?.map((item: { orders: number }) => item.orders) ||
-    new Array(12).fill(0);
-
-  const chartData = {
-    labels: dashboardData?.data?.site_stats?.chart_data?.map((item: { month: string }) => item.month) || [
+  const chartData = useMemo(() => {
+    const chartDataFromApi = dashboardData?.data?.site_stats?.chart_data || [];
+    
+    // If period is "All time", show all data
+    // Otherwise, filter chart data by period (client-side filtering)
+    let filteredChartData = chartDataFromApi;
+    
+    if (selectedPeriod && selectedPeriod !== "All time" && chartDataFromApi.length > 0) {
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (selectedPeriod.trim()) {
+        case "This Week":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "Last Month":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          break;
+        case "Last 6 Months":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          break;
+        case "Last Year":
+          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          break;
+        default:
+          startDate = new Date(0);
+      }
+      
+      // Filter chart data by month
+      filteredChartData = chartDataFromApi.filter((item: any) => {
+        if (!item.month) return true;
+        // Parse month name to date (e.g., "Jan" -> January of current year)
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthIndex = monthNames.findIndex(m => m.toLowerCase() === item.month.toLowerCase().substring(0, 3));
+        if (monthIndex === -1) return true;
+        
+        const itemDate = new Date(now.getFullYear(), monthIndex, 1);
+        return itemDate >= startDate && itemDate <= now;
+      });
+    }
+    
+    const usersData = filteredChartData.map((item: { users: number }) => item.users || 0);
+    const ordersData = filteredChartData.map((item: { orders: number }) => item.orders || 0);
+    const labels = filteredChartData.map((item: { month: string }) => item.month) || [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ],
-    datasets: [
-      {
-        label: "Users",
-        data: usersData,
-        backgroundColor: "#E53E3E",
-        borderRadius: 50,
-        barThickness: 20,
-        stack: "stack1",
-      },
-      {
-        label: "Orders",
-        data: ordersData,
-        backgroundColor: "#008000",
-        borderRadius: 50,
-        barThickness: 20,
-        stack: "stack2",
-      },
-    ],
-  };
+    ];
+    
+    // If no data, fill with zeros for all 12 months
+    if (usersData.length === 0 && ordersData.length === 0) {
+      return {
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        datasets: [
+          {
+            label: "Users",
+            data: new Array(12).fill(0),
+            backgroundColor: "#E53E3E",
+            borderRadius: 50,
+            barThickness: 20,
+            stack: "stack1",
+          },
+          {
+            label: "Orders",
+            data: new Array(12).fill(0),
+            backgroundColor: "#008000",
+            borderRadius: 50,
+            barThickness: 20,
+            stack: "stack2",
+          },
+        ],
+      };
+    }
+    
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Users",
+          data: usersData,
+          backgroundColor: "#E53E3E",
+          borderRadius: 50,
+          barThickness: 20,
+          stack: "stack1",
+        },
+        {
+          label: "Orders",
+          data: ordersData,
+          backgroundColor: "#008000",
+          borderRadius: 50,
+          barThickness: 20,
+          stack: "stack2",
+        },
+      ],
+    };
+  }, [dashboardData?.data?.site_stats?.chart_data, selectedPeriod]);
 
   /**
    * Calculate dynamic max value and step size based on actual data
    */
   const calculateChartMax = () => {
-    // Find the maximum value across both datasets
-    const allValues = [...usersData, ...ordersData];
+    // Find the maximum value across both datasets from chartData
+    const allValues = [
+      ...(chartData.datasets[0]?.data || []),
+      ...(chartData.datasets[1]?.data || [])
+    ];
     const dataMax = Math.max(...allValues, 0); // Ensure at least 0
 
     // If no data, return a default small value
@@ -727,11 +888,11 @@ const Dashboard = () => {
                 <StatCard
                   icon={images.orders}
                   title="Total Orders"
-                  value={calculatedStats.buyer.total_orders.value}
+                  value={dashboardData?.data?.buyer_stats?.total_orders?.value || 0}
                   subtitle={
                     <>
                       <span className="text-[#1DB61D]">
-                        +{calculatedStats.buyer.total_orders.increase}%
+                        +{dashboardData?.data?.buyer_stats?.total_orders?.increase || 0}%
                       </span>{" "}
                       increase from last month
                     </>
@@ -759,11 +920,11 @@ const Dashboard = () => {
                 <StatCard
                   icon={images.money}
                   title="Total Transactions"
-                  value={calculatedStats.buyer.total_transactions.value}
+                  value={dashboardData?.data?.buyer_stats?.total_transactions?.value || 0}
                   subtitle={
                     <>
                       <span className="text-[#1DB61D]">
-                        +{calculatedStats.buyer.total_transactions.increase}%
+                        +{dashboardData?.data?.buyer_stats?.total_transactions?.increase || 0}%
                       </span>{" "}
                       increase from last month
                     </>
@@ -812,7 +973,7 @@ const Dashboard = () => {
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
                     <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Orders</span>
                     <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                      {calculatedStats.seller.total_orders.value}
+                      {dashboardData?.data?.seller_stats?.total_orders?.value || 0}
                     </span>
                     <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
@@ -851,11 +1012,11 @@ const Dashboard = () => {
                   <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
                     <span className="font-semibold text-xs sm:text-sm md:text-[15px]">Total Transactions</span>
                     <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                      {calculatedStats.seller.total_transactions.value}
+                      {dashboardData?.data?.seller_stats?.total_transactions?.value || 0}
                     </span>
                     <span className="text-[#00000080] text-[9px] sm:text-[10px]">
                       <span className="text-[#1DB61D]">
-                        +{calculatedStats.seller.total_transactions.increase}%
+                        +{dashboardData?.data?.seller_stats?.total_transactions?.increase || 0}%
                       </span> increase from last month
                     </span>
                   </div>

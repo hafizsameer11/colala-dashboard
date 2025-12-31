@@ -24,6 +24,9 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
   const [input, setInput] = useState("");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<'open' | 'closed' | 'resolved'>('open');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastSentStatusRef = useRef<'open' | 'closed' | 'resolved' | null>(null);
   
   const queryClient = useQueryClient();
@@ -42,12 +45,13 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (messageData: { message: string; sender_type: 'buyer' | 'store' }) => 
+    mutationFn: (messageData: FormData | { message: string; sender_type: 'buyer' | 'store' }) => 
       sendChatMessage(chatData!.id, messageData),
     onSuccess: () => {
       // Invalidate and refetch chat details to get updated messages
       queryClient.invalidateQueries({ queryKey: ['chatDetails', chatData?.id] });
       setInput("");
+      handleRemoveFile();
       showToast('Message sent successfully', 'success');
     },
     onError: (error: unknown) => {
@@ -239,15 +243,33 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
     };
   }, [showStatusDropdown]);
 
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   if (!isOpen) return null;
 
   const handleSend = () => {
-    if (input.trim() === "" || sendMessageMutation.isPending) return;
+    if ((input.trim() === "" && !selectedFile) || sendMessageMutation.isPending) return;
     
-    sendMessageMutation.mutate({
-      message: input.trim(),
-      sender_type: 'store' // Admin sending as store
-    });
+    // If there's a file, use FormData; otherwise use regular JSON
+    if (selectedFile) {
+      const formData = new FormData();
+      formData.append('message', input.trim() || '');
+      formData.append('sender_type', 'store');
+      formData.append('attachment', selectedFile);
+      sendMessageMutation.mutate(formData);
+    } else {
+      sendMessageMutation.mutate({
+        message: input.trim(),
+        sender_type: 'store' // Admin sending as store
+      });
+    }
   };
 
   const handleStatusUpdate = (status: 'open' | 'closed' | 'resolved') => {
@@ -290,6 +312,44 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setInput((e.target as any).value);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file type (allow images and common document types)
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        showToast('Please select an image (JPG, PNG, GIF) or PDF file', 'error');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('File size must be less than 5MB', 'error');
+        return;
+      }
+      
+      setSelectedFile(file);
+      // Create preview URL for images
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
+      }
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -491,33 +551,84 @@ const ChatsModel: React.FC<ChatsModelProps> = ({ isOpen, onClose, chatData, buye
 
         {/* Message Input - Only show if not buyerPart */}
         {!buyerPart && (
-          <div className="sticky bottom-0 bg-white  p-4">
+          <div className="sticky bottom-0 bg-white p-4">
+            {/* File Preview */}
+            {selectedFile && (
+              <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center gap-3">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-16 h-16 object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <button
+                  onClick={handleRemoveFile}
+                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  aria-label="Remove file"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            
             <div className="relative">
               <input
                 type="text"
                 placeholder="Type a message"
-                className="w-full pl-12 pr-16 py-5 border border-[#CDCDCD] rounded-2xl  bg-[#FFFFFF]"
+                className="w-full pl-12 pr-16 py-5 border border-[#CDCDCD] rounded-2xl bg-[#FFFFFF]"
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSend();
                 }}
+                disabled={sendMessageMutation.isPending}
               />
+              
+              {/* Hidden File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,application/pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="chat-file-upload"
+                disabled={sendMessageMutation.isPending}
+              />
+              
               {/* Attachment Icon */}
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                <img
+              <label
+                htmlFor="chat-file-upload"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 cursor-pointer hover:opacity-70 transition-opacity"
+              >
+                {/* <img
                   className="cursor-pointer"
                   src={images.link1}
                   alt="Attachment"
-                />
-              </div>
+                /> */}
+              </label>
+              
               {/* Send Button */}
               <button
                 className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 ${
                   sendMessageMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
                 onClick={handleSend}
-                disabled={sendMessageMutation.isPending || input.trim() === ""}
+                disabled={sendMessageMutation.isPending || (input.trim() === "" && !selectedFile)}
               >
                 {sendMessageMutation.isPending ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#E53E3E]"></div>

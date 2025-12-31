@@ -62,11 +62,15 @@ export const getChatDetails = async (chatId: number | string) => {
 
 /**
  * Send message to chat
+ * Supports both JSON (text only) and FormData (with attachment)
  */
-export const sendChatMessage = async (chatId: number | string, messageData: {
-  message: string;
-  sender_type: 'buyer' | 'store';
-}) => {
+export const sendChatMessage = async (
+  chatId: number | string, 
+  messageData: FormData | {
+    message: string;
+    sender_type: 'buyer' | 'store';
+  }
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
