@@ -497,7 +497,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
           <div>
             <BulkActionDropdown 
               onActionSelect={handleBulkActionSelect}
-              orders={activitiesForExport}
+              orders={filteredActivities}
               dataType="activities"
             />
           </div>
