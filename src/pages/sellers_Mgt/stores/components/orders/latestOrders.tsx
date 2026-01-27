@@ -188,7 +188,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                   <td className="p-3">{order.orderDate}</td>
                   <td className="p-3">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors(order.status)}`}>
-                      {order.status}
+                      {order.status?.split('_').map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')}
                     </span>
                   </td>
                   <td className="p-3 space-x-2">

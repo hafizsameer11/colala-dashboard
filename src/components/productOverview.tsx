@@ -168,10 +168,12 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
     console.log('Product Data:', productData);
     console.log('Store Data:', productData?.complete?.store);
     
-    // Try to get user_id first (preferred), then store_id, then id
-    const storeId = productData?.complete?.store?.user_id 
-      || productData?.complete?.store?.store_id 
-      || productData?.complete?.store?.id;
+    // Prefer seller_user_id (canonical owner id), then user_id, then store_id, then id
+    const storeId =
+      (productData?.complete?.store as any)?.seller_user_id ||
+      productData?.complete?.store?.user_id ||
+      productData?.complete?.store?.store_id ||
+      productData?.complete?.store?.id;
     
     console.log('Store ID to navigate:', storeId);
     
@@ -589,9 +591,17 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                           e.stopPropagation();
                           handleGoToShop();
                         }}
-                        disabled={!productData?.complete?.store?.id && !productData?.complete?.store?.user_id && !productData?.complete?.store?.store_id}
+                        disabled={
+                          !(productData?.complete?.store as any)?.seller_user_id &&
+                          !productData?.complete?.store?.user_id &&
+                          !productData?.complete?.store?.store_id &&
+                          !productData?.complete?.store?.id
+                        }
                         title={
-                          (productData?.complete?.store?.id || productData?.complete?.store?.user_id || productData?.complete?.store?.store_id) 
+                          ((productData?.complete?.store as any)?.seller_user_id ||
+                            productData?.complete?.store?.user_id ||
+                            productData?.complete?.store?.store_id ||
+                            productData?.complete?.store?.id)
                             ? 'Visit seller shop' 
                             : 'Shop not available'
                         }

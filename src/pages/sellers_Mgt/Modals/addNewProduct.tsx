@@ -29,7 +29,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   // Form field states
   const [productName, setProductName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
   const [fullDescription, setFullDescription] = useState("");
   const [price, setPrice] = useState("");
   const [discountPrice, setDiscountPrice] = useState("");
@@ -80,7 +79,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const [errors, setErrors] = useState({
     productName: "",
     category: "",
-    shortDescription: "",
     fullDescription: "",
     price: "",
     coupon: "",
@@ -95,7 +93,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
   const resetForm = () => {
     setProductName("");
     setSelectedCategory("");
-    setShortDescription("");
     setFullDescription("");
     setPrice("");
     setDiscountPrice("");
@@ -106,7 +103,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     setErrors({
       productName: "",
       category: "",
-      shortDescription: "",
       fullDescription: "",
       price: "",
       coupon: "",
@@ -226,8 +222,13 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
 
       if (productInfo) {
         setProductName(productInfo.name || "");
-        setSelectedCategory(productInfo.category_id?.toString() || "");
-        setShortDescription(productInfo.description || "");
+        // Prefer category from the top-level category object if present,
+        // otherwise fall back to product_info.category_id
+        const resolvedCategoryId =
+          initialProductData.category?.id ??
+          productInfo.category_id ??
+          initialProductData.category_id;
+        setSelectedCategory(resolvedCategoryId ? String(resolvedCategoryId) : "");
         setFullDescription(productInfo.description || "");
         setPrice(productInfo.price?.toString() || "");
         setDiscountPrice(productInfo.discount_price?.toString() || "");
@@ -353,8 +354,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     const newErrors = {
       productName: productName.trim() === "" ? "Product name is required" : "",
       category: selectedCategory === "" ? "Category is required" : "",
-      shortDescription:
-        shortDescription.trim() === "" ? "Short description is required" : "",
       fullDescription:
         fullDescription.trim() === "" ? "Full description is required" : "",
       price: price.trim() === "" ? "Price is required" : "",
@@ -400,11 +399,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     try {
       // Create FormData for the API
       const formData = new FormData();
-
-      // Add _method field for Laravel PUT request compatibility (when editing)
-      if (editMode) {
-        formData.append('_method', 'PUT');
-      }
 
       // Add required fields according to backend validation
       formData.append('store_id', (selectedStore?.store_id || selectedStore?.id)?.toString() || '');
@@ -459,11 +453,11 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         formData.append('discount', discountPrice);
       }
 
-      // Add loyalty points (boolean)
-      formData.append('loyality_points_applicable', loyaltyPoints.toString());
+      // Add loyalty points (boolean) - backend expects true/false as boolean-ish values
+      formData.append('loyality_points_applicable', loyaltyPoints ? '1' : '0');
 
       // Add has_variants (boolean) - required field
-      formData.append('has_variants', hasVariants.toString());
+      formData.append('has_variants', hasVariants ? '1' : '0');
 
       // Add existing image IDs (for edit mode)
       if (editMode && existingImages.length > 0) {
@@ -824,28 +818,6 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
               </div>
 
               <div className="mt-5 flex flex-col gap-2">
-                <label htmlFor="shortDescription" className="text-lg">
-                  Short Description
-                </label>
-                <input
-                  type="text"
-                  name="shortDescription"
-                  id="shortDescription"
-                  value={shortDescription}
-                  onChange={(e) => setShortDescription(e.target.value)}
-                  placeholder="Type description"
-                  className={`border rounded-2xl p-5 ${errors.shortDescription
-                    ? "border-red-500"
-                    : "border-[#989898]"
-                    }`}
-                />
-                {errors.shortDescription && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.shortDescription}
-                  </p>
-                )}
-              </div>
-              <div className="mt-5 flex flex-col gap-2">
                 <label htmlFor="fullDescription" className="text-lg">
                   Full Description
                 </label>
@@ -1049,97 +1021,102 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                 </button>
               </div>
 
-              <div className="mt-5 flex flex-col gap-4">
-                <div>
-                  Upload several products at once with our bulk template, follow
-                  the steps below to proceed:
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                  <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
-                  <div className="text-[#000000B2] text-sm">
-                    Download bulk template below
+              {/* Bulk upload section - only show when creating a new product, not in edit mode */}
+              {!editMode && (
+                <>
+                  <div className="mt-5 flex flex-col gap-4">
+                    <div>
+                      Upload several products at once with our bulk template, follow
+                      the steps below to proceed:
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                      <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
+                      <div className="text-[#000000B2] text-sm">
+                        Download bulk template below
+                      </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                      <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
+                      <div className="text-[#000000B2] text-sm">
+                        Fill the template accordingly
+                      </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                      <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
+                      <div className="text-[#000000B2] text-sm">
+                        Upload the filled template in the space provided
+                      </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                      <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
+                      <div className="text-[#000000B2] text-sm">
+                        Bulk Upload Successful
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                  <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
-                  <div className="text-[#000000B2] text-sm">
-                    Fill the template accordingly
+                  <div className="flex flex-row border border-[#CDCDCD] rounded-2xl p-3 mt-5 pl-8 justify-between">
+                    <div className="flex gap-2">
+                      <div>
+                        <img src={images.csv} alt="" className="w-13 h-13" />
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="text-md">Download CSV bulk template</div>
+                        <div className="text-sm text-[#00000080]">200 kb</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <img
+                        className={`cursor-pointer w-8 h-8 ${downloadTemplateMutation.isPending ? 'opacity-50' : ''}`}
+                        src={images.DownloadSimple}
+                        alt=""
+                        onClick={downloadTemplateMutation.isPending ? undefined : downloadCSVTemplate}
+                      />
+                      {downloadTemplateMutation.isPending && (
+                        <div className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-[#E53E3E]"></div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                  <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
-                  <div className="text-[#000000B2] text-sm">
-                    Upload the filled template in the space provided
+                  <div className="border border-[#CDCDCD] rounded-2xl flex flex-col items-center justify-center w-full mt-5 p-10 gap-2 relative">
+                    <input
+                      type="file"
+                      id="csvFileInput"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <div>
+                      <img
+                        className="cursor-pointer w-8 h-8"
+                        src={images.UploadSimple}
+                        alt=""
+                      />
+                    </div>
+                    <div className="text-[#00000080]">
+                      {uploadedFile
+                        ? `Selected: ${uploadedFile.name}`
+                        : "Upload Filled template"}
+                    </div>
+                    {uploadedFile && (
+                      <div className="text-sm text-green-600 mt-2">
+                        ✓ CSV file ready for upload
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                  <div className="rounded-full bg-[#E53E3E] w-5 h-5"></div>
-                  <div className="text-[#000000B2] text-sm">
-                    Bulk Upload Successful
+                  <div className="mt-5">
+                    <button
+                      type="button"
+                      onClick={handleBulkUpload}
+                      disabled={!uploadedFile || isUploading || bulkUploadMutation.isPending}
+                      className={`w-full text-white rounded-xl py-4 font-medium transition-all ${!uploadedFile || isUploading || bulkUploadMutation.isPending
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-[#000] cursor-pointer hover:bg-gray-800"
+                        }`}
+                    >
+                      {isUploading || bulkUploadMutation.isPending ? "Processing CSV..." : "Upload bulk Products"}
+                    </button>
                   </div>
-                </div>
-              </div>
-              <div className="flex flex-row border border-[#CDCDCD] rounded-2xl p-3 mt-5 pl-8 justify-between">
-                <div className="flex gap-2">
-                  <div>
-                    <img src={images.csv} alt="" className="w-13 h-13" />
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="text-md">Download CSV bulk template</div>
-                    <div className="text-sm text-[#00000080]">200 kb</div>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <img
-                    className={`cursor-pointer w-8 h-8 ${downloadTemplateMutation.isPending ? 'opacity-50' : ''}`}
-                    src={images.DownloadSimple}
-                    alt=""
-                    onClick={downloadTemplateMutation.isPending ? undefined : downloadCSVTemplate}
-                  />
-                  {downloadTemplateMutation.isPending && (
-                    <div className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-[#E53E3E]"></div>
-                  )}
-                </div>
-              </div>
-              <div className="border border-[#CDCDCD] rounded-2xl flex flex-col items-center justify-center w-full mt-5 p-10 gap-2 relative">
-                <input
-                  type="file"
-                  id="csvFileInput"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-                <div>
-                  <img
-                    className="cursor-pointer w-8 h-8"
-                    src={images.UploadSimple}
-                    alt=""
-                  />
-                </div>
-                <div className="text-[#00000080]">
-                  {uploadedFile
-                    ? `Selected: ${uploadedFile.name}`
-                    : "Upload Filled template"}
-                </div>
-                {uploadedFile && (
-                  <div className="text-sm text-green-600 mt-2">
-                    ✓ CSV file ready for upload
-                  </div>
-                )}
-              </div>
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={handleBulkUpload}
-                  disabled={!uploadedFile || isUploading || bulkUploadMutation.isPending}
-                  className={`w-full text-white rounded-xl py-4 font-medium transition-all ${!uploadedFile || isUploading || bulkUploadMutation.isPending
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#000] cursor-pointer hover:bg-gray-800"
-                    }`}
-                >
-                  {isUploading || bulkUploadMutation.isPending ? "Processing CSV..." : "Upload bulk Products"}
-                </button>
-              </div>
+                </>
+              )}
             </form>
           </div>
         </div>

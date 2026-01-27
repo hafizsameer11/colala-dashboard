@@ -114,6 +114,7 @@ const API_ENDPOINTS = {
     UpdateStatus: (id: number | string) => `${API_DOMAIN}/admin/orders/${id}/status`, // PUT
     Tracking: (id: number | string) => `${API_DOMAIN}/admin/orders/${id}/tracking`, // GET
     BulkAction: API_DOMAIN + "/admin/buyer-orders/bulk-action", // POST
+    ReleaseEscrow: (storeOrderId: number | string) => `${API_DOMAIN}/admin/buyer-orders/${storeOrderId}/release-escrow`, // POST
     Statistics: API_DOMAIN + "/admin/orders/statistics", // GET
   },
 
@@ -159,7 +160,8 @@ const API_ENDPOINTS = {
     Create: API_DOMAIN + "/seller/products/create", // POST
     List: (userId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}`, // GET
     Details: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}/details`, // GET
-    Update: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}`, // PUT
+    // Uses POST with `_method=PUT` for updates
+    Update: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}`, // POST
     Delete: (userId: number | string, productId: number | string) => `${API_DOMAIN}/admin/seller-products/${userId}/${productId}`, // DELETE
     BulkUploadTemplate: API_DOMAIN + "/seller/products/bulk-upload/template", // GET
     BulkUploadFile: API_DOMAIN + "/seller/products/bulk-upload/file", // POST

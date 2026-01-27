@@ -17,10 +17,11 @@ const Products = () => {
   const [selectedProductType, setSelectedProductType] = useState("Products");
   const { storeId } = useParams<{ storeId: string }>();
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
 
   const { data: productsResp, isLoading, error } = useQuery({
-    queryKey: ["sellerProducts", storeId, currentPage],
-    queryFn: () => getSellerProducts(storeId!, currentPage),
+    queryKey: ["sellerProducts", storeId, currentPage, selectedPeriod],
+    queryFn: () => getSellerProducts(storeId!, currentPage, selectedPeriod),
     enabled: !!storeId,
     keepPreviousData: true,
   });

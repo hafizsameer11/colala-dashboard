@@ -66,6 +66,16 @@ const getStatusStyle = (status?: string) => {
   }
 };
 
+// Format status text for display (e.g. "pending_acceptance" -> "Pending acceptance")
+const formatStatusLabel = (status?: string) => {
+  if (!status) return "";
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((word, index) => (index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ");
+};
+
 const LatestOrders: React.FC<LatestOrdersProps> = ({
   title = "Latest Orders",
   onRowSelect,
@@ -363,7 +373,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusStyle(order.status)}`}
                     >
-                      {order.status}
+                      {formatStatusLabel(order.status)}
                     </span>
                   </td>
                   <td className="p-3 space-x-2">

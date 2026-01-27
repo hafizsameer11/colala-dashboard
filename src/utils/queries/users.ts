@@ -552,15 +552,24 @@ export const deleteSellerSocialFeedComment = async (userId: number | string, pos
 };
 
 /**
- * Get seller products with pagination
+ * Get seller products with pagination and optional period filter
+ * @param userId - seller_user_id
+ * @param page   - page number
+ * @param period - optional period label: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getSellerProducts = async (userId: number | string, page: number = 1) => {
+export const getSellerProducts = async (userId: number | string, page: number = 1, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${API_ENDPOINTS.SELLER_PRODUCTS.List(userId)}?page=${page}`, 'GET', undefined, token);
+    let url = `${API_ENDPOINTS.SELLER_PRODUCTS.List(userId)}?page=${page}`;
+    // Reuse period mapping helper so the value matches backend expectations
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Seller products API call error:', error);
@@ -857,6 +866,32 @@ export const getAdminOrderDetails = async (storeOrderId: number | string) => {
     return response;
   } catch (error) {
     console.error('Admin order details API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Manually release escrow for a single buyer store order
+ */
+export const releaseBuyerOrderEscrow = async (
+  storeOrderId: number | string,
+  payload?: { reason?: string }
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const body = payload && payload.reason ? payload : undefined;
+    const response = await apiCall(
+      API_ENDPOINTS.BUYER_ORDERS.ReleaseEscrow(storeOrderId),
+      'POST',
+      body,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Release buyer order escrow API call error:', error);
     throw error;
   }
 };
@@ -1955,7 +1990,13 @@ export const updateSellerProduct = async (userId: number | string, productId: nu
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.SELLER_PRODUCTS.Update(userId, productId), 'PUT', productData, token);
+    // Backend expects POST for this route, with `_method=PUT` in the payload
+    const response = await apiCall(
+      API_ENDPOINTS.SELLER_PRODUCTS.Update(userId, productId),
+      'POST',
+      productData,
+      token
+    );
     return response;
   } catch (error) {
     console.error('Update seller product API call error:', error);

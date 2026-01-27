@@ -1,11 +1,11 @@
 import images from "../constants/images";
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import ProductDetails from "./productDetails";
 import OrderOverview from "./orderOverview";
 import ProductCart from "./productCart";
-import { getBuyerOrderDetails } from "../utils/queries/users";
+import { getBuyerOrderDetails, releaseBuyerOrderEscrow } from "../utils/queries/users";
 
 interface OrderItem {
   id: number;
@@ -120,6 +120,7 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
   order,
 }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<
     "track order" | "full order details"
   >("track order");
@@ -149,6 +150,37 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
   console.log('BuyerOrderDetails - orderData:', orderData);
   console.log('BuyerOrderDetails - first item:', orderData?.items?.[0]);
   console.log('BuyerOrderDetails - complete data:', orderData?.items?.[0]?.complete);
+
+  // Mutation: manual escrow release for this store order
+  const releaseEscrowMutation = useMutation({
+    mutationFn: async () => {
+      if (!orderData?.id) {
+        throw new Error('Missing store order id for escrow release');
+      }
+      return releaseBuyerOrderEscrow(orderData.id, {
+        reason: 'Manual escrow release after admin review from order details modal',
+      });
+    },
+    onSuccess: () => {
+      // Refresh this order and the main buyer orders list
+      queryClient.invalidateQueries({ queryKey: ['buyerOrderDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['buyerOrders'] });
+      alert('Escrow released successfully.');
+    },
+    onError: (err: any) => {
+      const message =
+        err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'No locked escrow found for this order or release failed. Check logs for details.';
+      console.error('Release escrow error:', err);
+      alert(message);
+    },
+  });
+
+  // Only allow release when the backend indicates the payment is paid
+  const canReleaseEscrow =
+    !!orderData && (orderData as any).payment_status === 'paid';
 
   if (!isOpen) return null;
 
@@ -194,13 +226,33 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                   : "Order Details"}
               </h2>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-md  cursor-pointer"
-              aria-label="Close"
-            >
-              <img src={images.close} alt="Close" />
-            </button>
+            <div className="flex items-center gap-3">
+              {canReleaseEscrow && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Are you sure you want to manually release escrow for this order?'
+                      )
+                    ) {
+                      releaseEscrowMutation.mutate();
+                    }
+                  }}
+                  disabled={releaseEscrowMutation.isPending}
+                  className="px-4 py-2 text-xs font-medium rounded-lg border border-[#E53E3E] text-[#E53E3E] hover:bg-[#E53E3E] hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {releaseEscrowMutation.isPending ? 'Releasing...' : 'Release Escrow'}
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 rounded-md  cursor-pointer"
+                aria-label="Close"
+              >
+                <img src={images.close} alt="Close" />
+              </button>
+            </div>
           </div>
         </div>
 

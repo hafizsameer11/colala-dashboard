@@ -1,11 +1,50 @@
 import React from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../constants/images";
+import { deleteProductReview } from "../utils/queries/users";
+import { useToast } from "../contexts/ToastContext";
 
 interface ProductReviewsProps {
   productData?: any;
+  productId?: number | string | null;
 }
 
-const ProductReviews: React.FC<ProductReviewsProps> = ({ productData }) => {
+const ProductReviews: React.FC<ProductReviewsProps> = ({ productData, productId }) => {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: (reviewId: number | string) => deleteProductReview(reviewId),
+    onSuccess: () => {
+      showToast("Review deleted successfully", "success");
+      // Refresh product details (and reviews) after delete
+      if (productId) {
+        queryClient.invalidateQueries({ queryKey: ["adminProductDetails", productId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["adminProductDetails"] });
+      }
+    },
+    onError: (error: any) => {
+      console.error("Delete product review error:", error);
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to delete review. Please try again.";
+      showToast(message, "error");
+    },
+  });
+
+  const handleDeleteReview = (review: any) => {
+    if (!review?.id) {
+      showToast("Review ID not found", "error");
+      return;
+    }
+    if (!window.confirm("Are you sure you want to delete this review? This action cannot be undone.")) {
+      return;
+    }
+    deleteReviewMutation.mutate(review.id);
+  };
+
   return (
     <div className="mt-5">
       <div className="flex flex-row items-center justify-center gap-2 mt-10 mb-10">
@@ -70,8 +109,13 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productData }) => {
               </span>
             </div>
             <div>
-              <button className="bg-[#E53E3E] text-white rounded-full cursor-pointer px-6 py-1">
-                Delete Review
+              <button
+                type="button"
+                onClick={() => handleDeleteReview(review)}
+                disabled={deleteReviewMutation.isPending}
+                className="bg-[#E53E3E] text-white rounded-full cursor-pointer px-6 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteReviewMutation.isPending ? "Deleting..." : "Delete Review"}
               </button>
             </div>
           </div>

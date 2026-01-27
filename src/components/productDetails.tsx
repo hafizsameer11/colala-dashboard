@@ -60,10 +60,21 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         is_main: img.id === productDetails.data.images[0]?.id ? 1 : 0
       })) || [],
       // Map store info
+      // Prefer seller_user_id as the canonical store owner ID so that navigation
+      // to the seller's shop is consistent across the application.
       store: productDetails.data.store_info ? {
-        id: productDetails.data.store_info.user_id || productDetails.data.store_info.store_id || productDetails.data.store_info.id,
+        // Canonical ID used for navigation to `/store-details/:id`
+        id:
+          productDetails.data.store_info.seller_user_id ||
+          productDetails.data.store_info.user_id ||
+          productDetails.data.store_info.store_id ||
+          productDetails.data.store_info.id,
+        // Raw fields from the API
         store_id: productDetails.data.store_info.store_id,
-        user_id: productDetails.data.store_info.user_id,
+        user_id:
+          productDetails.data.store_info.seller_user_id ||
+          productDetails.data.store_info.user_id,
+        seller_user_id: productDetails.data.store_info.seller_user_id,
         store_name: productDetails.data.store_info.store_name,
         seller_name: productDetails.data.store_info.seller_name,
         store_email: productDetails.data.store_info.seller_email,
@@ -466,7 +477,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         )}
 
         {productTab === "reviews" && (
-          <ProductReviews productData={realProductData} />
+          <ProductReviews productData={realProductData} productId={productId} />
         )}
       </div>
     </div>
