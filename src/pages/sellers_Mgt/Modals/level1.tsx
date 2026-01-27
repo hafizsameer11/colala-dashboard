@@ -30,7 +30,13 @@ interface Level1Props {
   };
 }
 
-const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = false, editMode = false, initialData }) => {
+const Level1: React.FC<Level1Props> = ({
+  onSaveAndClose,
+  onProceed,
+  isLoading = false,
+  editMode = false,
+  initialData,
+}) => {
   const [showPhoneOnProfile, setShowPhoneOnProfile] = useState(initialData?.showPhoneOnProfile || false);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
@@ -154,23 +160,17 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
   const handleSaveAndClose = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    const missingBasics =
-      !formData.storeName ||
-      !formData.email ||
-      !formData.phoneNumber;
+    // In edit mode, allow saving without requiring any fields.
+    if (!editMode) {
+      // Validate required fields for creation flow
+      const missingBasics =
+        !formData.storeName ||
+        !formData.email ||
+        !formData.phoneNumber;
 
-    const missingCreationOnly =
-      (!password || selectedCategory === null);
+      const missingCreationOnly =
+        (!password || selectedCategory === null);
 
-    // In edit mode we only require the basic identity fields.
-    // For new stores we still require password + category.
-    if (editMode) {
-      if (missingBasics) {
-        alert("Please fill in store name, email and phone number");
-        return;
-      }
-    } else {
       if (missingBasics || missingCreationOnly) {
         alert("Please fill in all required fields");
         return;
@@ -215,16 +215,18 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
   const handleProceed = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (
-      !formData.storeName ||
-      !formData.email ||
-      !formData.phoneNumber ||
-      !password ||
-      selectedCategory === null
-    ) {
-      alert("Please fill in all required fields");
-      return;
+    // For creation, enforce required fields; for edit mode, allow partial data.
+    if (!editMode) {
+      if (
+        !formData.storeName ||
+        !formData.email ||
+        !formData.phoneNumber ||
+        !password ||
+        selectedCategory === null
+      ) {
+        alert("Please fill in all required fields");
+        return;
+      }
     }
 
     // Convert social media form fields to array format
@@ -335,7 +337,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
               onChange={handleInputChange}
               placeholder="Enter Store Name"
               className="w-full mt-3 border border-[#989898] p-5 rounded-2xl  text-lg"
-              required
+              required={!editMode}
             />
           </div>
           <div className="mt-5">
@@ -350,7 +352,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
               onChange={handleInputChange}
               placeholder="Enter email address"
               className="w-full mt-3 border border-[#989898] p-5 rounded-2xl text-lg"
-              required
+              required={!editMode}
             />
           </div>
           <div className="mt-5">
@@ -365,7 +367,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
               onChange={handleInputChange}
               placeholder="Enter phone number"
               className="w-full mt-3 border border-[#989898] p-5 rounded-2xl text-lg"
-              required
+              required={!editMode}
             />
           </div>
           <div className="mt-5">
@@ -399,7 +401,7 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
                 className="w-full mt-3 border border-[#989898] p-5 rounded-2xl  text-lg pr-12"
-                required
+                required={!editMode}
               />
               <button
                 type="button"

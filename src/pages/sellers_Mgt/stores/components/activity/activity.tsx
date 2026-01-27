@@ -6,7 +6,7 @@ import AddStoreModal from "../../../Modals/addStoreModel";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { apiCall } from "../../../../../utils/customApiCall";
 import Cookies from "js-cookie";
-import { getUserNotifications } from "../../../../../utils/queries/users";
+import { getUserActivities, getUserNotifications } from "../../../../../utils/queries/users";
 import { API_ENDPOINTS } from "../../../../../config/apiConfig";
 
 
@@ -133,6 +133,7 @@ interface ActivityProps {
     createdAt?: string;
   };
   storeId: string;
+  selectedPeriod?: string;
 }
 
 // Seller-specific API functions
@@ -193,7 +194,7 @@ const updateSellerWallet = async (sellerId: string | number, action: 'topup' | '
   }
 };
 
-const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
+const Activity: React.FC<ActivityProps> = ({ userData, storeId, selectedPeriod = "All time" }) => {
   // const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -205,8 +206,28 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
   const [withdrawDescription, setWithdrawDescription] = useState("");
   const [notificationsPage, setNotificationsPage] = useState(1);
   const [notificationsFilter, setNotificationsFilter] = useState<'read' | 'unread' | undefined>(undefined);
+
+  // Actions (three-dots) dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Time range filter dropdown for Activity section
+  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
+  const [selectedTimeRange, setSelectedTimeRange] = useState("Today");
+  const timeFilterRef = useRef<HTMLDivElement>(null);
+  const timeFilterOptions = [
+    "Today",
+    "This Week",
+    "Last Month",
+    "Last 6 Months",
+    "Last Year",
+    "All time",
+  ];
+
+  // Activities pagination for seller user
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const ACTIVITIES_PER_PAGE = 20;
+
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -302,9 +323,30 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
+  // Decide which period label to send to backend:
+  // - If the parent header has a specific period (not "All time"), prefer that
+  // - Otherwise fall back to the local time-range dropdown selection
+  const effectivePeriodLabel =
+    selectedPeriod && selectedPeriod !== "All time"
+      ? selectedPeriod
+      : selectedTimeRange;
+
   // Debug logging
   console.log('Activity component userData:', userData);
   console.log('Profile image URL:', userData.profileImage);
+  console.log('Selected period for activities (effective):', effectivePeriodLabel);
+
+  // Get seller activities using new admin user activities endpoint
+  const {
+    data: activitiesData,
+    isLoading: isLoadingActivities,
+    error: activitiesError,
+  } = useQuery({
+    queryKey: ['sellerUserActivities', userData.id, activitiesPage, effectivePeriodLabel],
+    queryFn: () => getUserActivities(userData.id!, activitiesPage, effectivePeriodLabel, ACTIVITIES_PER_PAGE),
+    enabled: !!userData.id,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
@@ -312,7 +354,7 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
     // Add your custom logic here
   };
 
-  // Close dropdown when clicking outside
+  // Close three-dots dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -328,6 +370,32 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Close time filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        timeFilterRef.current &&
+        !timeFilterRef.current.contains(event.target as Node)
+      ) {
+        setIsTimeFilterOpen(false);
+      }
+    };
+
+    if (isTimeFilterOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isTimeFilterOpen]);
+
+  const handleTimeFilterSelect = (option: string) => {
+    setSelectedTimeRange(option);
+    setIsTimeFilterOpen(false);
+    console.log("Activity time range changed to:", option);
+  };
 
   const handleDropdownAction = (action: string) => {
     console.log(`${action} action triggered for seller:`, userData.userName || userData.full_name);
@@ -387,6 +455,25 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
   const handleBellClick = () => {
     setShowNotificationsModal(true);
   };
+
+  // Normalise activities from API (new route) or fallback to recentActivities on userData
+  let activities: Array<{ id: number; activity?: string; description?: string; created_at: string }> =
+    (userData.recentActivities as any) || (userData.recent_activities as any) || [];
+
+  if (activitiesData?.data?.activities) {
+    const rawActivities = activitiesData.data.activities;
+    const list = Array.isArray(rawActivities)
+      ? rawActivities
+      : Array.isArray(rawActivities.data)
+        ? rawActivities.data
+        : [];
+    activities = list;
+  }
+
+  const activitiesPagination =
+    activitiesData?.data?.activities && !Array.isArray(activitiesData.data.activities)
+      ? activitiesData.data.activities
+      : null;
 
   const DotsDropdown = () => (
     <div className="relative" ref={dropdownRef}>
@@ -575,11 +662,43 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row mt-4 sm:mt-5 gap-3 sm:gap-5">
-          <div className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm">
-            <div>Today</div>
-            <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
+          <div
+            className="relative inline-block text-left"
+            ref={timeFilterRef}
+          >
+            <div
+              className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm min-w-[140px]"
+              onClick={() => setIsTimeFilterOpen((open) => !open)}
+            >
+              <div>{selectedTimeRange}</div>
+              <div>
+                <img
+                  className={`w-3 h-3 mt-1 transition-transform ${
+                    isTimeFilterOpen ? "rotate-180" : ""
+                  }`}
+                  src={images.dropdown}
+                  alt=""
+                />
+              </div>
             </div>
+
+            {isTimeFilterOpen && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-[#989898] rounded-lg shadow-lg">
+                {timeFilterOptions.map((option) => (
+                  <div
+                    key={option}
+                    onClick={() => handleTimeFilterSelect(option)}
+                    className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm hover:bg-gray-100 cursor-pointer first:rounded-t-lg last:rounded-b-lg ${
+                      selectedTimeRange === option
+                        ? "bg-gray-50 font-medium"
+                        : ""
+                    }`}
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
@@ -593,44 +712,89 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId }) => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      Activity
-                    </th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-600">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {(userData.recentActivities ?? []).length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="py-6 text-center text-gray-500">No activities</td>
-                    </tr>
-                  ) : (
-                    (userData.recentActivities ?? []).map((a) => (
-                      <tr key={a.id} className="hover:bg-gray-50">
-                        <td className="py-3 px-4">
+              {isLoadingActivities ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                </div>
+              ) : activitiesError ? (
+                <div className="py-8 px-4 text-center text-red-500">
+                  Failed to load activities
+                </div>
+              ) : (
+                <>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
                           <input
                             type="checkbox"
                             className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                           />
-                        </td>
-                        <td className="py-3 px-4 text-gray-800">{a.activity || 'N/A'}</td>
-                        <td className="py-3 px-4 text-center text-gray-600">{a.created_at || 'N/A'}</td>
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          Activity
+                        </th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">
+                          Date
+                        </th>
                       </tr>
-                    ))
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {activities && activities.length > 0 ? (
+                        activities.map((a) => (
+                          <tr key={a.id} className="hover:bg-gray-50">
+                            <td className="py-3 px-4">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-gray-800">
+                              {a.activity || a.description || 'N/A'}
+                            </td>
+                            <td className="py-3 px-4 text-center text-gray-600">
+                              {a.created_at || 'N/A'}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="py-6 text-center text-gray-500">
+                            No activities
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  {activitiesPagination && (
+                    <div className="flex justify-between items-center mt-4 px-5 pb-4">
+                      <button
+                        onClick={() => setActivitiesPage((prev) => Math.max(1, prev - 1))}
+                        disabled={activitiesPagination.current_page <= 1}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        Page {activitiesPagination.current_page} of{" "}
+                        {activitiesPagination.last_page ?? activitiesPagination.current_page}
+                      </span>
+                      <button
+                        onClick={() => setActivitiesPage((prev) => prev + 1)}
+                        disabled={
+                          activitiesPagination.last_page
+                            ? activitiesPagination.current_page >= activitiesPagination.last_page
+                            : false
+                        }
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
                   )}
-                </tbody>
-              </table>
+                </>
+              )}
             </div>
           </div>
         </div>

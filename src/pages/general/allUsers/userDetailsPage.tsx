@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../components/PageHeader";
-import { getUserDetails } from "../../../utils/queries/users";
+import { getUserActivities, getUserDetails } from "../../../utils/queries/users";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import EditUserModal from "../../../components/editUserModel";
@@ -15,12 +15,29 @@ const UserDetailsPage: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Period filter shared with activities API
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const ACTIVITIES_PER_PAGE = 20;
+
   // Fetch user profile data from API
   const { data: profileData, isLoading, error } = useQuery({
     queryKey: ['userDetails', userId],
     queryFn: () => getUserDetails(userId!),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Fetch activities from new admin user activities endpoint with period filter
+  const {
+    data: activitiesData,
+    isLoading: isLoadingActivities,
+    error: activitiesError,
+  } = useQuery({
+    queryKey: ['userActivities', userId, activitiesPage, selectedPeriod],
+    queryFn: () => getUserActivities(userId!, activitiesPage, selectedPeriod, ACTIVITIES_PER_PAGE),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
   });
 
   // Extract the user data from API response
@@ -30,12 +47,33 @@ const UserDetailsPage: React.FC = () => {
   console.log('UserDetailsPage Debug - userData:', userData);
 
   const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    setActivitiesPage(1);
     console.log("Period changed to:", period);
   };
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected:", action);
   };
+
+  // Normalise activities from API (new route) or fallback to userData.activities
+  let activities: Array<{ id: number; activity?: string; description?: string; created_at: string }> =
+    userData?.activities || [];
+
+  if (activitiesData?.data?.activities) {
+    const rawActivities = activitiesData.data.activities;
+    const list = Array.isArray(rawActivities)
+      ? rawActivities
+      : Array.isArray(rawActivities.data)
+        ? rawActivities.data
+        : [];
+    activities = list;
+  }
+
+  const activitiesPagination =
+    activitiesData?.data?.activities && !Array.isArray(activitiesData.data.activities)
+      ? activitiesData.data.activities
+      : null;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -153,6 +191,15 @@ const UserDetailsPage: React.FC = () => {
           </div>
         }
         onPeriodChange={handlePeriodChange}
+        defaultPeriod={selectedPeriod}
+        timeOptions={[
+          "Today",
+          "This Week",
+          "This Month",
+          "Last Month",
+          "This Year",
+          "All time",
+        ]}
       />
 
       <div className="bg-[#F5F5F5] min-h-screen p-5">
@@ -263,7 +310,7 @@ const UserDetailsPage: React.FC = () => {
           </div>
           <div className="flex flex-row mt-5 gap-5">
             <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
-              <div>Today</div>
+              <div>{selectedPeriod}</div>
               <div>
                 <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
               </div>
@@ -280,50 +327,89 @@ const UserDetailsPage: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                        />
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">
-                        Activity
-                      </th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-600">
-                        Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {userData?.activities && userData.activities.length > 0 ? (
-                      userData.activities.map((activity: { id: number; activity: string; created_at: string }) => (
-                        <tr key={activity.id} className="hover:bg-gray-50">
-                          <td className="py-3 px-4">
+                {isLoadingActivities ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E53E3E]"></div>
+                  </div>
+                ) : activitiesError ? (
+                  <div className="py-8 px-4 text-center text-red-500">
+                    Failed to load activities
+                  </div>
+                ) : (
+                  <>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="text-left py-3 px-4 font-medium text-gray-600">
                             <input
                               type="checkbox"
                               className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                             />
-                          </td>
-                          <td className="py-3 px-4 text-gray-800">
-                            {activity.activity}
-                          </td>
-                          <td className="py-3 px-4 text-center text-gray-600">
-                            {new Date(activity.created_at).toLocaleString()}
-                          </td>
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-600">
+                            Activity
+                          </th>
+                          <th className="text-center py-3 px-4 font-medium text-gray-600">
+                            Date
+                          </th>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} className="py-8 px-4 text-center text-gray-500">
-                          No recent activities found
-                        </td>
-                      </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {activities && activities.length > 0 ? (
+                          activities.map((activity) => (
+                            <tr key={activity.id} className="hover:bg-gray-50">
+                              <td className="py-3 px-4">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                />
+                              </td>
+                              <td className="py-3 px-4 text-gray-800">
+                                {activity.activity || activity.description || '—'}
+                              </td>
+                              <td className="py-3 px-4 text-center text-gray-600">
+                                {activity.created_at}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className="py-8 px-4 text-center text-gray-500">
+                              No recent activities found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+
+                    {activitiesPagination && (
+                      <div className="flex justify-between items-center mt-4 px-5 pb-4">
+                        <button
+                          onClick={() => setActivitiesPage((prev) => Math.max(1, prev - 1))}
+                          disabled={activitiesPagination.current_page <= 1}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-sm text-gray-600">
+                          Page {activitiesPagination.current_page} of{" "}
+                          {activitiesPagination.last_page ?? activitiesPagination.current_page}
+                        </span>
+                        <button
+                          onClick={() => setActivitiesPage((prev) => prev + 1)}
+                          disabled={
+                            activitiesPagination.last_page
+                              ? activitiesPagination.current_page >= activitiesPagination.last_page
+                              : false
+                          }
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
                     )}
-                  </tbody>
-                </table>
+                  </>
+                )}
               </div>
             </div>
           </div>

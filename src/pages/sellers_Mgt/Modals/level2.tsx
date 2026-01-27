@@ -14,9 +14,16 @@ interface Level2Props {
     utilityBill?: File;
   }) => void;
   isLoading?: boolean;
+  /** When true (edit from Store Details), all fields should be optional */
+  editMode?: boolean;
 }
 
-const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = false }) => {
+const Level2: React.FC<Level2Props> = ({
+  onSaveAndClose,
+  onProceed,
+  isLoading = false,
+  editMode = false,
+}) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedbusinessTypes, setSelectedbusinessTypes] = useState("");
   const [formData, setFormData] = useState({
@@ -81,6 +88,12 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
   };
 
   const validateForm = (): boolean => {
+    // In edit mode, allow submitting without any required fields.
+    if (editMode) {
+      setErrors({});
+      return true;
+    }
+
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.businessName.trim()) {
@@ -171,7 +184,7 @@ const Level2: React.FC<Level2Props> = ({ onSaveAndClose, onProceed, isLoading = 
                 placeholder="Enter Business Name"
                 className={`w-full mt-3 border p-5 rounded-2xl text-lg ${errors.businessName ? "border-red-500" : "border-[#989898]"
                   }`}
-                required
+                required={!editMode}
               />
               {errors.businessName && (
                 <p className="text-red-500 text-sm mt-1">

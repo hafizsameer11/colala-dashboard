@@ -17,6 +17,7 @@ const StoreDetails: React.FC = () => {
   const { state } = useLocation();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("Activity");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
 
   // Read tab parameter from URL and set active tab
   useEffect(() => {
@@ -109,6 +110,7 @@ const StoreDetails: React.FC = () => {
   ];
 
   const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
     console.log("Period changed to:", period);
   };
 
@@ -140,7 +142,7 @@ const StoreDetails: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "Activity":
-        return <Activity userData={userData} storeId={storeId!} />;
+        return <Activity userData={userData} storeId={storeId!} selectedPeriod={selectedPeriod} />;
       case "Orders":
         return <Orders />;
       case "Chats":
@@ -184,6 +186,15 @@ const StoreDetails: React.FC = () => {
           </div>
         }
         onPeriodChange={handlePeriodChange}
+        defaultPeriod={selectedPeriod}
+        timeOptions={[
+          "Today",
+          "This Week",
+          "This Month",
+          "Last Month",
+          "This Year",
+          "All time",
+        ]}
       />
 
       <div className="bg-[#F5F5F5] min-h-screen p-3 sm:p-4 md:p-5">

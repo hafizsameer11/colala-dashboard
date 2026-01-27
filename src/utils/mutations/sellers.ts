@@ -84,6 +84,90 @@ export const createSellerLevel1 = async (storeData: {
 };
 
 /**
+ * Level 1 - Update existing store (admin edit)
+ * All fields are optional except store_id. Only provided fields are updated.
+ */
+export const updateSellerLevel1 = async (storeData: {
+  store_id: number | string;
+  store_name?: string;
+  store_email?: string;
+  store_phone?: string;
+  store_location?: string;
+  referral_code?: string;
+  show_phone_on_profile?: boolean;
+  profile_image?: File | null;
+  banner_image?: File | null;
+  categories?: number[];
+  social_links?: Array<{
+    type: 'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'youtube';
+    url: string;
+  }>;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('store_id', storeData.store_id.toString());
+
+    if (storeData.store_name && storeData.store_name.trim()) {
+      formData.append('store_name', storeData.store_name.trim());
+    }
+    if (storeData.store_email && storeData.store_email.trim()) {
+      formData.append('store_email', storeData.store_email.trim());
+    }
+    if (storeData.store_phone && storeData.store_phone.trim()) {
+      formData.append('store_phone', storeData.store_phone.trim());
+    }
+    if (storeData.store_location && storeData.store_location.trim()) {
+      formData.append('store_location', storeData.store_location.trim());
+    }
+    if (storeData.referral_code && storeData.referral_code.trim()) {
+      formData.append('referral_code', storeData.referral_code.trim());
+    }
+
+    if (typeof storeData.show_phone_on_profile === 'boolean') {
+      const booleanValue = storeData.show_phone_on_profile ? '1' : '0';
+      formData.append('show_phone_on_profile', booleanValue);
+    }
+
+    if (storeData.profile_image instanceof File) {
+      formData.append('profile_image', storeData.profile_image);
+    }
+
+    if (storeData.banner_image instanceof File) {
+      formData.append('banner_image', storeData.banner_image);
+    }
+
+    if (storeData.categories && storeData.categories.length > 0) {
+      storeData.categories.forEach((categoryId) => {
+        formData.append('categories[]', categoryId.toString());
+      });
+    }
+
+    if (storeData.social_links && storeData.social_links.length > 0) {
+      storeData.social_links.forEach((link, index) => {
+        formData.append(`social_links[${index}][type]`, link.type);
+        formData.append(`social_links[${index}][url]`, link.url);
+      });
+    }
+
+    const response = await apiCall(
+      API_ENDPOINTS.SELLER_CREATION.Level1Update,
+      'POST',
+      formData,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Update seller level 1 API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Level 2 - Business Information
  */
 export const createSellerLevel2 = async (businessData: {
@@ -128,6 +212,69 @@ export const createSellerLevel2 = async (businessData: {
     return response;
   } catch (error) {
     console.error('Create seller level 2 API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Level 2 - Update Business Information (admin edit)
+ * All fields are optional except store_id.
+ */
+export const updateSellerLevel2 = async (businessData: {
+  store_id: number | string;
+  business_name?: string;
+  business_type?: string;
+  nin_number?: string;
+  cac_number?: string;
+  nin_document?: File;
+  cac_document?: File;
+  utility_bill?: File;
+  store_video?: File;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('store_id', businessData.store_id.toString());
+
+    if (businessData.business_name && businessData.business_name.trim()) {
+      formData.append('business_name', businessData.business_name.trim());
+    }
+    if (businessData.business_type && businessData.business_type.trim()) {
+      formData.append('business_type', businessData.business_type.trim());
+    }
+    if (businessData.nin_number && businessData.nin_number.trim()) {
+      formData.append('nin_number', businessData.nin_number.trim());
+    }
+    if (businessData.cac_number && businessData.cac_number.trim()) {
+      formData.append('cac_number', businessData.cac_number.trim());
+    }
+
+    if (businessData.nin_document) {
+      formData.append('nin_document', businessData.nin_document);
+    }
+    if (businessData.cac_document) {
+      formData.append('cac_document', businessData.cac_document);
+    }
+    if (businessData.utility_bill) {
+      formData.append('utility_bill', businessData.utility_bill);
+    }
+    if (businessData.store_video) {
+      formData.append('store_video', businessData.store_video);
+    }
+
+    const response = await apiCall(
+      API_ENDPOINTS.SELLER_CREATION.Level2Update,
+      'POST',
+      formData,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Update seller level 2 API call error:', error);
     throw error;
   }
 };
@@ -235,6 +382,102 @@ export const createSellerLevel3 = async (storeDetailsData: {
     return response;
   } catch (error) {
     console.error('Create seller level 3 API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Level 3 - Update existing store details (admin edit)
+ * All fields are optional except store_id.
+ */
+export const updateSellerLevel3 = async (storeDetailsData: {
+  store_id: number | string;
+  has_physical_store?: boolean;
+  store_video?: File;
+  utility_bill?: File;
+  theme_color?: string;
+  addresses?: Array<{
+    state: string;
+    local_government: string;
+    full_address: string;
+    is_main?: boolean;
+    opening_hours?: Record<string, unknown>;
+  }>;
+  delivery_pricing?: Array<{
+    state: string;
+    local_government: string;
+    variant: string;
+    price: number;
+    is_free: boolean;
+  }>;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('store_id', storeDetailsData.store_id.toString());
+
+    if (typeof storeDetailsData.has_physical_store === 'boolean') {
+      const hasPhysicalStoreValue = storeDetailsData.has_physical_store ? 'true' : 'false';
+      formData.append('has_physical_store', hasPhysicalStoreValue);
+    }
+
+    if (storeDetailsData.theme_color) {
+      formData.append('theme_color', storeDetailsData.theme_color);
+    }
+
+    if (storeDetailsData.store_video) {
+      formData.append('store_video', storeDetailsData.store_video);
+    }
+
+    if (storeDetailsData.utility_bill) {
+      formData.append('utility_bill', storeDetailsData.utility_bill);
+    }
+
+    if (storeDetailsData.addresses && storeDetailsData.addresses.length > 0) {
+      storeDetailsData.addresses.forEach((address, index) => {
+        formData.append(`addresses[${index}][state]`, address.state);
+        formData.append(`addresses[${index}][local_government]`, address.local_government);
+        formData.append(`addresses[${index}][full_address]`, address.full_address);
+
+        if (typeof address.is_main === 'boolean') {
+          const isMainValue = address.is_main ? 'true' : 'false';
+          formData.append(`addresses[${index}][is_main]`, isMainValue);
+        }
+
+        if (address.opening_hours) {
+          Object.entries(address.opening_hours).forEach(([day, value]) => {
+            if (typeof value === 'string') {
+              formData.append(`addresses[${index}][opening_hours][${day}]`, value);
+            }
+          });
+        }
+      });
+    }
+
+    if (storeDetailsData.delivery_pricing && storeDetailsData.delivery_pricing.length > 0) {
+      storeDetailsData.delivery_pricing.forEach((pricing, index) => {
+        formData.append(`delivery_pricing[${index}][state]`, pricing.state);
+        formData.append(`delivery_pricing[${index}][local_government]`, pricing.local_government);
+        formData.append(`delivery_pricing[${index}][variant]`, pricing.variant);
+        formData.append(`delivery_pricing[${index}][price]`, pricing.price.toString());
+        const isFreeValue = pricing.is_free ? 'true' : 'false';
+        formData.append(`delivery_pricing[${index}][is_free]`, isFreeValue);
+      });
+    }
+
+    const response = await apiCall(
+      API_ENDPOINTS.SELLER_CREATION.Level3Update,
+      'POST',
+      formData,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Update seller level 3 API call error:', error);
     throw error;
   }
 };

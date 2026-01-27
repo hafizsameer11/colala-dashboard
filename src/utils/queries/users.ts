@@ -10,11 +10,16 @@ const mapPeriodToApi = (period: string): string | null => {
     'Today': 'today',
     'This Week': 'this_week',
     'This Month': 'this_month',
-    'Last Month': 'this_month', // API might use this_month for last month
+    // Backend supports explicit last_month and this_year values
+    'Last Month': 'last_month',
+    'This Year': 'this_year',
+    // Backwards compatibility for any existing "Last Year" label
+    'Last Year': 'this_year',
   };
   
   if (period === 'All time' || !period) {
-    return null; // No period parameter for all time
+    // Backend treats missing/nullable period as all time
+    return null;
   }
   
   return periodMap[period] || null;
@@ -101,6 +106,38 @@ export const getUserProfile = async (userId: number | string) => {
     return response;
   } catch (error) {
     console.error('User profile API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user activities with pagination and optional period filter
+ * Uses the new admin endpoint: /api/admin/users/{id}/activities
+ * @param userId - User ID
+ * @param page - Page number (default: 1)
+ * @param period - Optional UI period label (e.g. "Today", "This Week", "This Month", "Last Month", "All time")
+ * @param perPage - Items per page (default: 20)
+ */
+export const getUserActivities = async (
+  userId: number | string,
+  page: number = 1,
+  period?: string,
+  perPage: number = 20
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    let url = `${API_ENDPOINTS.BUYER_USERS.Activities(userId)}?page=${page}&per_page=${perPage}`;
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('User activities API call error:', error);
     throw error;
   }
 };

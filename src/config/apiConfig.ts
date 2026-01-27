@@ -89,6 +89,7 @@ const API_ENDPOINTS = {
     Create: API_DOMAIN + "/admin/users", // POST
     Update: (id: number | string) => `${API_DOMAIN}/admin/users/${id}`, // PUT
     Delete: (id: number | string) => `${API_DOMAIN}/admin/users/${id}`, // DELETE
+    Activities: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/activities`, // GET
     Orders: (id: number | string) => `${API_DOMAIN}/admin/users/${id}/orders`, // GET
     OrderDetails: (userId: number | string, orderId: number | string) => `${API_DOMAIN}/admin/users/${userId}/orders/${orderId}/details`, // GET
     UpdateOrderStatus: (userId: number | string, orderId: number | string) => `${API_DOMAIN}/admin/users/${userId}/orders/${orderId}/status`, // POST
@@ -292,6 +293,10 @@ const API_ENDPOINTS = {
     Level1Complete: API_DOMAIN + "/admin/create-seller/level1/complete", // POST
     Level2Complete: API_DOMAIN + "/admin/create-seller/level2/complete", // POST
     Level3Complete: API_DOMAIN + "/admin/create-seller/level3/complete", // POST
+    // Admin edit/update routes for existing stores (see admin-seller-onboarding-edit-routes.md)
+    Level1Update: API_DOMAIN + "/admin/create-seller/level1/update", // POST
+    Level2Update: API_DOMAIN + "/admin/create-seller/level2/update", // POST
+    Level3Update: API_DOMAIN + "/admin/create-seller/level3/update", // POST
     Progress: API_DOMAIN + "/admin/create-seller/progress", // GET
     Categories: API_DOMAIN + "/admin/create-seller/categories", // GET
     SetApprovalStatus: API_DOMAIN + "/admin/create-seller/set-approval-status", // POST

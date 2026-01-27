@@ -3,7 +3,14 @@ import React, { useState, useEffect } from "react";
 import Level1 from "./level1";
 import Level2 from "./level2";
 import Level3 from "./level3";
-import { createSellerLevel1, createSellerLevel2, createSellerLevel3 } from "../../../utils/mutations";
+import {
+  createSellerLevel1,
+  createSellerLevel2,
+  createSellerLevel3,
+  updateSellerLevel1,
+  updateSellerLevel2,
+  updateSellerLevel3,
+} from "../../../utils/mutations";
 
 interface AddStoreModalProps {
   isOpen: boolean;
@@ -12,6 +19,7 @@ interface AddStoreModalProps {
   initialTab?: "Level 1" | "Level 2" | "Level 3";
   editMode?: boolean;
   initialStoreData?: {
+    // NOTE: id is the existing store identifier used by the edit routes (store_id)
     id?: string;
     storeName?: string;
     email?: string;
@@ -49,8 +57,16 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
     if (isOpen) {
       setActiveTab(initialTab);
       setError(null);
+
+      // In edit mode, we already have a store_id from initialStoreData
+      if (editMode && initialStoreData?.id) {
+        const existingId = Number(initialStoreData.id);
+        if (!Number.isNaN(existingId)) {
+          setStoreId(existingId);
+        }
+      }
     }
-  }, [isOpen, initialTab]);
+  }, [isOpen, initialTab, editMode, initialStoreData]);
 
   // Level 1 handler
   const handleLevel1Complete = async (level1Data: {
@@ -67,38 +83,68 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const mappedData = {
-        store_name: level1Data.storeName,
-        store_email: level1Data.email,
-        store_phone: level1Data.phoneNumber,
-        password: level1Data.password,
-        store_location: '', // Add if available
-        referral_code: '', // Add if available
-        profile_image: level1Data.profileImageFile || undefined,
-        banner_image: level1Data.bannerImageFile || undefined,
-        show_phone_on_profile: level1Data.showPhoneOnProfile,
-        categories: [level1Data.category], // Already a number
-        social_links: (level1Data.socialLinks || []).map(link => ({
-          type: link.type as 'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'youtube',
-          url: link.url
-        }))
-      };
-      
-      console.log('Sending Level 1 data:', {
-        ...mappedData,
-        profile_image: mappedData.profile_image ? `${mappedData.profile_image.name} (${mappedData.profile_image.type})` : 'No file',
-        banner_image: mappedData.banner_image ? `${mappedData.banner_image.name} (${mappedData.banner_image.type})` : 'No file',
-        show_phone_on_profile: mappedData.show_phone_on_profile,
-        show_phone_on_profile_type: typeof mappedData.show_phone_on_profile
-      });
-      
-      const response = await createSellerLevel1(mappedData);
-      if (response.data && response.data.store_id) {
-        setStoreId(response.data.store_id);
-        setActiveTab("Level 2");
+      if (editMode) {
+        // EDIT FLOW: call Level1 update route with existing store_id
+        const currentStoreId = storeId ?? (initialStoreData?.id ? Number(initialStoreData.id) : null);
+        if (!currentStoreId || Number.isNaN(currentStoreId)) {
+          throw new Error("Store ID not found for edit. Cannot update Level 1.");
+        }
+
+        const updatePayload: Parameters<typeof updateSellerLevel1>[0] = {
+          store_id: currentStoreId,
+        };
+
+        if (level1Data.storeName) updatePayload.store_name = level1Data.storeName;
+        if (level1Data.email) updatePayload.store_email = level1Data.email;
+        if (level1Data.phoneNumber) updatePayload.store_phone = level1Data.phoneNumber;
+        updatePayload.show_phone_on_profile = level1Data.showPhoneOnProfile;
+        if (level1Data.profileImageFile) updatePayload.profile_image = level1Data.profileImageFile;
+        if (level1Data.bannerImageFile) updatePayload.banner_image = level1Data.bannerImageFile;
+        if (level1Data.category) updatePayload.categories = [level1Data.category];
+        if (level1Data.socialLinks && level1Data.socialLinks.length > 0) {
+          updatePayload.social_links = level1Data.socialLinks.map((link) => ({
+            type: link.type as 'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'youtube',
+            url: link.url,
+          }));
+        }
+
+        await updateSellerLevel1(updatePayload);
+        // For edit we keep the same tab by default; user can switch manually
+      } else {
+        // CREATE FLOW: call Level1 complete route
+        const mappedData = {
+          store_name: level1Data.storeName,
+          store_email: level1Data.email,
+          store_phone: level1Data.phoneNumber,
+          password: level1Data.password,
+          store_location: '', // Add if available
+          referral_code: '', // Add if available
+          profile_image: level1Data.profileImageFile || undefined,
+          banner_image: level1Data.bannerImageFile || undefined,
+          show_phone_on_profile: level1Data.showPhoneOnProfile,
+          categories: [level1Data.category], // Already a number
+          social_links: (level1Data.socialLinks || []).map(link => ({
+            type: link.type as 'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'youtube',
+            url: link.url
+          }))
+        };
+        
+        console.log('Sending Level 1 data:', {
+          ...mappedData,
+          profile_image: mappedData.profile_image ? `${mappedData.profile_image.name} (${mappedData.profile_image.type})` : 'No file',
+          banner_image: mappedData.banner_image ? `${mappedData.banner_image.name} (${mappedData.banner_image.type})` : 'No file',
+          show_phone_on_profile: mappedData.show_phone_on_profile,
+          show_phone_on_profile_type: typeof mappedData.show_phone_on_profile
+        });
+        
+        const response = await createSellerLevel1(mappedData);
+        if (response.data && response.data.store_id) {
+          setStoreId(response.data.store_id);
+          setActiveTab("Level 2");
+        }
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create store';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save Level 1 details';
       setError(errorMessage);
       console.error('Level 1 error:', error);
     } finally {
@@ -116,7 +162,8 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
     cacDocument?: File;
     utilityBill?: File;
   }) => {
-    if (!storeId) {
+    const currentStoreId = storeId ?? (initialStoreData?.id ? Number(initialStoreData.id) : null);
+    if (!currentStoreId || Number.isNaN(currentStoreId)) {
       setError('Store ID not found. Please complete Level 1 first.');
       return;
     }
@@ -124,21 +171,37 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const mappedData = {
-        store_id: storeId,
-        business_name: level2Data.businessName,
-        business_type: level2Data.businessType,
-        nin_number: level2Data.ninNumber,
-        cac_number: level2Data.cacNumber,
-        nin_document: level2Data.ninDocument,
-        cac_document: level2Data.cacDocument,
-        utility_bill: level2Data.utilityBill
-      };
-      
-      await createSellerLevel2(mappedData);
-      setActiveTab("Level 3");
+      if (editMode) {
+        const updatePayload: Parameters<typeof updateSellerLevel2>[0] = {
+          store_id: currentStoreId,
+        };
+
+        if (level2Data.businessName) updatePayload.business_name = level2Data.businessName;
+        if (level2Data.businessType) updatePayload.business_type = level2Data.businessType;
+        if (level2Data.ninNumber) updatePayload.nin_number = level2Data.ninNumber;
+        if (level2Data.cacNumber) updatePayload.cac_number = level2Data.cacNumber;
+        if (level2Data.ninDocument) updatePayload.nin_document = level2Data.ninDocument;
+        if (level2Data.cacDocument) updatePayload.cac_document = level2Data.cacDocument;
+        if (level2Data.utilityBill) updatePayload.utility_bill = level2Data.utilityBill;
+
+        await updateSellerLevel2(updatePayload);
+      } else {
+        const mappedData = {
+          store_id: currentStoreId,
+          business_name: level2Data.businessName,
+          business_type: level2Data.businessType,
+          nin_number: level2Data.ninNumber,
+          cac_number: level2Data.cacNumber,
+          nin_document: level2Data.ninDocument,
+          cac_document: level2Data.cacDocument,
+          utility_bill: level2Data.utilityBill
+        };
+        
+        await createSellerLevel2(mappedData);
+        setActiveTab("Level 3");
+      }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to complete Level 2';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save Level 2 details';
       setError(errorMessage);
       console.error('Level 2 error:', error);
     } finally {
@@ -167,7 +230,8 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
       is_free: boolean;
     }>;
   }) => {
-    if (!storeId) {
+    const currentStoreId = storeId ?? (initialStoreData?.id ? Number(initialStoreData.id) : null);
+    if (!currentStoreId || Number.isNaN(currentStoreId)) {
       setError('Store ID not found. Please complete Level 1 first.');
       return;
     }
@@ -175,17 +239,34 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const mappedData = {
-        store_id: storeId,
-        has_physical_store: level3Data.has_physical_store,
-        store_video: level3Data.store_video,
-        utility_bill: level3Data.utility_bill,
-        theme_color: level3Data.theme_color,
-        addresses: level3Data.addresses || [],
-        delivery_pricing: level3Data.delivery_pricing || []
-      };
-      
-      await createSellerLevel3(mappedData);
+      if (editMode) {
+        const updatePayload: Parameters<typeof updateSellerLevel3>[0] = {
+          store_id: currentStoreId,
+        };
+
+        if (typeof level3Data.has_physical_store === 'boolean') {
+          updatePayload.has_physical_store = level3Data.has_physical_store;
+        }
+        if (level3Data.store_video) updatePayload.store_video = level3Data.store_video;
+        if (level3Data.utility_bill) updatePayload.utility_bill = level3Data.utility_bill;
+        if (level3Data.theme_color) updatePayload.theme_color = level3Data.theme_color;
+        if (level3Data.addresses) updatePayload.addresses = level3Data.addresses;
+        if (level3Data.delivery_pricing) updatePayload.delivery_pricing = level3Data.delivery_pricing;
+
+        await updateSellerLevel3(updatePayload);
+      } else {
+        const mappedData = {
+          store_id: currentStoreId,
+          has_physical_store: level3Data.has_physical_store,
+          store_video: level3Data.store_video,
+          utility_bill: level3Data.utility_bill,
+          theme_color: level3Data.theme_color,
+          addresses: level3Data.addresses || [],
+          delivery_pricing: level3Data.delivery_pricing || []
+        };
+        
+        await createSellerLevel3(mappedData);
+      }
       
       // Proceed to saved address modal or close
       if (onProceedToSavedAddress) {
@@ -194,7 +275,7 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
         onClose();
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to complete Level 3';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save Level 3 details';
       setError(errorMessage);
       console.error('Level 3 error:', error);
     } finally {
@@ -285,6 +366,7 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
                 onSaveAndClose={onClose}
                 onProceed={handleLevel2Complete}
                 isLoading={isLoading}
+                editMode={editMode}
               />
             )}
             {activeTab === "Level 3" && (
@@ -292,6 +374,7 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
                 onSaveAndClose={onClose}
                 onProceed={handleLevel3Complete}
                 isLoading={isLoading}
+                editMode={editMode}
               />
             )}
           </div>

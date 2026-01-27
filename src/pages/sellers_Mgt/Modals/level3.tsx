@@ -10,7 +10,13 @@ interface Level3Props {
   isLoading?: boolean;
 }
 
-const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = false }) => {
+const Level3: React.FC<Level3Props> = ({
+  onSaveAndClose,
+  onProceed,
+  isLoading = false,
+  /** When true (edit from Store Details), all fields should be optional */
+  editMode = false,
+}) => {
   // Separate dropdown states for each dropdown
   const [dropdownStates, setDropdownStates] = useState({
     businessType: false,
@@ -169,6 +175,12 @@ const Level3: React.FC<Level3Props> = ({ onSaveAndClose, onProceed, isLoading = 
 
   // Form validation
   const validateForm = () => {
+    // In edit mode, allow proceeding without requiring any fields.
+    if (editMode) {
+      setErrors({});
+      return true;
+    }
+
     const newErrors: typeof errors = {};
 
     // Validation logic removed to make fields optional
