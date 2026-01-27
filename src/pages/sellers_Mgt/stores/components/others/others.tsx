@@ -3,9 +3,11 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSellerCoupons, createSellerCoupon, updateSellerCoupon, deleteSellerCoupon, getSellerLoyaltySettings, updateSellerLoyaltySettings, getSellerLoyaltyCustomers } from "../../../../../utils/queries/users";
+import { getSellerDetails } from "../../../../../utils/queries/users";
 import NewCoupon from "../../../Modals/newCoupon";
 import PointsSettings from "../../../Modals/pointsSettings";
 import NewUser from "../../../Modals/newUser";
+import AccountOfficerAssignment from "../../storeDetails/components/AccountOfficerAssignment";
 
 const Others = () => {
   const { storeId } = useParams<{ storeId: string }>();
@@ -55,6 +57,25 @@ const Others = () => {
     },
     enabled: !!storeId && activeTab === "Points",
   });
+
+  // Fetch store details to get account officer info
+  const { data: storeDetailsData } = useQuery({
+    queryKey: ['sellerDetails', storeId],
+    queryFn: () => {
+      if (!storeId) return Promise.reject(new Error('Store ID is required'));
+      return getSellerDetails(storeId);
+    },
+    enabled: !!storeId,
+  });
+
+  // Extract account officer from store details
+  const accountOfficer = storeDetailsData?.data?.store_info?.account_officer
+    ? {
+        id: storeDetailsData.data.store_info.account_officer.id,
+        name: storeDetailsData.data.store_info.account_officer.full_name || storeDetailsData.data.store_info.account_officer.name,
+        email: storeDetailsData.data.store_info.account_officer.email,
+      }
+    : null;
 
   // Create coupon mutation
   const createCouponMutation = useMutation({
@@ -512,6 +533,17 @@ const Others = () => {
             </div>
           </div>
         </div>
+
+        {/* Account Officer Assignment */}
+        {storeId && (
+          <AccountOfficerAssignment
+            storeId={storeId}
+            currentAccountOfficer={accountOfficer}
+            onUpdate={() => {
+              queryClient.invalidateQueries({ queryKey: ['sellerDetails', storeId] });
+            }}
+          />
+        )}
 
         <NewCoupon
           isOpen={showCouponModal}

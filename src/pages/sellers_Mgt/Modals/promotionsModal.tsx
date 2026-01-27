@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminPromotionDetails } from "../../../utils/queries/users";
 import { STORAGE_DOMAIN } from "../../../config/apiConfig";
+import EditPromotionModal from "./editPromotionModal";
 
 interface Promotion {
   id: string;
@@ -53,6 +54,7 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
     additionalDays: "",
     additionalBudget: "",
   });
+  const [showEditModal, setShowEditModal] = useState(false);
   const approvalStatusOptions = ["pending", "approved", "active", "stopped", "rejected", "completed"];
 
   const toggleDropdown = (dropdownName: keyof typeof dropdownStates) => {
@@ -293,7 +295,10 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
               </div>
             </div>
             <div className="mt-5 flex flex-row gap-3">
-              <div className="border border-[#B8B8B8] rounded-xl p-4">
+              <div 
+                className="border border-[#B8B8B8] rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => setShowEditModal(true)}
+              >
                 <img className="cursor-pointer" src={images.edit1} alt="Edit" />
               </div>
               <div className="border border-[#B8B8B8] rounded-xl p-4">
@@ -404,6 +409,24 @@ const PromotionsModal: React.FC<PromotionsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Edit Promotion Modal */}
+      {showEditModal && promotionDetails?.data?.promotion_info && (
+        <EditPromotionModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          promotionId={promotion!.id}
+          promotionData={{
+            start_date: promotionDetails.data.promotion_info.start_date,
+            duration: promotionDetails.data.promotion_info.duration,
+            budget: promotionDetails.data.promotion_info.budget,
+            location: promotionDetails.data.promotion_info.location,
+            status: promotionDetails.data.promotion_info.status,
+            payment_method: promotionDetails.data.promotion_info.payment_method,
+            payment_status: promotionDetails.data.promotion_info.payment_status,
+          }}
+        />
+      )}
     </>
   );
 };

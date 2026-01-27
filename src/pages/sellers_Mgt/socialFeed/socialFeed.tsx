@@ -6,7 +6,6 @@ import StatCardGrid from "../../../components/StatCardGrid";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminSocialFeed, getAdminSocialFeedStatistics } from "../../../utils/queries/users";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -163,15 +162,15 @@ const SocialFeed = () => {
 
   // Fetch social feed data
   const { data: socialFeedData, isLoading: isLoadingPosts, error: postsError } = useQuery({
-    queryKey: ['adminSocialFeed', currentPage],
-    queryFn: () => getAdminSocialFeed(currentPage),
+    queryKey: ['adminSocialFeed', currentPage, selectedPeriod],
+    queryFn: () => getAdminSocialFeed(currentPage, selectedPeriod),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch statistics
   const { data: statisticsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['adminSocialFeedStatistics'],
-    queryFn: getAdminSocialFeedStatistics,
+    queryKey: ['adminSocialFeedStatistics', selectedPeriod],
+    queryFn: () => getAdminSocialFeedStatistics(selectedPeriod),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
@@ -180,8 +179,8 @@ const SocialFeed = () => {
     setShowModal(true);
   };
 
-  // Transform API data to component format
-  const allPosts = useMemo(() => {
+  // Transform API data to component format (backend handles period filtering)
+  const posts = useMemo(() => {
     if (!socialFeedData?.data?.posts) return [];
 
     return socialFeedData.data.posts.map((post: any) => ({
@@ -204,15 +203,6 @@ const SocialFeed = () => {
       date: post.date || null,
     }));
   }, [socialFeedData]);
-  
-  // Filter posts by selected period
-  const posts = useMemo(() => {
-    return filterByPeriod(
-      allPosts,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'date']
-    );
-  }, [allPosts, selectedPeriod]);
 
   // Unique store options for dropdown
   const storeOptions = useMemo(

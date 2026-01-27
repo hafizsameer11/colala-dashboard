@@ -54,18 +54,18 @@ const Transactions = () => {
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // period/date filter
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("Today");
+  // period/date filter - default to "All time" so we don't hide existing data
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
 
   // Date period options
   const datePeriodOptions = [
+    "All time",
     "Today",
     "This Week",
     "Last Month",
     "Last 6 Months",
     "Last Year",
-    "All time"
   ];
 
   // Helper function to filter transactions by period
@@ -199,7 +199,7 @@ const Transactions = () => {
       <PageHeader 
         title="Transactions - Stores" 
         onPeriodChange={handlePeriodChange}
-        defaultPeriod="Today"
+        defaultPeriod="All time"
         timeOptions={datePeriodOptions}
       />
 

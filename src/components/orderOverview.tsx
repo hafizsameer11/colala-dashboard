@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bulkActionBuyerOrders } from "../utils/queries/users";
 import { useToast } from "../contexts/ToastContext";
+import { usePermissions } from "../hooks/usePermissions";
 import images from "../constants/images";
 
 interface OrderData {
@@ -29,6 +30,11 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({ orderData, onStatusChan
   const [selectedStatus, setSelectedStatus] = useState("Change Status");
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  
+  // Check permissions for actions
+  const canUpdateStatus = hasPermission('buyer_orders.update_status') || hasPermission('seller_orders.update_status');
+  const canDelete = hasPermission('buyer_orders.delete') || hasPermission('seller_orders.delete');
 
   // Status mapping from UI to backend values
   const statusMapping: Record<string, string> = {
@@ -139,6 +145,15 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({ orderData, onStatusChan
     });
   };
 
+  // Don't show status dropdown if user can't update status
+  if (!canUpdateStatus) {
+    return (
+      <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-4 text-center">
+        <span className="text-gray-500 text-sm">View only - No permission to update status</span>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full">
       <button
@@ -186,30 +201,38 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({ orderData, onStatusChan
         </div>
       )}
 
-      {/* Quick Action Buttons */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          onClick={handleMarkCompleted}
-          disabled={bulkActionMutation.isPending}
-          className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
-        >
-          Mark Completed
-        </button>
-        <button
-          onClick={handleMarkDisputed}
-          disabled={bulkActionMutation.isPending}
-          className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
-        >
-          Mark Disputed
-        </button>
-        <button
-          onClick={handleDeleteOrder}
-          disabled={bulkActionMutation.isPending}
-          className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
-        >
-          Delete Order
-        </button>
-      </div>
+      {/* Quick Action Buttons - Only show if user has permissions */}
+      {(canUpdateStatus || canDelete) && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canUpdateStatus && (
+            <>
+              <button
+                onClick={handleMarkCompleted}
+                disabled={bulkActionMutation.isPending}
+                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
+              >
+                Mark Completed
+              </button>
+              <button
+                onClick={handleMarkDisputed}
+                disabled={bulkActionMutation.isPending}
+                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
+              >
+                Mark Disputed
+              </button>
+            </>
+          )}
+          {canDelete && (
+            <button
+              onClick={handleDeleteOrder}
+              disabled={bulkActionMutation.isPending}
+              className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-sm font-medium"
+            >
+              Delete Order
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

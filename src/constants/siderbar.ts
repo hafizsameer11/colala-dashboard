@@ -6,5 +6,6 @@ export const Sidebar_links = [
     link: "/dashboard",
     icon: images.dashboard,
     sublinks: [],
+    permission: "dashboard.view", // Required permission to view this menu item
   },
 ];

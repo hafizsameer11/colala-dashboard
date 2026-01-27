@@ -1,6 +1,7 @@
 import images from "../../../constants/images";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
+import { STORAGE_DOMAIN } from "../../../config/apiConfig";
 
 interface Level2Props {
   onSaveAndClose: () => void;
@@ -16,6 +17,19 @@ interface Level2Props {
   isLoading?: boolean;
   /** When true (edit from Store Details), all fields should be optional */
   editMode?: boolean;
+  /** Optional initial data when editing an existing store */
+  initialData?: {
+    registered_name?: string;
+    business_name?: string;
+    businessType?: string;
+    business_type?: string;
+    nin_number?: string;
+    cac_number?: string | null;
+    bn_number?: string | null;
+    nin_document?: string | null;
+    cac_document?: string | null;
+    utility_bill?: string | null;
+  } | null;
 }
 
 const Level2: React.FC<Level2Props> = ({
@@ -23,6 +37,7 @@ const Level2: React.FC<Level2Props> = ({
   onProceed,
   isLoading = false,
   editMode = false,
+  initialData = null,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedbusinessTypes, setSelectedbusinessTypes] = useState("");
@@ -37,20 +52,58 @@ const Level2: React.FC<Level2Props> = ({
   const [ninSlipPreview, setNinSlipPreview] = useState<string>("");
   const [cacCertificatePreview, setCacCertificatePreview] =
     useState<string>("");
+  const [existingNinUrl, setExistingNinUrl] = useState<string>("");
+  const [existingCacUrl, setExistingCacUrl] = useState<string>("");
+  const [existingUtilityUrl, setExistingUtilityUrl] = useState<string>("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const ninSlipInputRef = useRef<HTMLInputElement>(null);
   const cacCertificateInputRef = useRef<HTMLInputElement>(null);
 
-  // Load data from localStorage on component mount
+  // Load data for the form
   useEffect(() => {
-    const savedData = localStorage.getItem("level2FormData");
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      setFormData(parsedData);
-      setSelectedbusinessTypes(parsedData.businessType || "");
+    // For regular create flow, hydrate from localStorage
+    if (!editMode) {
+      const savedData = localStorage.getItem("level2FormData");
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setFormData(parsedData);
+        setSelectedbusinessTypes(parsedData.businessType || "");
+      }
+      return;
     }
-  }, []);
+
+    // For edit flow, pre-fill from backend business_details
+    if (editMode && initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        businessName:
+          initialData.registered_name ||
+          initialData.business_name ||
+          prev.businessName,
+        businessType:
+          initialData.business_type ||
+          initialData.businessType ||
+          prev.businessType,
+        ninNumber: initialData.nin_number || prev.ninNumber,
+        // Prefer CAC number, but fall back to BN number if needed
+        cacNumber:
+          (initialData.cac_number as string | null) ||
+          (initialData.bn_number as string | null) ||
+          prev.cacNumber,
+      }));
+      setSelectedbusinessTypes(
+        initialData.business_type || initialData.businessType || ""
+      );
+
+      // Pre-compute existing document URLs for preview (without binding to file inputs)
+      const toUrl = (path?: string | null) =>
+        path ? `${STORAGE_DOMAIN}/${path}` : "";
+      setExistingNinUrl(toUrl(initialData.nin_document || null));
+      setExistingCacUrl(toUrl(initialData.cac_document || null));
+      setExistingUtilityUrl(toUrl(initialData.utility_bill || null));
+    }
+  }, [editMode, initialData]);
 
   const businessTypes = [
     "BN", // Business Name
@@ -273,6 +326,64 @@ const Level2: React.FC<Level2Props> = ({
                 <p className="text-red-500 text-sm mt-1">{errors.cacNumber}</p>
               )}
             </div>
+
+            {/* Existing document previews (edit mode only) */}
+            {editMode && (existingNinUrl || existingCacUrl || existingUtilityUrl) && (
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {existingNinUrl && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Current NIN Slip</p>
+                    <a
+                      href={existingNinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block border border-dashed border-gray-300 rounded-2xl overflow-hidden"
+                    >
+                      <img
+                        src={existingNinUrl}
+                        alt="Current NIN slip"
+                        className="w-full h-32 object-cover"
+                      />
+                    </a>
+                  </div>
+                )}
+                {existingCacUrl && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Current CAC Document</p>
+                    <a
+                      href={existingCacUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block border border-dashed border-gray-300 rounded-2xl overflow-hidden"
+                    >
+                      <img
+                        src={existingCacUrl}
+                        alt="Current CAC document"
+                        className="w-full h-32 object-cover"
+                      />
+                    </a>
+                  </div>
+                )}
+                {existingUtilityUrl && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Current Utility Bill</p>
+                    <a
+                      href={existingUtilityUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block border border-dashed border-gray-300 rounded-2xl overflow-hidden"
+                    >
+                      <img
+                        src={existingUtilityUrl}
+                        alt="Current utility bill"
+                        className="w-full h-32 object-cover"
+                      />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mt-5">
               <label htmlFor="ninSlip" className="text-lg font-semibold">
                 Upload NIN Slip <span className="text-gray-400 text-sm font-normal">(Optional)</span>

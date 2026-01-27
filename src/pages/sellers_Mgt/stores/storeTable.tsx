@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import images from "../../../constants/images";
 import { useToast } from "../../../contexts/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 import { apiCall } from "../../../utils/customApiCall";
 import Cookies from "js-cookie";
 import { deleteStore } from "../../../utils/queries/users";
@@ -50,13 +51,22 @@ interface DotsDropdownProps {
   onActionSelect?: (action: string) => void;
   store: Store;
   onStoreDeleted?: (storeId: string) => void;
+  onAssignAccountOfficer?: (store: Store) => void;
 }
 
-const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onStoreDeleted }) => {
+const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onStoreDeleted, onAssignAccountOfficer }) => {
   const [isDotsDropdownOpen, setIsDotsDropdownOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { hasPermission, hasRole } = usePermissions();
+  
+  // Check permissions for actions
+  const canBlock = hasPermission('sellers.suspend');
+  const canBan = hasPermission('sellers.remove');
+  const canDelete = hasPermission('sellers.delete');
+  // Account officers should NEVER be able to assign account officers, even if they have the permission
+  const canAssignAccountOfficer = hasPermission('sellers.assign_account_officer') && !hasRole('account_officer');
 
   // Seller block/unblock mutation
   const toggleBlockMutation = useMutation({
@@ -147,6 +157,8 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
       }
     } else if (action === 'Delete store') {
       setShowDeleteConfirm(true);
+    } else if (action === 'Assign Account Officer') {
+      onAssignAccountOfficer?.(store);
     }
     
     onActionSelect?.(action);
@@ -160,12 +172,25 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
     setShowDeleteConfirm(false);
   };
 
-  const DotsActions = ["Block user", "Ban user", "Delete store"];
+  // Filter actions based on permissions
+  const allActions = [
+    { name: "Assign Account Officer", permission: canAssignAccountOfficer },
+    { name: "Block user", permission: canBlock },
+    { name: "Ban user", permission: canBan },
+    { name: "Delete store", permission: canDelete },
+  ];
+  const DotsActions = allActions.filter(action => action.permission).map(action => action.name);
+  
   const actionIcons: Record<string, string> = {
     "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
     "Delete store": "/assets/layout/ban.svg",
   };
+  
+  // If no permissions, don't show dropdown
+  if (DotsActions.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -184,18 +209,21 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
                 onClick={() => handleDropdownAction(action)}
                 disabled={toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending}
                 className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
-                  action === "Ban user" || action === "Delete store" ? "text-[#FF0000]" : "text-black"
+                  action === "Ban user" || action === "Delete store" ? "text-[#FF0000]" : 
+                  action === "Assign Account Officer" ? "text-[#1DB61D]" : "text-black"
                 } font-medium ${
                   toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending
                     ? 'opacity-50 cursor-not-allowed' 
                     : 'cursor-pointer'
                 }`}
               >
-                <img
-                  src={actionIcons[action]}
-                  alt={`${action} icon`}
-                  className="w-4 h-4"
-                />
+                {actionIcons[action] && (
+                  <img
+                    src={actionIcons[action]}
+                    alt={`${action} icon`}
+                    className="w-4 h-4"
+                  />
+                )}
                 <span>
                   {action === 'Block user' && toggleBlockMutation.isPending ? 'Processing...' :
                    action === 'Ban user' && removeSellerMutation.isPending ? 'Processing...' :
@@ -317,6 +345,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
   onPageChange,
   isLoading = false,
   error,
+  onAssignAccountOfficer,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -511,6 +540,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
                               setSelectedRows(prev => prev.filter(id => id !== storeId));
                               console.log(`Store ${storeId} deleted and data refreshed`);
                             }}
+                            onAssignAccountOfficer={onAssignAccountOfficer}
                           />
                         </td>
                       </tr>
@@ -560,6 +590,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
                           onActionSelect={(action) =>
                             console.log(`Action ${action} for store ${store.id}`)
                           }
+                          onAssignAccountOfficer={onAssignAccountOfficer}
                           onStoreDeleted={(storeId) => {
                             queryClient.invalidateQueries({ queryKey: ['sellersList'] });
                             queryClient.invalidateQueries({ queryKey: ['sellers'] });

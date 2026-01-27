@@ -15,6 +15,7 @@ const API_ENDPOINTS = {
   ADMIN_ORDERS: {
     List: API_DOMAIN + "/admin/orders", // GET
     Details: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/details`, // GET
+    AcceptOnBehalf: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/accept`, // POST
     UpdateStatus: (storeOrderId: number | string) => `${API_DOMAIN}/admin/orders/${storeOrderId}/status`, // PUT
   },
 
@@ -225,6 +226,7 @@ const API_ENDPOINTS = {
   ADMIN_PROMOTIONS: {
     List: API_DOMAIN + "/admin/promotions", // GET
     Details: (promotionId: number | string) => `${API_DOMAIN}/admin/promotions/${promotionId}/details`, // GET
+    Update: (promotionId: number | string) => `${API_DOMAIN}/admin/promotions/${promotionId}`, // PUT
     UpdateStatus: (promotionId: number | string) => `${API_DOMAIN}/admin/promotions/${promotionId}/status`, // PUT
     Extend: (promotionId: number | string) => `${API_DOMAIN}/admin/promotions/${promotionId}/extend`, // POST
   },
@@ -268,6 +270,7 @@ const API_ENDPOINTS = {
     UpdateStatus: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/kyc-status`, // PUT
     UpdateLevel: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/level`, // PUT
     Delete: (storeId: number | string) => `${API_DOMAIN}/admin/stores-delete/${storeId}`, // POST
+    AssignAccountOfficer: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/assign-account-officer`, // PUT
   },
 
 
@@ -471,6 +474,30 @@ const API_ENDPOINTS = {
   TERMS: {
     Get: API_DOMAIN + "/admin/terms", // GET
     Update: API_DOMAIN + "/admin/terms", // PUT
+  },
+
+  // RBAC (Role-Based Access Control)
+  RBAC: {
+    MePermissions: API_DOMAIN + "/admin/rbac/me/permissions", // GET
+    Modules: API_DOMAIN + "/admin/rbac/modules", // GET
+    Permissions: API_DOMAIN + "/admin/rbac/permissions", // GET
+    PermissionsByModule: (module: string) => `${API_DOMAIN}/admin/rbac/permissions/module/${module}`, // GET
+    PermissionDetails: (id: number | string) => `${API_DOMAIN}/admin/rbac/permissions/${id}`, // GET
+    Roles: API_DOMAIN + "/admin/rbac/roles", // GET
+    RoleDetails: (id: number | string) => `${API_DOMAIN}/admin/rbac/roles/${id}`, // GET
+    UserRoles: (userId: number | string) => `${API_DOMAIN}/admin/rbac/users/${userId}/roles`, // GET
+    AssignUserRoles: (userId: number | string) => `${API_DOMAIN}/admin/rbac/users/${userId}/roles`, // POST
+    UserPermissions: (userId: number | string) => `${API_DOMAIN}/admin/rbac/users/${userId}/permissions`, // GET
+    CheckPermission: (userId: number | string) => `${API_DOMAIN}/admin/rbac/users/${userId}/check-permission`, // POST
+    UpdateRolePermissions: (id: number | string) => `${API_DOMAIN}/admin/rbac/roles/${id}/permissions`, // POST
+  },
+
+  // ACCOUNT OFFICER
+  ACCOUNT_OFFICER: {
+    List: API_DOMAIN + "/admin/account-officers", // GET
+    Vendors: (id: number | string) => `${API_DOMAIN}/admin/account-officers/${id}/vendors`, // GET
+    MyDashboard: API_DOMAIN + "/admin/account-officers/me/dashboard", // GET
+    MyVendors: API_DOMAIN + "/admin/vendors/assigned-to-me", // GET
   },
   
 };

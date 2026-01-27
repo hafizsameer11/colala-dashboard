@@ -1,10 +1,11 @@
 import images from "../../../constants/images";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAdminOrderDetails, updateOrderStatus } from "../../../utils/queries/users";
+import { acceptAdminOrderOnBehalf, getAdminOrderDetails, updateOrderStatus } from "../../../utils/queries/users";
 import ProductDetails from "../../../components/productDetails";
 import OrderOverview from "./orderOverview";
 import { useToast } from "../../../contexts/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 interface OrderDetailsProps {
   isOpen: boolean;
@@ -32,9 +33,20 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
   const [newStatus, setNewStatus] = useState("");
   const [deliveryCode, setDeliveryCode] = useState("");
   const [statusNotes, setStatusNotes] = useState("");
+  // Accept-on-behalf form
+  const [deliveryFee, setDeliveryFee] = useState<string>("");
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState<string>("");
+  const [deliveryMethod, setDeliveryMethod] = useState<string>("");
+  const [deliveryNotes, setDeliveryNotes] = useState<string>("");
+  const [acceptErrors, setAcceptErrors] = useState<Record<string, string[]>>({});
 
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  
+  // Check permissions for actions
+  const canUpdateStatus = hasPermission('seller_orders.update_status') || hasPermission('buyer_orders.update_status');
+  const canDelete = hasPermission('seller_orders.delete') || hasPermission('buyer_orders.delete');
 
   const { data: orderDetails, isLoading, error } = useQuery({
     queryKey: ['adminOrderDetails', orderId],
@@ -44,6 +56,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
   });
 
   const d = orderDetails?.data;
+  const storeOrderId = d?.id || (d as any)?.store_order_id || orderId;
 
   // Update order status mutation
   const updateStatusMutation = useMutation({
@@ -142,6 +155,46 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
     updateStatusMutation.mutate(statusData);
   };
 
+  // Accept order on behalf of seller
+  const acceptOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!storeOrderId) {
+        throw new Error('Missing store order id');
+      }
+
+      const payload = {
+        delivery_fee: Number(deliveryFee),
+        estimated_delivery_date: estimatedDeliveryDate || undefined,
+        delivery_method: deliveryMethod || undefined,
+        delivery_notes: deliveryNotes || undefined,
+      };
+
+      return acceptAdminOrderOnBehalf(storeOrderId, payload);
+    },
+    onSuccess: () => {
+      setAcceptErrors({});
+      queryClient.invalidateQueries({ queryKey: ['adminOrderDetails', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['buyerOrders'] });
+      showToast('Order accepted successfully by admin on behalf of seller', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to accept order on behalf of seller:', error);
+      const backendErrors =
+        error?.data?.errors ||
+        error?.response?.data?.errors ||
+        error?.errors ||
+        {};
+      setAcceptErrors(backendErrors);
+      const message =
+        error?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to accept order on behalf of seller';
+      showToast(message, 'error');
+    },
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -216,8 +269,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
             </div>
           </div>
 
-          {/* Status Update Section */}
-          {d && (
+          {/* Status Update Section - Only show if user has permission */}
+          {d && canUpdateStatus && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-semibold">Order Status Management</h3>
@@ -239,6 +292,106 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ isOpen, onClose, orderId, o
                   {d.status?.replace('_', ' ').toUpperCase()}
                 </span>
               </div>
+
+              {/* Accept-on-behalf form: only show when status is pending_acceptance */}
+              {d.status === 'pending_acceptance' && (
+                <div className="mt-4 border-t border-gray-200 pt-4">
+                  <h4 className="text-md font-semibold mb-2">Accept Order On Behalf of Seller</h4>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Set delivery fee and optional delivery details. This calls the new
+                    admin route to accept the order on behalf of the seller.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Delivery Fee (₦)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={deliveryFee}
+                        onChange={(e) => setDeliveryFee(e.target.value)}
+                        placeholder="e.g. 1500"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {acceptErrors?.delivery_fee && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {acceptErrors.delivery_fee[0]}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Estimated Delivery Date (optional)
+                      </label>
+                      <input
+                        type="date"
+                        value={estimatedDeliveryDate}
+                        onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {acceptErrors?.estimated_delivery_date && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {acceptErrors.estimated_delivery_date[0]}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Delivery Method (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryMethod}
+                        onChange={(e) => setDeliveryMethod(e.target.value)}
+                        placeholder="e.g. Door delivery"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {acceptErrors?.delivery_method && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {acceptErrors.delivery_method[0]}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Delivery Notes (optional)
+                      </label>
+                      <textarea
+                        value={deliveryNotes}
+                        onChange={(e) => setDeliveryNotes(e.target.value)}
+                        placeholder="Deliver between 9-5"
+                        rows={3}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {acceptErrors?.delivery_notes && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {acceptErrors.delivery_notes[0]}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => acceptOrderMutation.mutate()}
+                      disabled={
+                        !deliveryFee ||
+                        Number(deliveryFee) < 0 ||
+                        acceptOrderMutation.isPending
+                      }
+                      className="w-full bg-[#E53E3E] text-white py-2 px-4 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {acceptOrderMutation.isPending
+                        ? 'Accepting...'
+                        : 'Accept Order On Behalf'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {showStatusUpdate && (
                 <div className="space-y-3">

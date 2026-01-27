@@ -367,6 +367,7 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
                 onProceed={handleLevel2Complete}
                 isLoading={isLoading}
                 editMode={editMode}
+                initialData={initialStoreData?.businessDetails}
               />
             )}
             {activeTab === "Level 3" && (

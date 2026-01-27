@@ -540,3 +540,40 @@ export const rejectOnboardingField = async (
     throw error;
   }
 };
+
+/**
+ * Assign or unassign account officer to a store
+ * @param storeId - The ID of the store
+ * @param accountOfficerId - The ID of the account officer (null to unassign)
+ */
+export const assignAccountOfficerToStore = async (
+  storeId: number | string,
+  accountOfficerId: number | string | null
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  try {
+    const payload: { account_officer_id?: number | string | null } = {};
+    
+    if (accountOfficerId !== null) {
+      payload.account_officer_id = accountOfficerId;
+    } else {
+      payload.account_officer_id = null;
+    }
+
+    const response = await apiCall(
+      API_ENDPOINTS.ADMIN_STORES.AssignAccountOfficer(storeId),
+      'PUT',
+      payload,
+      token
+    );
+
+    return response;
+  } catch (error) {
+    console.error('Assign account officer API call error:', error);
+    throw error;
+  }
+};

@@ -6,7 +6,6 @@ import AllUsersTable from "./components/allUsersTable";
 import UserBalanceDetailsModal from "./components/userBalanceDetailsModal";
 import { useQuery } from "@tanstack/react-query";
 import { getBalanceData } from "../../../utils/queries/users";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
@@ -38,8 +37,8 @@ const Balance = () => {
 
   // Fetch balance data
   const { data: balanceData, isLoading, error } = useQuery({
-    queryKey: ['balanceData', currentPage],
-    queryFn: () => getBalanceData(currentPage),
+    queryKey: ['balanceData', currentPage, selectedPeriod],
+    queryFn: () => getBalanceData(currentPage, selectedPeriod),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
@@ -47,8 +46,8 @@ const Balance = () => {
   const usersRaw = balanceData?.data?.users || [];
   const pagination = balanceData?.data?.pagination;
   
-  // Transform users for export with balance information
-  const usersForExportRaw = useMemo(() => {
+  // Transform users for export with balance information (backend handles period filtering)
+  const usersForExport = useMemo(() => {
     return usersRaw.map((user: any) => ({
       id: user.id?.toString() || '',
       full_name: user.full_name || 'Unknown User',
@@ -72,25 +71,8 @@ const Balance = () => {
     }));
   }, [usersRaw]);
   
-  // Filter users by selected period
-  const usersForExport = useMemo(() => {
-    const filtered = filterByPeriod(
-      usersForExportRaw,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'date', 'createdAt']
-    );
-    return filtered as typeof usersForExportRaw;
-  }, [usersForExportRaw, selectedPeriod]);
-  
-  // Filter original users for table display
-  const users = useMemo(() => {
-    const filtered = filterByPeriod(
-      usersRaw,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'date']
-    );
-    return filtered as typeof usersRaw;
-  }, [usersRaw, selectedPeriod]);
+  // Users for table display (backend handles period filtering)
+  const users = usersRaw;
 
   const TabButtons = () => (
     <div className="flex items-center space-x-0.5 border border-[#989898] rounded-lg p-1.5 sm:p-2 w-fit bg-white overflow-x-auto">
@@ -131,7 +113,7 @@ const Balance = () => {
   
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when period changes
   };
 
   return (

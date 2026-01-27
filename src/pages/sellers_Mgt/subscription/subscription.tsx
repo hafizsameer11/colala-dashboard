@@ -8,7 +8,6 @@ import ViewPlansModal from "../Modals/viewPlansModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAdminSubscriptions, getAdminSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan } from "../../../utils/queries/users";
 import { useToast } from "../../../contexts/ToastContext";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -75,8 +74,8 @@ const Subscription = () => {
 
   // API data fetching
   const { data: subscriptionsData, isLoading, error } = useQuery({
-    queryKey: ['adminSubscriptions', activeTab, currentPage],
-    queryFn: () => getAdminSubscriptions(currentPage, activeTab === "All" ? undefined : activeTab),
+    queryKey: ['adminSubscriptions', activeTab, currentPage, selectedPeriod],
+    queryFn: () => getAdminSubscriptions(currentPage, activeTab === "All" ? undefined : activeTab, selectedPeriod),
   });
 
   const { data: plansData } = useQuery({
@@ -87,17 +86,8 @@ const Subscription = () => {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // Extract data
-  const allSubscriptions = subscriptionsData?.data?.subscriptions || [];
-  
-  // Filter subscriptions by selected period
-  const subscriptions = useMemo(() => {
-    return filterByPeriod(
-      allSubscriptions,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'start_date', 'end_date', 'date']
-    );
-  }, [allSubscriptions, selectedPeriod]);
+  // Extract data (backend handles period filtering)
+  const subscriptions = subscriptionsData?.data?.subscriptions || [];
   
   const statistics = subscriptionsData?.data?.statistics || {};
   const pagination = subscriptionsData?.data?.pagination;

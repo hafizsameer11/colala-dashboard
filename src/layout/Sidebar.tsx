@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LinkComp from "./components/Link";
 import { Sidebar_links } from "../constants/siderbar";
@@ -7,6 +7,7 @@ import { Sellers_links } from "../constants/Sellers";
 import { General_links } from "../constants/general";
 import images from "../constants/images";
 import { useAuth } from "../contexts/AuthContext";
+import { hasPermission } from "../utils/permissions";
 
 interface SidebarProps {
   setMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -15,13 +16,60 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, permissions, roles } = useAuth();
   const [activeLink, setActiveLink] = useState<string>("/dashboard");
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
     setActiveLink(location.pathname);
   }, [location.pathname]);
+
+  // Filter menu items based on permissions (admin/super_admin have all permissions)
+  const filteredSidebarLinks = useMemo(() => {
+    // Get role slugs to check if user is an account officer
+    const roleSlugs = roles.map(r => r.slug);
+    const isAccountOfficer = roleSlugs.includes('account_officer');
+    
+    return Sidebar_links.filter((link) => {
+      // Hide Dashboard from account officers
+      if (isAccountOfficer && link.link === "/dashboard") {
+        return false;
+      }
+      
+      if (!link.permission) return true; // Show if no permission required
+      return hasPermission(permissions, link.permission, roles);
+    });
+  }, [permissions, roles]);
+
+  const filteredBuyerLinks = useMemo(() => {
+    return Buyers_links.filter((link) => {
+      if (!link.permission) return true;
+      return hasPermission(permissions, link.permission, roles);
+    });
+  }, [permissions, roles]);
+
+  const filteredSellerLinks = useMemo(() => {
+    return Sellers_links.filter((link) => {
+      if (!link.permission) return true;
+      return hasPermission(permissions, link.permission, roles);
+    });
+  }, [permissions, roles]);
+
+  const filteredGeneralLinks = useMemo(() => {
+    // Get role slugs to check if user is an account officer
+    const roleSlugs = roles.map(r => r.slug);
+    const isAccountOfficer = roleSlugs.includes('account_officer');
+    
+    return General_links.filter((link) => {
+      // Hide "Account Officer Vendors" from account officers themselves
+      if (isAccountOfficer && link.link === "/account-officer-vendors") {
+        return false;
+      }
+      
+      if (!link.permission) return true;
+      return hasPermission(permissions, link.permission, roles);
+    });
+  }, [permissions, roles]);
 
   const handleLogout = async () => {
     try {
@@ -77,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
       <nav className="mt-5">
         {/* <h1 className="p-4 text-[20px]" >General</h1> */}
         <ul className="space-y-2">
-          {Sidebar_links.map((x, index) => (
+          {filteredSidebarLinks.map((x, index) => (
             <li key={index}>
               <LinkComp
                 name={x.name}
@@ -95,73 +143,87 @@ const Sidebar: React.FC<SidebarProps> = ({ setMobileOpen }) => {
           ))}
         </ul>
 
-        <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
-          <h1 className="text-[14px] text-white">BUYERS MGT</h1>
-          <div className="bg-white border border-white w-[64.5%] ml-0.5"></div>
-        </div>
-        <ul className="space-y-2">
-          {Buyers_links.map((x, index) => (
-            <li key={index}>
-              <LinkComp
-                name={x.name}
-                link={x.link}
-                icon={x.icon}
-                sub={x.sublinks}
-                isActiveCheck={activeLink === x.link}
-                onClick={() => {
-                  setActiveLink(x.link);
-                  setMobileOpen(false); // Close mobile menu on navigation
-                }}
-                menuStatus={menuOpen}
-              />
-            </li>
-          ))}
-        </ul>
-        <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
-          <h1 className="text-[14px] text-white">SELLERS MGT</h1>
-          <div className="bg-white border border-white w-[63.5%] ml-0.5"></div>
-        </div>
-        <ul className="space-y-2">
-          {Sellers_links.map((x, index) => (
-            <li key={index}>
-              <LinkComp
-                name={x.name}
-                link={x.link}
-                icon={x.icon}
-                sub={x.sublinks}
-                isActiveCheck={activeLink === x.link}
-                onClick={() => {
-                  setActiveLink(x.link);
-                  setMobileOpen(false); // Close mobile menu on navigation
-                }}
-                menuStatus={menuOpen}
-              />
-            </li>
-          ))}
-        </ul>
-        <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
-          <h1 className="text-[14px] text-white">GENERAL</h1>
-          <div className="bg-white border border-white w-[75.5%] ml-0.5"></div>
-        </div>
+        {filteredBuyerLinks.length > 0 && (
+          <>
+            <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
+              <h1 className="text-[14px] text-white">BUYERS MGT</h1>
+              <div className="bg-white border border-white w-[64.5%] ml-0.5"></div>
+            </div>
+            <ul className="space-y-2">
+              {filteredBuyerLinks.map((x, index) => (
+                <li key={index}>
+                  <LinkComp
+                    name={x.name}
+                    link={x.link}
+                    icon={x.icon}
+                    sub={x.sublinks}
+                    isActiveCheck={activeLink === x.link}
+                    onClick={() => {
+                      setActiveLink(x.link);
+                      setMobileOpen(false); // Close mobile menu on navigation
+                    }}
+                    menuStatus={menuOpen}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
-        <ul className="space-y-2">
-          {General_links.map((x, index) => (
-            <li key={index}>
-              <LinkComp
-                name={x.name}
-                link={x.link}
-                icon={x.icon}
-                sub={x.sublinks}
-                isActiveCheck={activeLink === x.link}
-                onClick={() => {
-                  setActiveLink(x.link);
-                  setMobileOpen(false); // Close mobile menu on navigation
-                }}
-                menuStatus={menuOpen}
-              />
-            </li>
-          ))}
-        </ul>
+        {filteredSellerLinks.length > 0 && (
+          <>
+            <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
+              <h1 className="text-[14px] text-white">SELLERS MGT</h1>
+              <div className="bg-white border border-white w-[63.5%] ml-0.5"></div>
+            </div>
+            <ul className="space-y-2">
+              {filteredSellerLinks.map((x, index) => (
+                <li key={index}>
+                  <LinkComp
+                    name={x.name}
+                    link={x.link}
+                    icon={x.icon}
+                    sub={x.sublinks}
+                    isActiveCheck={activeLink === x.link}
+                    onClick={() => {
+                      setActiveLink(x.link);
+                      setMobileOpen(false); // Close mobile menu on navigation
+                    }}
+                    menuStatus={menuOpen}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {filteredGeneralLinks.length > 0 && (
+          <>
+            <div className="flex flex-row justify-center items-center pl-10 mt-5 mb-5">
+              <h1 className="text-[14px] text-white">GENERAL</h1>
+              <div className="bg-white border border-white w-[75.5%] ml-0.5"></div>
+            </div>
+
+            <ul className="space-y-2">
+              {filteredGeneralLinks.map((x, index) => (
+                <li key={index}>
+                  <LinkComp
+                    name={x.name}
+                    link={x.link}
+                    icon={x.icon}
+                    sub={x.sublinks}
+                    isActiveCheck={activeLink === x.link}
+                    onClick={() => {
+                      setActiveLink(x.link);
+                      setMobileOpen(false); // Close mobile menu on navigation
+                    }}
+                    menuStatus={menuOpen}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </nav>
 
       {/* Logout Button */}

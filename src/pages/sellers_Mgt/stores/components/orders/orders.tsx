@@ -124,42 +124,8 @@ const Orders: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="mt-5 flex flex-row gap-2">
-          <div>
-            <TabButtons />
-          </div>
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
-            <div>Today</div>
-            <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-            </div>
-          </div>
-          <div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
-          </div>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search"
-              className="pl-12 pr-6 py-3.5 border border-[#00000080] rounded-lg text-[15px] w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)] placeholder-[#00000080]"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg
-                className="h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+        {/* Local filters (status tabs, date, bulk action, search) have been removed here
+            because the main Orders page already provides these controls at the top. */}
         <div>
           <LatestOrders
             title="Latest Orders"

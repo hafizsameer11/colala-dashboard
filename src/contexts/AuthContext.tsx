@@ -1,20 +1,32 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { loginUser, logoutUser } from '../utils/mutations/auth';
+import { getCurrentUserPermissions } from '../utils/queries/rbac';
 import Cookies from 'js-cookie';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
+  permissions: string[];
+  roles: Role[];
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   loading: boolean;
+  refreshPermissions: () => Promise<void>;
 }
 
 interface User {
   email: string;
   name: string;
   role: string;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  is_active: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,11 +46,27 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Fetch user permissions
+  const fetchPermissions = async () => {
+    try {
+      const response = await getCurrentUserPermissions();
+      if (response?.data) {
+        setPermissions(response.data.permissions || []);
+        setRoles(response.data.roles || []);
+      }
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+      // Don't throw error, just log it - permissions are optional
+    }
+  };
 
   // Check for existing authentication on app load
   useEffect(() => {
-    const checkAuthStatus = () => {
+    const checkAuthStatus = async () => {
       const token = Cookies.get('authToken');
       const userData = Cookies.get('userData');
       
@@ -47,6 +75,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsAuthenticated(true);
+          // Fetch permissions after authentication
+          await fetchPermissions();
         } catch (error) {
           console.error('Error parsing user data:', error);
           Cookies.remove('authToken');
@@ -80,6 +110,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(userData);
         setIsAuthenticated(true);
+        
+        // Fetch permissions after successful login
+        await fetchPermissions();
+        
         setLoading(false);
         return true;
       } else {
@@ -111,15 +145,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       sessionStorage.clear();
       setUser(null);
       setIsAuthenticated(false);
+      setPermissions([]);
+      setRoles([]);
+    }
+  };
+
+  const refreshPermissions = async () => {
+    if (isAuthenticated) {
+      await fetchPermissions();
     }
   };
 
   const value: AuthContextType = {
     isAuthenticated,
     user,
+    permissions,
+    roles,
     login,
     logout,
-    loading
+    loading,
+    refreshPermissions
   };
 
   return (

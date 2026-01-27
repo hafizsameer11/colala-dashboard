@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import ProductDetails from "./productDetails";
 import OrderOverview from "./orderOverview";
 import ProductCart from "./productCart";
-import { getBuyerOrderDetails, releaseBuyerOrderEscrow } from "../utils/queries/users";
+import { acceptAdminOrderOnBehalf, getBuyerOrderDetails, releaseBuyerOrderEscrow } from "../utils/queries/users";
+import { usePermissions } from "../hooks/usePermissions";
 
 interface OrderItem {
   id: number;
@@ -121,6 +122,7 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState<
     "track order" | "full order details"
   >("track order");
@@ -134,6 +136,12 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
   >("overview");
   // Quantity state for the counter
   const [quantity, setQuantity] = useState<number>(1);
+  // Accept-on-behalf form state (admin accepting for seller)
+  const [deliveryFee, setDeliveryFee] = useState<string>("");
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState<string>("");
+  const [deliveryMethod, setDeliveryMethod] = useState<string>("");
+  const [deliveryNotes, setDeliveryNotes] = useState<string>("");
+  const [acceptErrors, setAcceptErrors] = useState<Record<string, string[]>>({});
 
   // Fetch order details from API
   const { data: orderDetailsData, isLoading, error } = useQuery({
@@ -150,6 +158,9 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
   console.log('BuyerOrderDetails - orderData:', orderData);
   console.log('BuyerOrderDetails - first item:', orderData?.items?.[0]);
   console.log('BuyerOrderDetails - complete data:', orderData?.items?.[0]?.complete);
+
+  const storeOrderId = (orderData as any)?.id || (orderData as any)?.store_order_id || orderId;
+  const todayDateString = new Date().toISOString().split("T")[0];
 
   // Mutation: manual escrow release for this store order
   const releaseEscrowMutation = useMutation({
@@ -178,9 +189,48 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
     },
   });
 
-  // Only allow release when the backend indicates the payment is paid
-  const canReleaseEscrow =
-    !!orderData && (orderData as any).payment_status === 'paid';
+  // Check permissions for actions
+  const canReleaseEscrow = hasPermission('buyer_orders.refund') && !!orderData;
+  const canAcceptOrder = hasPermission('buyer_orders.update_status') || hasPermission('seller_orders.update_status');
+
+  // Mutation: admin accepts order on behalf of seller (for pending_acceptance)
+  const acceptOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!storeOrderId) {
+        throw new Error('Missing store order id');
+      }
+
+      const payload = {
+        delivery_fee: Number(deliveryFee),
+        estimated_delivery_date: estimatedDeliveryDate || undefined,
+        delivery_method: deliveryMethod || undefined,
+        delivery_notes: deliveryNotes || undefined,
+      };
+
+      return acceptAdminOrderOnBehalf(storeOrderId, payload);
+    },
+    onSuccess: () => {
+      setAcceptErrors({});
+      queryClient.invalidateQueries({ queryKey: ['buyerOrderDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['buyerOrders'] });
+      alert('Order accepted successfully on behalf of seller.');
+    },
+    onError: (error: any) => {
+      console.error('Failed to accept order on behalf of seller:', error);
+      const backendErrors =
+        error?.data?.errors ||
+        error?.response?.data?.errors ||
+        error?.errors ||
+        {};
+      setAcceptErrors(backendErrors);
+      const message =
+        error?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to accept order on behalf of seller';
+      alert(message);
+    },
+  });
 
   if (!isOpen) return null;
 
@@ -469,6 +519,127 @@ const BuyerOrderDetails: React.FC<BuyerOrderDetailsProps> = ({
                           <div className="flex flex-row border-b border-[#CDCDCD] gap-28 p-2">
                             <span className="text-[#00000080]">Total</span>
                             <span className="font-bold">₦{orderData?.pricing?.subtotal_with_shipping || '0.00'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Accept-on-behalf form: only when status is pending_acceptance and user has permission */}
+                    {!isLoading && !error && orderData?.status === "pending_acceptance" && canAcceptOrder && (
+                      <div className="w-full mt-5">
+                        <div className="bg-[#E53E3E] text-white flex items-center justify-between px-3 py-2 rounded-t-2xl">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/10 text-sm font-semibold">
+                              ✓
+                            </span>
+                            <span className="text-sm sm:text-base font-semibold">
+                              Accept Order On Behalf of Seller
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wide bg-white/10">
+                            Pending acceptance
+                          </span>
+                        </div>
+
+                        <div className="border border-[#CDCDCD] rounded-b-2xl bg-[#FDFDFD] px-3 py-4 space-y-4">
+                          <p className="text-[11px] leading-relaxed text-[#00000099]">
+                            Set the delivery fee and (optionally) delivery details to accept
+                            this order on behalf of the seller. Once accepted, the buyer can
+                            proceed to payment using the updated totals.
+                          </p>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Delivery Fee (₦) <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={deliveryFee}
+                                onChange={(e) => setDeliveryFee(e.target.value)}
+                                placeholder="e.g. 1500"
+                                className="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-[#E53E3E] bg-white"
+                              />
+                              {acceptErrors?.delivery_fee && (
+                                <span className="mt-1 block text-[11px] text-red-600">
+                                  {acceptErrors.delivery_fee[0]}
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Estimated Delivery Date <span className="text-[#00000080]">(optional)</span>
+                              </label>
+                              <input
+                                type="date"
+                                min={todayDateString}
+                                value={estimatedDeliveryDate}
+                                onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
+                                className="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-[#E53E3E] bg-white"
+                              />
+                              {acceptErrors?.estimated_delivery_date && (
+                                <span className="mt-1 block text-[11px] text-red-600">
+                                  {acceptErrors.estimated_delivery_date[0]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Delivery Method <span className="text-[#00000080]">(optional)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={deliveryMethod}
+                                onChange={(e) => setDeliveryMethod(e.target.value)}
+                                placeholder="e.g. Door delivery"
+                                className="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-[#E53E3E] bg-white"
+                              />
+                              {acceptErrors?.delivery_method && (
+                                <span className="mt-1 block text-[11px] text-red-600">
+                                  {acceptErrors.delivery_method[0]}
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Delivery Notes <span className="text-[#00000080]">(optional)</span>
+                              </label>
+                              <textarea
+                                value={deliveryNotes}
+                                onChange={(e) => setDeliveryNotes(e.target.value)}
+                                placeholder="Deliver between 9–5, call on arrival, etc."
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-[#E53E3E] bg-white"
+                              />
+                              {acceptErrors?.delivery_notes && (
+                                <span className="mt-1 block text-[11px] text-red-600">
+                                  {acceptErrors.delivery_notes[0]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="pt-1">
+                            <button
+                              type="button"
+                              onClick={() => acceptOrderMutation.mutate()}
+                              disabled={
+                                !deliveryFee ||
+                                Number(deliveryFee) < 0 ||
+                                acceptOrderMutation.isPending
+                              }
+                              className="w-full h-10 inline-flex items-center justify-center rounded-lg text-sm font-semibold bg-[#E53E3E] text-white hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {acceptOrderMutation.isPending
+                                ? "Accepting order..."
+                                : "Accept Order On Behalf"}
+                            </button>
                           </div>
                         </div>
                       </div>

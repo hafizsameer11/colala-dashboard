@@ -188,31 +188,50 @@ const DisputesTable: React.FC<DisputesTableProps> = ({
     const disputeChat = dispute.dispute_chat;
     const legacyChat = dispute.chat;
     
-    // Check if it's the new structure (dispute_chat)
-    if (disputeChat) {
-      const lastMessage = disputeChat.messages && disputeChat.messages.length > 0 
-        ? disputeChat.messages[disputeChat.messages.length - 1]
-        : null;
-      
-      return {
-        storeName: disputeChat.store?.name || dispute.store_name || dispute.storeName || 'N/A',
-        userName: disputeChat.buyer?.name || dispute.user?.name || dispute.user_name || dispute.userName || 'N/A',
-        lastMessage: lastMessage?.message || dispute.last_message || dispute.lastMessage || 'N/A',
-        chatDate: lastMessage?.created_at 
-          ? new Date(lastMessage.created_at).toLocaleDateString()
-          : dispute.chat_date || dispute.chatDate || 'N/A',
-        wonBy: dispute.won_by || dispute.wonBy || '-'
-      };
+    // Get last message from various sources
+    let lastMessage = null;
+    let chatDate = null;
+    
+    // Priority 1: Check dispute_chat.messages (if available in list response)
+    if (disputeChat?.messages && disputeChat.messages.length > 0) {
+      lastMessage = disputeChat.messages[disputeChat.messages.length - 1];
+      chatDate = lastMessage.created_at;
+    }
+    // Priority 2: Check legacy chat.last_message
+    else if (legacyChat?.last_message) {
+      lastMessage = { message: legacyChat.last_message };
+      chatDate = legacyChat.created_at;
+    }
+    // Priority 3: Check direct dispute fields
+    else if (dispute.last_message) {
+      lastMessage = { message: dispute.last_message };
+      chatDate = dispute.chat_date || dispute.chatDate || dispute.created_at;
     }
     
-    // Fallback to legacy chat structure
+    // Get store name - priority: dispute_chat.store > legacy chat.store_name > direct fields
+    const storeName = disputeChat?.store?.name 
+      || legacyChat?.store_name 
+      || dispute.store_name 
+      || dispute.storeName 
+      || 'N/A';
+    
+    // Get user name - priority: dispute_chat.buyer > legacy chat.user_name > user.name > direct fields
+    const userName = disputeChat?.buyer?.name 
+      || legacyChat?.user_name 
+      || dispute.user?.name 
+      || dispute.user_name 
+      || dispute.userName 
+      || 'N/A';
+    
     return {
-      storeName: legacyChat?.store_name || dispute.store_name || dispute.storeName || 'N/A',
-      userName: legacyChat?.user_name || dispute.user?.name || dispute.user_name || dispute.userName || 'N/A',
-      lastMessage: legacyChat?.last_message || dispute.last_message || dispute.lastMessage || 'N/A',
-      chatDate: legacyChat?.created_at 
-        ? new Date(legacyChat.created_at).toLocaleDateString()
-        : dispute.chat_date || dispute.chatDate || 'N/A',
+      storeName,
+      userName,
+      lastMessage: lastMessage?.message || 'N/A',
+      chatDate: chatDate 
+        ? new Date(chatDate).toLocaleDateString()
+        : (dispute.chat_date || dispute.chatDate || dispute.created_at
+          ? new Date(dispute.chat_date || dispute.chatDate || dispute.created_at || '').toLocaleDateString()
+          : 'N/A'),
       wonBy: dispute.won_by || dispute.wonBy || '-'
     };
   };

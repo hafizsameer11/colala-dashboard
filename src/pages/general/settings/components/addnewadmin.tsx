@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createUser } from "../../../../utils/mutations/users";
+import { getAllRoles, assignUserRoles } from "../../../../utils/queries/rbac";
 import images from "../../../../constants/images";
 
 interface AddNewAdminProps {
@@ -45,6 +46,15 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch all available roles for the dropdown
+  const { data: rolesData } = useQuery({
+    queryKey: ['allRoles'],
+    queryFn: getAllRoles,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const availableRoles = rolesData?.data || [];
+
   const clearAvatar = useCallback(() => {
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatarFile(null);
@@ -74,8 +84,21 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
   // Mutation for creating user
   const createUserMutation = useMutation({
     mutationFn: createUser,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log('User created successfully:', data);
+      
+      // Assign role via RBAC if a role is selected
+      if (formData.role && availableRoles.length > 0) {
+        const role = availableRoles.find((r) => r.slug === formData.role);
+        if (role && data?.data?.user?.id) {
+          try {
+            await assignUserRoles(data.data.user.id, [role.id]);
+          } catch (error) {
+            console.error("Failed to assign role:", error);
+          }
+        }
+      }
+      
       alert('User created successfully!');
       // Call the onAddAdmin callback with the created user data
       onAddAdmin(formData);
@@ -176,10 +199,10 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
     }
 
     // Use mutation to create user
-    // Always set role to "admin" for admin creation
+    // Use the selected role from the form
     createUserMutation.mutate({
       ...formData,
-      role: "admin" as "buyer" | "seller" | "admin",
+      role: formData.role as "buyer" | "seller" | "admin",
       profile_picture: avatarFile || undefined
     });
   };
@@ -421,6 +444,28 @@ const AddNewAdmin: React.FC<AddNewAdminProps> = ({
                 className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent placeholder-gray-400"
                 required
               />
+            </div>
+
+            {/* Role */}
+            <div>
+              <label className="block text-xl font-medium text-[#000] mb-2.5">
+                Role
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                className="w-full p-5 border border-gray-300 rounded-xl text-md focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent capitalize"
+                required
+              >
+                {availableRoles
+                  .filter((r: any) => r.is_active)
+                  .map((role: any) => (
+                    <option key={role.id} value={role.slug}>
+                      {role.name}
+                    </option>
+                  ))}
+              </select>
             </div>
 
             {/* Referral Code */}

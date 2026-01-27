@@ -14,8 +14,9 @@ export const formatCurrency = (amount: number | string | undefined | null): stri
     // Convert to string to handle potential string inputs like "1,200" or "₦1200"
     let numStr = String(amount);
 
-    // Remove existing currency symbols and commas
-    numStr = numStr.replace(/[₦,]/g, "").trim();
+    // Remove any non-numeric characters except digits, decimal point and minus sign
+    // This makes it robust for values like "₦1,200", "N2,000.00", "+1,000", etc.
+    numStr = numStr.replace(/[^\d.-]/g, "").trim();
 
     // Parse to number
     const num = parseFloat(numStr);

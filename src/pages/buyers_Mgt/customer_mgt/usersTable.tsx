@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bulkActionUsers } from "../../../utils/queries/users";
 import { useToast } from "../../../contexts/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 import images from "../../../constants/images";
 
 interface DotsDropdownProps {
@@ -102,6 +103,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   isLoading = false,
   error = null,
 }) => {
+  const { hasPermission, hasRole } = usePermissions();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -285,27 +287,33 @@ const UsersTable: React.FC<UsersTableProps> = ({
             {selectedRows.length} user{selectedRows.length !== 1 ? 's' : ''} selected
           </span>
           <div className="flex gap-2">
-            <button
-              onClick={() => handleBulkAction('activate')}
-              disabled={bulkActionMutation.isPending}
-              className="bg-green-500 hover:bg-green-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
-            >
-              Activate
-            </button>
-            <button
-              onClick={() => handleBulkAction('deactivate')}
-              disabled={bulkActionMutation.isPending}
-              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
-            >
-              Deactivate
-            </button>
-            <button
-              onClick={() => handleBulkAction('delete')}
-              disabled={bulkActionMutation.isPending}
-              className="bg-red-500 hover:bg-red-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
-            >
-              Delete
-            </button>
+            {hasPermission('buyers.edit') && (
+              <>
+                <button
+                  onClick={() => handleBulkAction('activate')}
+                  disabled={bulkActionMutation.isPending}
+                  className="bg-green-500 hover:bg-green-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
+                >
+                  Activate
+                </button>
+                <button
+                  onClick={() => handleBulkAction('deactivate')}
+                  disabled={bulkActionMutation.isPending}
+                  className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
+                >
+                  Deactivate
+                </button>
+              </>
+            )}
+            {hasPermission('buyers.delete') && (
+              <button
+                onClick={() => handleBulkAction('delete')}
+                disabled={bulkActionMutation.isPending}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-123 text-white px-3 py-1 rounded text-sm"
+              >
+                Delete
+              </button>
+            )}
             <button
               onClick={() => {
                 setSelectedRows([]);

@@ -1,7 +1,15 @@
 import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../constants/images";
 import { getProfilePictureUrl } from "../../../../utils/imageUtils";
 import BulkActionDropdown from "../../../../components/BulkActionDropdown";
+import RoleAccessModal from "../../../../components/roleAccessModal";
+import { usePermissions } from "../../../../hooks/usePermissions";
+import { useToast } from "../../../../contexts/ToastContext";
+import { assignUserRoles, getAllRoles } from "../../../../utils/queries/rbac";
+import { apiCall } from "../../../../utils/customApiCall";
+import { API_ENDPOINTS } from "../../../../config/apiConfig";
+import Cookies from "js-cookie";
 
 interface Admin {
   id: number;
@@ -77,10 +85,92 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
   loading = false, 
   error = null 
 }) => {
+  const { hasPermission, hasRole } = usePermissions();
   const [activeTab, setActiveTab] = useState("Admin Management");
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [selectAllActivities, setSelectAllActivities] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    full_name: admin.full_name,
+    email: admin.email,
+    phone: admin.phone,
+    role: admin.role,
+  });
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  
+  const canManageRoles = hasRole("admin") || hasRole("super_admin") || hasPermission("settings.admin_management");
+
+  // Fetch all available roles for the dropdown
+  const { data: rolesData } = useQuery({
+    queryKey: ['allRoles'],
+    queryFn: getAllRoles,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const availableRoles = rolesData?.data || [];
+
+  // Mutation to update admin user
+  const updateAdminMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const token = Cookies.get('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      // Use the all-users update endpoint (admin users are part of all-users)
+      return await apiCall(
+        API_ENDPOINTS.ALL_USERS.Update(admin.id),
+        'POST',
+        formData,
+        token
+      );
+    },
+    onSuccess: async () => {
+      showToast("Admin account updated successfully", "success");
+      setShowEditModal(false);
+      // Update role via RBAC if role changed
+      if (editFormData.role !== admin.role) {
+        const role = availableRoles.find((r) => r.slug === editFormData.role);
+        if (role) {
+          try {
+            await assignUserRoles(admin.id, [role.id]);
+          } catch (error) {
+            console.error("Failed to update role:", error);
+          }
+        }
+      }
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['userDetails', admin.id] });
+    },
+    onError: (error: any) => {
+      console.error("Update admin error:", error);
+      showToast(error?.message || "Failed to update admin account", "error");
+    },
+  });
+
+  const handleEditClick = () => {
+    setEditFormData({
+      full_name: admin.full_name,
+      email: admin.email,
+      phone: admin.phone,
+      role: admin.role,
+    });
+    setShowEditModal(true);
+    setIsActionsDropdownOpen(false);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("full_name", editFormData.full_name);
+    formData.append("email", editFormData.email);
+    formData.append("phone", editFormData.phone);
+    formData.append("role", editFormData.role);
+    updateAdminMutation.mutate(formData);
+  };
 
   const handleBulkActionSelect = (action: string) => {
     // Handle the bulk action selection from the parent component
@@ -234,14 +324,19 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
                   <div className="text-sm text-[#FFFFFF80] opacity-90 mb-4">
                     Account Creation
                   </div>
-                  <div className="font-xs text-[14px]">{admin.dateJoined}</div>
+                  <div className="font-xs text-[14px]">
+                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : "N/A"}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-[0.1] mt-48">
-              <button className="p-2  bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors">
+              <button 
+                onClick={handleEditClick}
+                className="p-2  bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
+              >
                 <img
                   src={images.edit}
                   alt="Edit"
@@ -270,8 +365,24 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
                 </button>
 
                 {isActionsDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-40 bg-white text-gray-900 border border-gray-200 rounded-lg shadow-lg z-10">
-                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 first:rounded-t-lg">
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white text-gray-900 border border-gray-200 rounded-lg shadow-lg z-10">
+                    {canManageRoles && (
+                      <button 
+                        onClick={() => {
+                          setShowRoleModal(true);
+                          setIsActionsDropdownOpen(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 first:rounded-t-lg"
+                      >
+                        <img
+                          src={images.settings}
+                          alt="Manage Roles"
+                          className="w-4 h-4"
+                        />
+                        Manage Roles
+                      </button>
+                    )}
+                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2">
                       <img
                         src="/public/assets/layout/block.svg"
                         alt="Block"
@@ -366,6 +477,117 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Role Access Modal */}
+      {showRoleModal && (
+        <RoleAccessModal
+          isOpen={showRoleModal}
+          onClose={() => setShowRoleModal(false)}
+          userId={admin.id}
+          userName={admin.full_name}
+          userEmail={admin.email}
+        />
+      )}
+
+      {/* Edit Admin Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Edit Admin Account</h2>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.full_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Role
+                </label>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as "admin" | "moderator" | "super_admin" })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E] capitalize"
+                  required
+                >
+                  {availableRoles
+                    .filter((r) => r.is_active)
+                    .map((role) => (
+                      <option key={role.id} value={role.slug}>
+                        {role.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={updateAdminMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={updateAdminMutation.isPending}
+                >
+                  {updateAdminMutation.isPending ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

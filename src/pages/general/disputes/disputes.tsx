@@ -1,6 +1,6 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import DisputesTable from "./components/disputeTable";
 import { getDisputeStatistics, getDisputesList } from "../../../utils/queries/disputes";
@@ -10,20 +10,8 @@ type Tab = "All" | "Pending" | "On Hold" | "Resolved";
 
 const Disputes = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const [selectedPeriod] = useState<string>("All time"); // Fixed to "All time", no filter UI
   const tabs: Tab[] = ["All", "Pending", "On Hold", "Resolved"];
-  
-  // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
 
   // --- Search with debounce ---
   const [searchInput, setSearchInput] = useState("");
@@ -92,38 +80,6 @@ const Disputes = () => {
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Orders:", action);
   };
-
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-  };
-  
-  // Handle local date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-  
-  // Handle local date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
-  };
-  
-  // Close date dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
   
   // Fetch all disputes for export (without pagination to get all data)
   useEffect(() => {
@@ -194,10 +150,7 @@ const Disputes = () => {
   return (
     <>
       <PageHeader 
-        title="Disputes" 
-        onPeriodChange={handlePeriodChange} 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
+        title="Disputes"
       />
 
       <div className="p-3 sm:p-4 md:p-5">
@@ -287,35 +240,6 @@ const Disputes = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
-            </div>
-
-            <div className="relative" ref={dateDropdownRef}>
-              <div 
-                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => handleDatePeriodSelect(option)}
-                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div>

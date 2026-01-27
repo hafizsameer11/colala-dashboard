@@ -131,7 +131,7 @@ const AllUsers = () => {
   const [faqActiveTab, setFaqActiveTab] = useState("All");
   const [isThisWeekDropdownOpen, setIsThisWeekDropdownOpen] = useState(false);
   const thisWeekDropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("This Week");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
   
   // Date period options
   const datePeriodOptions = [
@@ -411,7 +411,7 @@ const AllUsers = () => {
     };
   }, [isDropdownOpen, isThisWeekDropdownOpen]);
 
-  // Filter users by status and date period
+  // Filter users by status (period filter removed for admin management)
   const filteredUsers = useMemo(() => {
     const allUsers = usersData?.data?.data || [];
     
@@ -437,11 +437,9 @@ const AllUsers = () => {
     }
     // "All" means no status filtering
     
-    // Filter by date period
-    const periodFiltered = filterByPeriod(statusFiltered, selectedPeriod, ['created_at', 'formatted_date', 'date']);
-    
-    return periodFiltered;
-  }, [usersData, selectedOption, selectedPeriod]);
+    // Period filtering removed - return all users based on status filter only
+    return statusFiltered;
+  }, [usersData, selectedOption]);
 
   // Paginate filtered users for display
   const perPage = usersData?.data?.per_page || 15;
@@ -454,7 +452,7 @@ const AllUsers = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedOption, selectedPeriod]);
+  }, [selectedOption]);
 
   const handleAddNewAdmin = (adminData: {
     full_name: string;
@@ -602,7 +600,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
         {/* Main Tabs Group */}
         <div className="flex items-center bg-white border border-[#989898] rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-          {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+          {["Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
             (tab) => {
               const isActive = activeTab === tab;
               return (
@@ -622,56 +620,6 @@ const AllUsers = () => {
           )}
         </div>
 
-              {/* This Week Dropdown - Separate */}
-              <div className="relative" ref={thisWeekDropdownRef}>
-                <div className="bg-white border border-[#989898] rounded-lg cursor-pointer">
-                  <button
-                    onClick={() =>
-                      setIsThisWeekDropdownOpen(!isThisWeekDropdownOpen)
-                    }
-                    className="flex items-center p-4 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-xl transition-all duration-200 cursor-pointer"
-                  >
-                    <span className="cursor-pointer">{selectedPeriod}</span>
-                    <svg
-                      className={`w-4 h-4 ml-2 transition-transform duration-200 ${
-                        isThisWeekDropdownOpen ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                {isThisWeekDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                    {datePeriodOptions.map(
-                      (option) => (
-                        <button
-                          key={option}
-                          onClick={() => {
-                            setSelectedPeriod(option);
-                            setIsThisWeekDropdownOpen(false);
-                            setCurrentPage(1); // Reset to first page when period changes
-                          }}
-                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                            selectedPeriod === option ? "bg-gray-50 font-semibold" : ""
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
           <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
@@ -806,6 +754,9 @@ const AllUsers = () => {
                       users={paginatedUsers}
                       newAdmin={newAdminData}
                       onAdminDetails={handleAdminDetails}
+                      onAdminUpdated={() => {
+                        refetchUsers();
+                      }}
                       searchTerm={debouncedSearch}
                       pagination={{
                         currentPage: currentPage,
@@ -826,95 +777,6 @@ const AllUsers = () => {
             </div>
           </div>
         </>
-      ) : activeTab === "General" ? (
-        <>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 md:p-6 bg-white border-b border-t border-[#787878] gap-3 sm:gap-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* Main Tabs Group */}
-              <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-                {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
-                  (tab) => {
-                    const isActive = activeTab === tab;
-                    return (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
-                          isActive
-                            ? "bg-[#E53E3E] text-white"
-                            : "text-gray-700 hover:text-gray-900"
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-
-              {/* This Week Dropdown - Separate */}
-              <div className="relative">
-                <div className="bg-white border border-gray-300 rounded-lg">
-                  <button
-                    onClick={() =>
-                      setIsThisWeekDropdownOpen(!isThisWeekDropdownOpen)
-                    }
-                    className="flex items-center p-4 cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg transition-all duration-200"
-                  >
-                    <span className="cursor-pointer">This Week</span>
-                    <svg
-                      className={`w-4 h-4 ml-2 transition-transform duration-200 ${
-                        isThisWeekDropdownOpen ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                {isThisWeekDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                    {["This Week", "Last Week", "This Month", "Last Month"].map(
-                      (option) => (
-                        <button
-                          key={option}
-                          onClick={() => {
-                            setIsThisWeekDropdownOpen(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                        >
-                          {option}
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="p-3 sm:p-4 md:p-6 bg-gray-50 min-h-screen">
-            <div className="max-w-7xl mx-auto">
-              <div className="mt-4 sm:mt-6 md:mt-8 bg-white border border-gray-300 rounded-2xl p-4 sm:p-5 md:p-6">
-                <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">
-                  General Settings
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600">
-                  General settings will be implemented here.
-                </p>
-              </div>
-            </div>
-          </div>
-        </>
       ) : activeTab === "FAQs" ? (
         <>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 md:p-6 bg-white border-b border-t border-[#787878] gap-3 sm:gap-0">
@@ -923,7 +785,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-                {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+                {["Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (
@@ -1296,7 +1158,7 @@ const AllUsers = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Main Tabs Group */}
               <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1.5 sm:p-2 overflow-x-auto w-full sm:w-auto">
-                {["General", "Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
+                {["Admin Management", "Categories", "Service Categories", "Brands", "FAQs", "Knowledge Base", "Terms"].map(
                   (tab) => {
                     const isActive = activeTab === tab;
                     return (

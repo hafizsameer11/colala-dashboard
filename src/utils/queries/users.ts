@@ -367,13 +367,19 @@ export const getBuyerTransactionDetails = async (transactionId: number | string)
 /**
  * Get balance data with pagination
  */
-export const getBalanceData = async (page: number = 1) => {
+export const getBalanceData = async (page: number = 1, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${API_ENDPOINTS.BALANCE.List}?page=${page}`, 'GET', undefined, token);
+    let url = `${API_ENDPOINTS.BALANCE.List}?page=${page}`;
+    if (period && period !== "All time") {
+      // Convert period format: "This Week" -> "this_week", "Last Month" -> "last_month", etc.
+      const periodParam = period.toLowerCase().replace(/\s+/g, '_');
+      url += `&period=${periodParam}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Balance data API call error:', error);
@@ -935,6 +941,37 @@ export const releaseBuyerOrderEscrow = async (
 
 
 /**
+ * Admin accepts order on behalf of seller
+ */
+export const acceptAdminOrderOnBehalf = async (
+  storeOrderId: number | string,
+  payload: {
+    delivery_fee: number;
+    estimated_delivery_date?: string | null;
+    delivery_method?: string | null;
+    delivery_notes?: string | null;
+  }
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(
+      API_ENDPOINTS.ADMIN_ORDERS.AcceptOnBehalf(storeOrderId),
+      'POST',
+      payload,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error('Accept admin order on behalf API call error:', error);
+    throw error;
+  }
+};
+
+
+/**
  * Update order status
  */
 export const updateOrderStatus = async (storeOrderId: number | string, statusData: any) => {
@@ -995,7 +1032,7 @@ export const getAdminTransactionDetails = async (transactionId: number | string)
 /**
  * Get admin subscriptions with pagination and filtering
  */
-export const getAdminSubscriptions = async (page: number = 1, status?: string) => {
+export const getAdminSubscriptions = async (page: number = 1, status?: string, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1004,6 +1041,11 @@ export const getAdminSubscriptions = async (page: number = 1, status?: string) =
     let url = `${API_ENDPOINTS.ADMIN_SUBSCRIPTIONS.List}?page=${page}`;
     if (status && status !== 'all') {
       url += `&status=${status}`;
+    }
+    if (period && period !== "All time") {
+      // Convert period format: "This Week" -> "this_week", "Last Month" -> "last_month", etc.
+      const periodParam = period.toLowerCase().replace(/\s+/g, '_');
+      url += `&period=${periodParam}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1166,6 +1208,32 @@ export const extendPromotion = async (promotionId: number | string, extendData: 
     return response;
   } catch (error) {
     console.error('Extend promotion API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update promotion details
+ */
+export const updatePromotion = async (promotionId: number | string, updateData: {
+  start_date?: string;
+  duration?: number;
+  budget?: number;
+  location?: string;
+  status?: string;
+  payment_method?: string;
+  payment_status?: string;
+  notes?: string;
+}) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_PROMOTIONS.Update(promotionId), 'PUT', updateData, token);
+    return response;
+  } catch (error) {
+    console.error('Update promotion API call error:', error);
     throw error;
   }
 };
@@ -1384,13 +1452,19 @@ export const deleteUser = async (userId: number | string) => {
 /**
  * Get admin social feed posts
  */
-export const getAdminSocialFeed = async (page: number = 1) => {
+export const getAdminSocialFeed = async (page: number = 1, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${API_ENDPOINTS.ADMIN_SOCIAL_FEED.List}?page=${page}`, 'GET', undefined, token);
+    let url = `${API_ENDPOINTS.ADMIN_SOCIAL_FEED.List}?page=${page}`;
+    if (period && period !== "All time") {
+      // Convert period format: "This Week" -> "this_week", "Last Month" -> "last_month", etc.
+      const periodParam = period.toLowerCase().replace(/\s+/g, '_');
+      url += `&period=${periodParam}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Admin social feed API call error:', error);
@@ -1418,13 +1492,19 @@ export const getAdminSocialFeedDetails = async (postId: number | string) => {
 /**
  * Get admin social feed statistics
  */
-export const getAdminSocialFeedStatistics = async () => {
+export const getAdminSocialFeedStatistics = async (period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.ADMIN_SOCIAL_FEED.Statistics, 'GET', undefined, token);
+    let url = API_ENDPOINTS.ADMIN_SOCIAL_FEED.Statistics;
+    if (period && period !== "All time") {
+      // Convert period format: "This Week" -> "this_week", "Last Month" -> "last_month", etc.
+      const periodParam = period.toLowerCase().replace(/\s+/g, '_');
+      url += `?period=${periodParam}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Admin social feed statistics API call error:', error);
@@ -1666,13 +1746,33 @@ export const getBrands = async () => {
 /**
  * Get analytics dashboard data
  */
-export const getAnalyticsDashboard = async () => {
+export const getAnalyticsDashboard = async (period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.ANALYTICS.Dashboard, 'GET', undefined, token);
+    let url = API_ENDPOINTS.ANALYTICS.Dashboard;
+    if (period && period !== "All time") {
+      // Map frontend period labels to backend expected values
+      // Backend valid values: today, this_week, this_month, last_month, this_year, all_time
+      const periodMap: Record<string, string> = {
+        'Today': 'today',
+        'This Week': 'this_week',
+        'This Month': 'this_month',
+        'Last Month': 'last_month',
+        'This Year': 'this_year',
+        'All time': 'all_time'
+      };
+      
+      const periodParam = periodMap[period];
+      if (!periodParam) {
+        console.warn(`Invalid period "${period}" for analytics. Skipping period parameter.`);
+      } else {
+        url += `?period=${periodParam}`;
+      }
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get analytics dashboard API call error:', error);

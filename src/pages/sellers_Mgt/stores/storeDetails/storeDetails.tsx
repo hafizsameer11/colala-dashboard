@@ -43,7 +43,10 @@ const StoreDetails: React.FC = () => {
       console.log('Raw API data:', d);
       console.log('Store profile image:', d.store_info?.profile_image);
       return {
-        id: d.user_info?.id || storeId,
+        // Use the real store id for edit/update routes (Level1/2/3 update expect store_id)
+        id: d.store_info?.id || d.user_info?.id || storeId,
+        // Store user ID separately for wallet operations (top up/withdraw need user_id, not store_id)
+        userId: d.user_info?.id || storeId,
         userName: d.user_info?.full_name || 'Unknown',
         email: d.user_info?.email || 'No email',
         phoneNumber: d.user_info?.phone || 'No phone number',
@@ -81,6 +84,7 @@ const StoreDetails: React.FC = () => {
     return (
       state || {
         id: storeId,
+        userId: storeId, // Fallback: use storeId as userId if no state
         userName: "Unknown",
         email: "N/A",
         phoneNumber: "N/A",

@@ -14,6 +14,7 @@ interface ActivityProps {
   userData: {
     // User Info
     id?: string | number;
+    userId?: string | number; // Store user ID (for wallet operations)
     full_name?: string;
     userName?: string;
     username?: string | null;
@@ -278,7 +279,7 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId, selectedPeriod =
   // Top up wallet mutation
   const topUpMutation = useMutation({
     mutationFn: ({ amount, description }: { amount: number; description?: string }) =>
-      updateSellerWallet(userData.id!, 'topup', amount, description),
+      updateSellerWallet(userData.userId || userData.id!, 'topup', amount, description),
     onSuccess: () => {
       showToast('Wallet topped up successfully!', 'success');
       setShowTopUpModal(false);
@@ -298,7 +299,7 @@ const Activity: React.FC<ActivityProps> = ({ userData, storeId, selectedPeriod =
   // Withdraw wallet mutation
   const withdrawMutation = useMutation({
     mutationFn: ({ amount, description }: { amount: number; description?: string }) =>
-      updateSellerWallet(userData.id!, 'withdraw', amount, description),
+      updateSellerWallet(userData.userId || userData.id!, 'withdraw', amount, description),
     onSuccess: () => {
       showToast('Amount withdrawn successfully!', 'success');
       setShowWithdrawModal(false);

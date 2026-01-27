@@ -10,6 +10,7 @@ import { getDashboardData } from "../../utils/queries/dashboard";
 import ChatsModel from "../general/chats/components/chatmodel";
 import OrderDetails from "../sellers_Mgt/Modals/orderDetails";
 import { filterByPeriod } from "../../utils/periodFilter";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -68,6 +69,29 @@ interface Order {
 // ============================================================================
 
 const Dashboard = () => {
+  // ============================================================================
+  // AUTHENTICATION & AUTHORIZATION
+  // ============================================================================
+  const { roles } = useAuth();
+  
+  // Check if user is an account officer
+  const roleSlugs = roles.map(r => r.slug);
+  const isAccountOfficer = roleSlugs.includes('account_officer');
+  
+  // Block account officers from accessing dashboard
+  if (isAccountOfficer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+          <p className="text-gray-600">
+            Account officers cannot access the dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================

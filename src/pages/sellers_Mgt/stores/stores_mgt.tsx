@@ -6,11 +6,13 @@ import AddStoreModal from "../Modals/addStoreModel";
 import SavedAddressModal from "../Modals/savedAddressModal";
 import AddAddressModal from "../Modals/addAddressModal";
 import DeliveryPricing from "../Modals/deliveryPricing";
+import AssignAccountOfficerModal from "../Modals/assignAccountOfficerModal";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerUsers } from "../../../utils/queries/users";
 import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
 import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -22,6 +24,10 @@ function useDebouncedValue<T>(value: T, delay = 450) {
 }
 
 const stores_mgt = () => {
+  const { hasPermission, hasRole } = usePermissions();
+  // Account officers should NEVER be able to assign account officers, even if they have the permission
+  const canAssignAccountOfficer = hasPermission('sellers.assign_account_officer') && !hasRole('account_officer');
+  
   const [showModal, setShowModal] = useState(false);
   const [showSavedAddressModal, setShowSavedAddressModal] = useState(false);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
@@ -29,6 +35,7 @@ const stores_mgt = () => {
     useState(false);
   const [showDeliveryPricingModal, setShowDeliveryPricingModal] =
     useState(false);
+  const [showAssignAccountOfficerModal, setShowAssignAccountOfficerModal] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<
     "Level 1" | "Level 2" | "Level 3"
   >("Level 1");
@@ -106,6 +113,31 @@ const stores_mgt = () => {
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Dashboard:", action);
+    // Handle account officer assignment from bulk actions if needed
+  };
+
+  const handleAssignAccountOfficer = () => {
+    if (selectedUsers.length === 0) {
+      alert('Please select at least one store to assign an Account Officer');
+      return;
+    }
+    setShowAssignAccountOfficerModal(true);
+  };
+
+  const handleAssignAccountOfficerSingle = (store: any) => {
+    // Convert store to the format expected by the modal
+    const storeId = store.storeId || store.id;
+    const storeName = store.storeName || store.store_name || 'Unknown Store';
+    setSelectedUsers([{ id: storeId, store_id: storeId, store_name: storeName }]);
+    setShowAssignAccountOfficerModal(true);
+  };
+
+  const getSelectedStoreIds = () => {
+    return selectedUsers.map(user => user.store_id || user.id);
+  };
+
+  const getSelectedStoreNames = () => {
+    return selectedUsers.map(user => user.store_name || user.full_name || 'Unknown Store');
   };
   
   // Handler for PageHeader period change
@@ -193,6 +225,16 @@ const stores_mgt = () => {
                     selectedOrders={selectedUsers}
                   />
                 </div>
+                {canAssignAccountOfficer && selectedUsers.length > 0 && (
+                  <div>
+                    <button
+                      onClick={handleAssignAccountOfficer}
+                      className="bg-[#1DB61D] text-white px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-lg cursor-pointer text-center text-sm sm:text-base w-full sm:w-auto whitespace-nowrap hover:bg-[#16a016] transition-colors"
+                    >
+                      Assign Account Officer ({selectedUsers.length})
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:gap-5">
                 <div>
@@ -247,6 +289,7 @@ const stores_mgt = () => {
               }}
               isLoading={isLoading}
               error={error}
+              onAssignAccountOfficer={handleAssignAccountOfficerSingle}
             />
           </div>
         </div>
@@ -319,6 +362,19 @@ const stores_mgt = () => {
         }}
         onSave={handleAddDeliveryPricing}
       />
+
+      {/* Assign Account Officer Modal */}
+      {canAssignAccountOfficer && (
+        <AssignAccountOfficerModal
+          isOpen={showAssignAccountOfficerModal}
+          onClose={() => {
+            setShowAssignAccountOfficerModal(false);
+            setSelectedUsers([]); // Clear selection after assignment
+          }}
+          storeIds={getSelectedStoreIds()}
+          storeNames={getSelectedStoreNames()}
+        />
+      )}
     </>
   );
 };

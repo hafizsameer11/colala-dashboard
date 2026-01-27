@@ -110,13 +110,27 @@ export function filterByPeriod<T extends Record<string, any>>(
         // Handle ISO format: "2025-12-26T20:10:00.000000Z" or "2025-12-26 20:10:00"
         date = new Date(dateValue);
       } else if (typeof dateValue === 'string' && dateValue.includes('-')) {
-        // Handle DD-MM-YYYY format without time
-        const dateComponents = dateValue.split('-');
+        // Handle DD-MM-YYYY format with or without time (e.g., "25-01-2026 21:47:00" or "25-01-2026")
+        const dateTimeParts = dateValue.trim().split(' ');
+        const datePart = dateTimeParts[0]; // "25-01-2026"
+        const timePart = dateTimeParts[1] || '00:00:00'; // "21:47:00" or default
+        
+        const dateComponents = datePart.split('-');
         if (dateComponents.length === 3) {
           const day = parseInt(dateComponents[0], 10);
           const month = parseInt(dateComponents[1], 10) - 1;
           const year = parseInt(dateComponents[2], 10);
-          date = new Date(year, month, day);
+          
+          // Parse time if present
+          const timeComponents = timePart.split(':');
+          let hours = 0, minutes = 0, seconds = 0;
+          if (timeComponents.length >= 2) {
+            hours = parseInt(timeComponents[0], 10) || 0;
+            minutes = parseInt(timeComponents[1], 10) || 0;
+            seconds = parseInt(timeComponents[2], 10) || 0;
+          }
+          
+          date = new Date(year, month, day, hours, minutes, seconds);
         } else {
           date = new Date(dateValue);
         }

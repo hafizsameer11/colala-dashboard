@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import images from "../../../constants/images";
-import { filterByPeriod } from "../../../utils/periodFilter";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,44 +39,23 @@ const Analytics = () => {
 
   // Fetch analytics data
   const { data: analyticsData, isLoading, error } = useQuery({
-    queryKey: ['analyticsDashboard'],
-    queryFn: getAnalyticsDashboard,
+    queryKey: ['analyticsDashboard', selectedPeriod],
+    queryFn: () => getAnalyticsDashboard(selectedPeriod),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Debug logging
   console.log('Analytics Debug - API data:', analyticsData);
 
-  // Extract data from API response
+  // Extract data from API response (backend handles period filtering)
   const siteStats = analyticsData?.data?.site_statistics || {};
-  const allUserTrends = analyticsData?.data?.user_trends || [];
-  const allOrderTrends = analyticsData?.data?.order_trends || [];
-  const allRevenueTrends = analyticsData?.data?.revenue_trends || [];
-  const allTopStores = analyticsData?.data?.top_stores || [];
-  const allCategoryBreakdown = analyticsData?.data?.category_breakdown || [];
+  const userTrends = analyticsData?.data?.user_trends || [];
+  const orderTrends = analyticsData?.data?.order_trends || [];
+  const revenueTrends = analyticsData?.data?.revenue_trends || [];
+  const topStores = analyticsData?.data?.top_stores || [];
+  const categoryBreakdown = analyticsData?.data?.category_breakdown || [];
   const chatAnalytics = analyticsData?.data?.chat_analytics || {};
   const socialAnalytics = analyticsData?.data?.social_analytics || {};
-  
-  // Filter trends data by selected period
-  const userTrends = useMemo(() => {
-    return filterByPeriod(allUserTrends, selectedPeriod, ['date', 'created_at', 'formatted_date']);
-  }, [allUserTrends, selectedPeriod]);
-  
-  const orderTrends = useMemo(() => {
-    return filterByPeriod(allOrderTrends, selectedPeriod, ['date', 'created_at', 'formatted_date']);
-  }, [allOrderTrends, selectedPeriod]);
-  
-  const revenueTrends = useMemo(() => {
-    return filterByPeriod(allRevenueTrends, selectedPeriod, ['date', 'created_at', 'formatted_date']);
-  }, [allRevenueTrends, selectedPeriod]);
-  
-  const topStores = useMemo(() => {
-    return filterByPeriod(allTopStores, selectedPeriod, ['date', 'created_at', 'formatted_date']);
-  }, [allTopStores, selectedPeriod]);
-  
-  const categoryBreakdown = useMemo(() => {
-    return filterByPeriod(allCategoryBreakdown, selectedPeriod, ['date', 'created_at', 'formatted_date']);
-  }, [allCategoryBreakdown, selectedPeriod]);
 
   // Type definitions for API data
   interface TrendData {
@@ -98,10 +76,11 @@ const Analytics = () => {
     "All Seller data",
   ];
   const timeOptions = [
+    "Today",
     "This Week",
+    "This Month",
     "Last Month",
-    "Last 6 Months",
-    "Last Year",
+    "This Year",
     "All time",
   ];
 

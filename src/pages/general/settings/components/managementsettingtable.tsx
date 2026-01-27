@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import images from "../../../../constants/images";
 import { getProfilePictureUrl } from "../../../../utils/imageUtils";
+import { assignUserRoles, getAllRoles } from "../../../../utils/queries/rbac";
+import { useToast } from "../../../../contexts/ToastContext";
+import { apiCall } from "../../../../utils/customApiCall";
+import { API_ENDPOINTS } from "../../../../config/apiConfig";
+import Cookies from "js-cookie";
 
 interface Admin {
   id: number;
@@ -28,6 +34,7 @@ interface ManagementSettingTableProps {
   users: Admin[];
   onRowSelect?: (selectedIds: string[]) => void;
   onAdminDetails?: (admin: Admin) => void;
+  onAdminUpdated?: () => void;
   newAdmin?: {
     name: string;
     email: string;
@@ -42,12 +49,30 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
   users,
   onRowSelect,
   onAdminDetails,
-  newAdmin,
+  onAdminUpdated,
   searchTerm = "",
   pagination,
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    role: "" as "admin" | "moderator" | "super_admin",
+  });
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // Fetch all available roles for the dropdown
+  const { data: rolesData } = useQuery({
+    queryKey: ['allRoles'],
+    queryFn: getAllRoles,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const availableRoles = rolesData?.data || [];
 
   // Keep selected rows valid if users list changes
   useEffect(() => {
@@ -125,7 +150,65 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
 
   const handleUserDetails = (user: Admin) => onAdminDetails?.(user);
 
-  // No edit functionality needed for real API data
+  const handleEditClick = (user: Admin) => {
+    setEditingAdmin(user);
+    setEditFormData({
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+    });
+  };
+
+  // Mutation to update admin user
+  const updateAdminMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const token = Cookies.get('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      return await apiCall(
+        API_ENDPOINTS.ALL_USERS.Update(editingAdmin!.id),
+        'POST',
+        formData,
+        token
+      );
+    },
+    onSuccess: async () => {
+      showToast("Admin account updated successfully", "success");
+      // Update role via RBAC if role changed
+      if (editingAdmin && editFormData.role !== editingAdmin.role) {
+        const role = availableRoles.find((r: any) => r.slug === editFormData.role);
+        if (role) {
+          try {
+            await assignUserRoles(editingAdmin.id, [role.id]);
+          } catch (error) {
+            console.error("Failed to update role:", error);
+          }
+        }
+      }
+      setEditingAdmin(null);
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      onAdminUpdated?.();
+    },
+    onError: (error: any) => {
+      console.error("Update admin error:", error);
+      showToast(error?.message || "Failed to update admin account", "error");
+    },
+  });
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAdmin) return;
+    
+    const formData = new FormData();
+    formData.append("full_name", editFormData.full_name);
+    formData.append("email", editFormData.email);
+    formData.append("phone", editFormData.phone);
+    formData.append("role", editFormData.role);
+    updateAdminMutation.mutate(formData);
+  };
 
   return (
     <div className="border border-[#989898] rounded-2xl w-full mt-4 mb-4">
@@ -214,6 +297,25 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                   <td className="p-4">
                     <div className="flex justify-end items-center gap-2">
                       <button
+                        onClick={() => handleEditClick(user)}
+                        className="p-2 rounded-lg font-medium transition-colors cursor-pointer bg-blue-500 text-white hover:bg-blue-600"
+                        title="Edit Admin"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
+                      <button
                         onClick={() => handleUserDetails(user)}
                         className="px-6 py-2.5 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F]"
                       >
@@ -254,6 +356,106 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
             >
               Next
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Admin Modal */}
+      {editingAdmin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Edit Admin Account</h2>
+                <button
+                  onClick={() => setEditingAdmin(null)}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.full_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Role
+                </label>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as "admin" | "moderator" | "super_admin" })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E] capitalize"
+                  required
+                >
+                  {availableRoles
+                    .filter((r: any) => r.is_active)
+                    .map((role: any) => (
+                      <option key={role.id} value={role.slug}>
+                        {role.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingAdmin(null)}
+                  className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={updateAdminMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={updateAdminMutation.isPending}
+                >
+                  {updateAdminMutation.isPending ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

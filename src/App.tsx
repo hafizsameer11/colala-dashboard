@@ -39,10 +39,12 @@ import Disputes from "./pages/general/disputes/disputes";
 import { QueryProvider } from "./providers/QueryProvider";
 import SellerHelpRequests from "./pages/general/sellerHelpRequests/sellerHelpRequests";
 import WithdrawalRequests from "./pages/general/withdrawalRequests/withdrawalRequests";
+import RoleManagement from "./pages/general/roleManagement/roleManagement";
+import AccountOfficerVendors from "./pages/general/accountOfficerVendors/accountOfficerVendors";
 
 // Component to handle initial route based on auth status
 const InitialRoute = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, roles } = useAuth();
 
   if (loading) {
     return (
@@ -55,43 +57,57 @@ const InitialRoute = () => {
     );
   }
 
-  return isAuthenticated ? (
-    <Navigate to="/dashboard" replace />
-  ) : (
-    <Navigate to="/login" replace />
-  );
+  if (isAuthenticated) {
+    // Check if user is an account officer
+    const roleSlugs = roles.map(r => r.slug);
+    const isAccountOfficer = roleSlugs.includes('account_officer');
+    
+    // Redirect account officers to a different page (e.g., stores management or first available page)
+    // For now, redirect to stores management as account officers likely manage stores
+    if (isAccountOfficer) {
+      return <Navigate to="/stores-mgt" replace />;
+    }
+    
+    // Other users go to dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
 };
 
 function App() {
+  // Route permission mapping - each route requires a specific permission
   const protectedRoutes = [
-    { path: "dashboard", element: <Dashboard /> },
-    { path: "customer-mgt", element: <Customer_mgt /> },
-    { path: "customer-details/:userId", element: <CustomerDetails /> },
-    { path: "store-details/:storeId", element: <StoreDetails /> },
-    { path: "orders-mgt-buyers", element: <OrdersMgtbuyers /> },
-    { path: "transactions-buyers", element: <Transactionsbuyers /> },
-    { path: "stores-mgt", element: <Stores_mgt /> },
-    { path: "orders-mgt-sellers", element: <OrdersMgtsellers /> },
-    { path: "transactions-sellers", element: <Transactionssellers /> },
-    { path: "products-services", element: <Products_Services /> },
-    { path: "store-kyc", element: <StoreKYC /> },
-    { path: "subscriptions", element: <Subscription /> },
-    { path: "promotions", element: <Promotions /> },
-    { path: "social-feed", element: <SocialFeed /> },
-    { path: "all-users", element: <AllUsers /> },
-    { path: "all-users/:userId", element: <UserDetailsPage /> },
-    { path: "balance", element: <Balance /> },
-    { path: "chats", element: <Chats /> },
-    { path: "analytics", element: <Analytics /> },
-    { path: "leaderboard", element: <LeaderBoard /> },
-    { path: "support", element: <Support /> },
-    { path: "disputes", element: <Disputes /> },
-    { path: "withdrawal-requests", element: <WithdrawalRequests /> },
-    { path: "ratings-reviews", element: <RatingsReviews /> },
-    { path: "referral-mgt", element: <ReferralMgt /> },
-    { path: "notifications", element: <Notifications /> },
-    { path: "seller-help-requests", element: <SellerHelpRequests /> },
-    { path: "settings", element: <Settings /> },
+    { path: "dashboard", element: <Dashboard />, permission: "dashboard.view" },
+    { path: "customer-mgt", element: <Customer_mgt />, permission: "buyers.view" },
+    { path: "customer-details/:userId", element: <CustomerDetails />, permission: "buyers.view_details" },
+    { path: "store-details/:storeId", element: <StoreDetails />, permission: "sellers.view_details" },
+    { path: "orders-mgt-buyers", element: <OrdersMgtbuyers />, permission: "buyer_orders.view" },
+    { path: "transactions-buyers", element: <Transactionsbuyers />, permission: "buyer_transactions.view" },
+    { path: "stores-mgt", element: <Stores_mgt />, permission: "sellers.view" },
+    { path: "orders-mgt-sellers", element: <OrdersMgtsellers />, permission: "seller_orders.view" },
+    { path: "transactions-sellers", element: <Transactionssellers />, permission: "seller_transactions.view" },
+    { path: "products-services", element: <Products_Services />, permission: "products.view" },
+    { path: "store-kyc", element: <StoreKYC />, permission: "kyc.view" },
+    { path: "subscriptions", element: <Subscription />, permission: "subscriptions.view" },
+    { path: "promotions", element: <Promotions />, permission: "promotions.view" },
+    { path: "social-feed", element: <SocialFeed />, permission: "social_feed.view" },
+    { path: "all-users", element: <AllUsers />, permission: "all_users.view" },
+    { path: "all-users/:userId", element: <UserDetailsPage />, permission: "all_users.view_details" },
+    { path: "balance", element: <Balance />, permission: "balance.view" },
+    { path: "chats", element: <Chats />, permission: "chats.view" },
+    { path: "analytics", element: <Analytics />, permission: "analytics.view" },
+    { path: "leaderboard", element: <LeaderBoard />, permission: "leaderboard.view" },
+    { path: "support", element: <Support />, permission: "support.view" },
+    { path: "disputes", element: <Disputes />, permission: "disputes.view" },
+    { path: "withdrawal-requests", element: <WithdrawalRequests />, permission: "withdrawals.view" },
+    { path: "ratings-reviews", element: <RatingsReviews />, permission: "ratings.view" },
+    { path: "referral-mgt", element: <ReferralMgt />, permission: "referrals.view" },
+    { path: "notifications", element: <Notifications />, permission: "notifications.view" },
+    { path: "seller-help-requests", element: <SellerHelpRequests />, permission: "seller_help.view" },
+    { path: "role-management", element: <RoleManagement />, permission: "settings.admin_management" },
+    { path: "settings", element: <Settings />, permission: "settings.view" },
+    { path: "account-officer-vendors", element: <AccountOfficerVendors />, permission: "account_officer_vendors.view" },
   ];
 
   return (
@@ -115,8 +131,16 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              {protectedRoutes.map(({ path, element }) => (
-                <Route key={path} path={path} element={element} />
+              {protectedRoutes.map(({ path, element, permission }) => (
+                <Route 
+                  key={path} 
+                  path={path} 
+                  element={
+                    <ProtectedRoute permission={permission}>
+                      {element}
+                    </ProtectedRoute>
+                  } 
+                />
               ))}
             </Route>
 
