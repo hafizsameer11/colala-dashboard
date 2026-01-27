@@ -155,15 +155,26 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
     e.preventDefault();
 
     // Validate required fields
-    if (
+    const missingBasics =
       !formData.storeName ||
       !formData.email ||
-      !formData.phoneNumber ||
-      !password ||
-      selectedCategory === null
-    ) {
-      alert("Please fill in all required fields");
-      return;
+      !formData.phoneNumber;
+
+    const missingCreationOnly =
+      (!password || selectedCategory === null);
+
+    // In edit mode we only require the basic identity fields.
+    // For new stores we still require password + category.
+    if (editMode) {
+      if (missingBasics) {
+        alert("Please fill in store name, email and phone number");
+        return;
+      }
+    } else {
+      if (missingBasics || missingCreationOnly) {
+        alert("Please fill in all required fields");
+        return;
+      }
     }
 
     // Convert social media form fields to array format
@@ -183,6 +194,8 @@ const Level1: React.FC<Level1Props> = ({ onSaveAndClose, onProceed, isLoading = 
       storeName: formData.storeName,
       email: formData.email,
       phoneNumber: formData.phoneNumber,
+      // For edit mode password/category might be unchanged; we still include
+      // whatever the user has typed / selected.
       password,
       category: selectedCategory!,
       showPhoneOnProfile,

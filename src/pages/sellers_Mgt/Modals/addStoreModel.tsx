@@ -215,7 +215,9 @@ const AddStoreModal: React.FC<AddStoreModalProps> = ({
           >
             <img src={images.close} alt="Close" />
           </button>
-          <h2 className="text-xl font-semibold">Add New Store</h2>
+          <h2 className="text-xl font-semibold">
+            {editMode ? "Edit Store" : "Add New Store"}
+          </h2>
         </div>
 
         <div className="p-5 pb-8">
