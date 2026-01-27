@@ -15,6 +15,9 @@ const CustomerDetails: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Activity");
   const [selectedChatId, setSelectedChatId] = useState<string | number | null>(null);
+  
+  // Date period filter - synchronized with PageHeader (must be declared before useQuery)
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
 
   // Handle activeTab from navigation state
   useEffect(() => {
@@ -25,8 +28,8 @@ const CustomerDetails: React.FC = () => {
 
   // Fetch user profile data from API
   const { data: profileData, isLoading, error } = useQuery({
-    queryKey: ['userDetails', userId],
-    queryFn: () => getUserDetails(userId!),
+    queryKey: ['userDetails', userId, selectedPeriod],
+    queryFn: () => getUserDetails(userId!, selectedPeriod),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
@@ -41,15 +44,15 @@ const CustomerDetails: React.FC = () => {
   const userData = profileData?.data ? {
     // Map user_info to top level
     id: profileData.data.user_info?.id || userId,
-    full_name: profileData.data.user_info?.full_name || "Unknown",
-    user_name: profileData.data.user_info?.user_name || "Unknown",
-    email: profileData.data.user_info?.email || "No email",
-    phone: profileData.data.user_info?.phone || "No phone",
-    country: profileData.data.user_info?.country || "Unknown",
-    state: profileData.data.user_info?.state || "Unknown",
+    full_name: profileData.data.user_info?.full_name || "",
+    user_name: profileData.data.user_info?.user_name || "",
+    email: profileData.data.user_info?.email || "",
+    phone: profileData.data.user_info?.phone || "",
+    country: profileData.data.user_info?.country || "",
+    state: profileData.data.user_info?.state || "",
     profile_picture: profileData.data.user_info?.profile_picture || null,
-    last_login: profileData.data.user_info?.last_login || "Never",
-    account_created_at: profileData.data.user_info?.created_at || "Unknown",
+    last_login: profileData.data.user_info?.last_login || "",
+    account_created_at: profileData.data.user_info?.created_at || "",
     loyalty_points: profileData.data.statistics?.total_loyalty_points || 0,
     is_blocked: profileData.data.user_info?.status === "blocked",
     role: profileData.data.user_info?.role || "buyer",
@@ -91,8 +94,8 @@ const CustomerDetails: React.FC = () => {
     activities: profileData.data.activities || [],
 
     // Legacy fields for backward compatibility
-    userName: profileData.data.user_info?.full_name || "Unknown",
-    phoneNumber: profileData.data.user_info?.phone || "No phone",
+    userName: profileData.data.user_info?.full_name || "",
+    phoneNumber: profileData.data.user_info?.phone || "",
     walletBalance: (() => {
       const walletInfo = profileData.data.wallet_info;
       if (!walletInfo) return "0";
@@ -104,14 +107,14 @@ const CustomerDetails: React.FC = () => {
     })(),
   } : state || {
     id: userId,
-    full_name: "Unknown",
-    user_name: "Unknown",
-    email: "No email",
-    phone: "No phone number",
+    full_name: "",
+    user_name: "",
+    email: "",
+    phone: "",
     user_info: {
-      full_name: "Unknown",
-      email: "No email",
-      phone: "No phone number",
+      full_name: "",
+      email: "",
+      phone: "",
     },
     wallet_info: {
       balance: "₦0",
@@ -133,8 +136,17 @@ const CustomerDetails: React.FC = () => {
   };
 
   const tabs = ["Activity", "Orders", "Chats", "Transactions",];
+  
+  // Date period options
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "This Month",
+    "All time",
+  ];
 
   const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
     console.log("Period changed to:", period);
   };
 
@@ -189,13 +201,13 @@ const CustomerDetails: React.FC = () => {
 
     switch (activeTab) {
       case "Activity":
-        return <Activity userData={userData} />;
+        return <Activity userData={userData} selectedPeriod={selectedPeriod} />;
       case "Orders":
-        return <Orders userId={userId} onViewChat={handleViewChat} />;
+        return <Orders userId={userId} onViewChat={handleViewChat} selectedPeriod={selectedPeriod} />;
       case "Chats":
-        return <Chats userId={userId} selectedChatId={selectedChatId} onChatOpened={handleChatOpened} />;
+        return <Chats userId={userId} selectedChatId={selectedChatId} onChatOpened={handleChatOpened} selectedPeriod={selectedPeriod} />;
       case "Transactions":
-        return <Transaction userId={userId} />;
+        return <Transaction userId={userId} selectedPeriod={selectedPeriod} />;
       case "Social Feed":
         return <SocialFeed />;
       default:
@@ -223,6 +235,8 @@ const CustomerDetails: React.FC = () => {
           </div>
         }
         onPeriodChange={handlePeriodChange}
+        defaultPeriod={selectedPeriod}
+        timeOptions={datePeriodOptions}
       />
 
       <div className="bg-[#F5F5F5] min-h-screen p-5">

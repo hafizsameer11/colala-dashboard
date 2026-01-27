@@ -280,11 +280,23 @@ const ChatsTable: React.FC<ChatsTableProps> = ({
             >
               Previous
             </button>
-            
-            <span className="text-sm text-gray-600">
-              Page {pagination.current_page} of {pagination.last_page}
-            </span>
-            
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, pagination.current_page - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => onPageChange?.(pageNum)}
+                  className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
+                    pagination.current_page === pageNum
+                      ? 'bg-[#E53E3E] text-white border-[#E53E3E]'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
             <button
               onClick={() => onPageChange?.(pagination.current_page + 1)}
               disabled={pagination.current_page >= pagination.last_page}

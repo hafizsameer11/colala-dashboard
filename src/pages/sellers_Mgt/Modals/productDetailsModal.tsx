@@ -144,8 +144,8 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               </div>
             ) : (
               <>
-                {/* Video Section */}
-                {productInfo?.video && (
+                {/* Video Section - Show video if available, otherwise show images */}
+                {productInfo?.video ? (
                   <div className="relative rounded-2xl overflow-hidden">
                     <video
                       src={resolveStorageUrl(productInfo.video)}
@@ -154,57 +154,61 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                       preload="metadata"
                     />
                   </div>
-                )}
-
-                {/* Main Product Image */}
-                {productImages.length > 0 && (
-                  <div className="mt-5">
-                    <div className="relative w-full h-80 mb-4 rounded-2xl overflow-hidden">
-                      <img
-                        src={
-                          productImages[selectedImageIndex]?.url ||
-                          resolveStorageUrl(productImages[selectedImageIndex]?.path)
-                        }
-                        alt={`Product image ${selectedImageIndex + 1}`}
-                        className="w-full h-full object-contain bg-[#F9F9F9]"
-                        onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMjAwTDI1MCAyNTBMMjAwIDMwMEwxNTAgMjUwTDIwMCAyMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                        }}
-                      />
-                    </div>
-
-                    {/* Thumbnail Images */}
-                    <div className="flex flex-row gap-3">
-                      {productImages.map((img: { id?: string; url?: string; path?: string }, index: number) => (
-                        <div
-                          key={img.id || index}
-                          className={`relative cursor-pointer transition-all duration-200 ${selectedImageIndex === index
-                              ? 'ring-2 ring-red-500 ring-offset-2'
-                              : 'hover:ring-2 hover:ring-gray-300'
-                            }`}
-                          onClick={() => setSelectedImageIndex(index)}
-                        >
+                ) : (
+                  <>
+                    {/* Main Product Image - Only show if no video */}
+                    {productImages.length > 0 && (
+                      <div className="mt-5">
+                        <div className="relative w-full h-80 mb-4 rounded-2xl overflow-hidden">
                           <img
-                            src={img.url || resolveStorageUrl(img.path)}
-                            alt={`Product thumbnail ${index + 1}`}
-                            className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                            src={
+                              productImages[selectedImageIndex]?.url ||
+                              resolveStorageUrl(productImages[selectedImageIndex]?.path)
+                            }
+                            alt={`Product image ${selectedImageIndex + 1}`}
+                            className="w-full h-full object-contain bg-[#F9F9F9]"
                             onError={(e) => {
-                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEw1MCA1MEw0MCA2MEwzMCA1MEw0MCA0MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMjAwTDI1MCAyNTBMMjAwIDMwMEwxNTAgMjUwTDIwMCAyMDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
                             }}
                           />
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Show placeholder if no images */}
-                {productImages.length === 0 && (
-                  <div className="mt-5">
-                    <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400 text-lg">No Product Images</span>
-                    </div>
-                  </div>
+                        {/* Thumbnail Images */}
+                        {productImages.length > 1 && (
+                          <div className="flex flex-row gap-3">
+                            {productImages.map((img: { id?: string; url?: string; path?: string }, index: number) => (
+                              <div
+                                key={img.id || index}
+                                className={`relative cursor-pointer transition-all duration-200 ${selectedImageIndex === index
+                                    ? 'ring-2 ring-red-500 ring-offset-2'
+                                    : 'hover:ring-2 hover:ring-gray-300'
+                                  }`}
+                                onClick={() => setSelectedImageIndex(index)}
+                              >
+                                <img
+                                  src={img.url || resolveStorageUrl(img.path)}
+                                  alt={`Product thumbnail ${index + 1}`}
+                                  className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEw1MCA1MEw0MCA2MEwzMCA1MEw0MCA0MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show placeholder if no images and no video */}
+                    {productImages.length === 0 && (
+                      <div className="mt-5">
+                        <div className="w-full h-80 bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400 text-lg">No Product Images</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}

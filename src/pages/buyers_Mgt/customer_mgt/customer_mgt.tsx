@@ -9,7 +9,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserStats, getUsersList } from "../../../utils/queries/users";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 const customer_mgt = () => {
   // ============================================================================
@@ -19,6 +18,15 @@ const customer_mgt = () => {
   const [query, setQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Date period filter - synchronized with PageHeader
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const datePeriodOptions = [
+    "Today",
+    "This Week",
+    "This Month",
+    "All time",
+  ];
   
   const debouncedQuery = useDebouncedValue(query, 400);
 
@@ -31,8 +39,8 @@ const customer_mgt = () => {
    * Note: This endpoint also returns statistics in the response
    */
   const { data: usersData, isLoading: usersLoading, error: usersError } = useQuery({
-    queryKey: ['usersList', currentPage, debouncedQuery],
-    queryFn: () => getUsersList(currentPage, debouncedQuery),
+    queryKey: ['usersList', currentPage, debouncedQuery, selectedPeriod],
+    queryFn: () => getUsersList(currentPage, debouncedQuery, selectedPeriod),
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
@@ -41,46 +49,28 @@ const customer_mgt = () => {
    * The users list endpoint includes stats, but we'll use the dedicated stats endpoint for reliability
    */
   const { data: userStats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ['userStats'],
-    queryFn: getUserStats,
+    queryKey: ['userStats', selectedPeriod],
+    queryFn: () => getUserStats(selectedPeriod),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Date period filter - synchronized with PageHeader
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
-
-  // Filter users by selected period
+  // Get users from API response (API handles filtering by period)
   const allUsers = usersData?.data?.users || usersData?.data?.data || [];
-  const filteredUsers = useMemo(() => {
-    return filterByPeriod(
-      allUsers,
-      selectedPeriod,
-      ['created_at', 'formatted_date', 'date']
-    );
-  }, [allUsers, selectedPeriod]);
-
-  // Calculate new users (users created in the last 30 days) from filtered users
+  
+  // Calculate new users (users created in the last 30 days) from API data
+  // Note: This is calculated from the filtered data returned by the API
   const newUsersCount = useMemo(() => {
-    const users = filteredUsers;
-    if (!users || users.length === 0) return 0;
+    if (!allUsers || allUsers.length === 0) return 0;
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    return users.filter((user: any) => {
+    return allUsers.filter((user: any) => {
       if (!user.created_at) return false;
       const createdDate = new Date(user.created_at);
       return createdDate >= thirtyDaysAgo;
     }).length;
-  }, [filteredUsers]);
+  }, [allUsers]);
 
   // Extract statistics - ALWAYS prioritize usersData since it includes stats in the response
   // Use useMemo to ensure stable reference and proper extraction
@@ -220,7 +210,7 @@ const customer_mgt = () => {
               <div>
                 <BulkActionDropdown 
                   onActionSelect={handleBulkActionSelect}
-                  orders={filteredUsers}
+                  orders={allUsers}
                   selectedOrders={selectedUsers}
                   dataType="users"
                 />
@@ -265,13 +255,13 @@ const customer_mgt = () => {
           </div>
 
           <div className="mt-5">
-            <UsersTable
+              <UsersTable
               title="Users"
               onRowSelect={handleUserSelection}
               onSelectedUsersChange={handleSelectedUsersChange}
               onUsersDeleted={handleUsersDeleted}
               searchQuery={debouncedQuery}
-              users={filteredUsers}
+              users={allUsers}
               pagination={usersData?.data || null}
               onPageChange={handlePageChange}
               isLoading={usersLoading}

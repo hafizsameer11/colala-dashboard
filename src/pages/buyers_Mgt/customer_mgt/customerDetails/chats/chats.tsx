@@ -13,9 +13,10 @@ interface ChatsProps {
   userId?: string;
   selectedChatId?: string | number | null;
   onChatOpened?: () => void;
+  selectedPeriod?: string;
 }
 
-const Chats: React.FC<ChatsProps> = ({ userId, selectedChatId, onChatOpened }) => {
+const Chats: React.FC<ChatsProps> = ({ userId, selectedChatId, onChatOpened, selectedPeriod = "All time" }) => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,8 +27,8 @@ const Chats: React.FC<ChatsProps> = ({ userId, selectedChatId, onChatOpened }) =
 
   // Fetch user chats data from API
   const { data: chatsData, isLoading, error } = useQuery({
-    queryKey: ['userChats', userId, currentPage],
-    queryFn: () => getUserChats(userId!, currentPage),
+    queryKey: ['userChats', userId, currentPage, selectedPeriod],
+    queryFn: () => getUserChats(userId!, currentPage, selectedPeriod),
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
@@ -279,12 +280,6 @@ const Chats: React.FC<ChatsProps> = ({ userId, selectedChatId, onChatOpened }) =
         <div className="flex flex-row gap-5">
           <div>
             <TabButtons />
-          </div>
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
-            <div>Today</div>
-            <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-            </div>
           </div>
           <div>
             <BulkActionDropdown 

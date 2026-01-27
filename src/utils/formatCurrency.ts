@@ -1,13 +1,14 @@
 /**
  * Formats a number or string into a currency string with comma separators.
- * Example: 1200 -> "₦1,200.00"
+ * Example: 1200 -> "₦1,200" (removes trailing .00)
+ * Example: 1200.50 -> "₦1,200.50"
  * 
  * @param amount The amount to format (number or string)
  * @returns The formatted currency string
  */
 export const formatCurrency = (amount: number | string | undefined | null): string => {
     if (amount === undefined || amount === null || amount === "") {
-        return "₦0.00";
+        return "₦0";
     }
 
     // Convert to string to handle potential string inputs like "1,200" or "₦1200"
@@ -20,10 +21,15 @@ export const formatCurrency = (amount: number | string | undefined | null): stri
     const num = parseFloat(numStr);
 
     if (isNaN(num)) {
-        return "₦0.00";
+        return "₦0";
     }
 
-    // Format with commas and 2 decimal places
+    // Format with commas and remove trailing .00
     // We use 'en-NG' locale for Nigeria, but 'en-US' also works for standard comma separation
-    return `₦${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    let formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    // Remove trailing .00
+    formatted = formatted.replace(/\.00$/, '');
+    
+    return `₦${formatted}`;
 };

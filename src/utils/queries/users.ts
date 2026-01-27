@@ -3,15 +3,39 @@ import { API_ENDPOINTS } from '../../config/apiConfig';
 import Cookies from 'js-cookie';
 
 /**
- * Get user statistics (total, active, new users)
+ * Map UI period options to API period values
  */
-export const getUserStats = async () => {
+const mapPeriodToApi = (period: string): string | null => {
+  const periodMap: Record<string, string> = {
+    'Today': 'today',
+    'This Week': 'this_week',
+    'This Month': 'this_month',
+    'Last Month': 'this_month', // API might use this_month for last month
+  };
+  
+  if (period === 'All time' || !period) {
+    return null; // No period parameter for all time
+  }
+  
+  return periodMap[period] || null;
+};
+
+/**
+ * Get user statistics (total, active, new users)
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
+ */
+export const getUserStats = async (period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.BUYER_USERS.Stats, 'GET', undefined, token);
+    let url = API_ENDPOINTS.BUYER_USERS.Stats;
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `?period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('User stats API call error:', error);
@@ -21,8 +45,11 @@ export const getUserStats = async () => {
 
 /**
  * Get users list with pagination
+ * @param page - Page number
+ * @param search - Optional search query
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUsersList = async (page: number = 1, search?: string) => {
+export const getUsersList = async (page: number = 1, search?: string, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -31,6 +58,10 @@ export const getUsersList = async (page: number = 1, search?: string) => {
     let url = `${API_ENDPOINTS.BUYER_USERS.List}?page=${page}`;
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
+    }
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -93,14 +124,22 @@ export const getUserAddresses = async (userId: number | string) => {
 
 /**
  * Get user orders with pagination
+ * @param userId - User ID
+ * @param page - Page number (default: 1)
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserOrders = async (userId: number | string) => {
+export const getUserOrders = async (userId: number | string, page: number = 1, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.BUYER_USERS.Orders(userId), 'GET', undefined, token);
+    let url = `${API_ENDPOINTS.BUYER_USERS.Orders(userId)}?page=${page}`;
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('User orders API call error:', error);
@@ -127,15 +166,23 @@ export const getOrderDetails = async (userId: number | string, orderId: number |
 
 /**
  * Get user chats with pagination
+ * @param userId - User ID
+ * @param page - Page number (default: 1)
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserChats = async (userId: number | string, page: number = 1) => {
+export const getUserChats = async (userId: number | string, page: number = 1, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${API_ENDPOINTS.BUYER_USERS.Chats(userId)}?page=${page}`, 'GET', undefined, token);
-  return response;
+    let url = `${API_ENDPOINTS.BUYER_USERS.Chats(userId)}?page=${page}`;
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
   } catch (error) {
     console.error('User chats API call error:', error);
     throw error;
@@ -161,14 +208,22 @@ export const getChatDetails = async (userId: number | string, chatId: number | s
 
 /**
  * Get user transactions with pagination
+ * @param userId - User ID
+ * @param page - Page number (default: 1)
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserTransactions = async (userId: number | string, page: number = 1) => {
+export const getUserTransactions = async (userId: number | string, page: number = 1, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${API_ENDPOINTS.BUYER_USERS.Transactions(userId)}?page=${page}`, 'GET', undefined, token);
+    let url = `${API_ENDPOINTS.BUYER_USERS.Transactions(userId)}?page=${page}`;
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('User transactions API call error:', error);
@@ -194,15 +249,26 @@ export const getTransactionDetails = async (userId: number | string, transaction
 };
 
 /**
- * Get buyer orders with pagination
+ * Get buyer orders with pagination and status filtering
+ * @param page - Page number
+ * @param status - Optional status filter
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getBuyerOrders = async (page: number = 1) => {
+export const getBuyerOrders = async (page: number = 1, status?: string, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${API_ENDPOINTS.BUYER_ORDERS.List}?page=${page}`, 'GET', undefined, token);
+    let url = `${API_ENDPOINTS.BUYER_ORDERS.List}?page=${page}`;
+    if (status && status !== 'All' && status !== 'all') {
+      url += `&status=${status}`;
+    }
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Buyer orders API call error:', error);
@@ -280,8 +346,12 @@ export const getBalanceData = async (page: number = 1) => {
 
 /**
  * Get seller users (stores) with pagination
+ * @param page - Page number
+ * @param level - Optional level filter
+ * @param search - Optional search query
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getSellerUsers = async (page: number = 1, level?: number | 'all', search?: string) => {
+export const getSellerUsers = async (page: number = 1, level?: number | 'all', search?: string, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -293,6 +363,10 @@ export const getSellerUsers = async (page: number = 1, level?: number | 'all', s
     }
     if (search && search.trim()) {
       url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1322,8 +1396,11 @@ export const deleteAdminSocialFeedComment = async (postId: number | string, comm
 
 /**
  * Get all users list with pagination
+ * @param page - Page number
+ * @param search - Optional search query
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getAllUsers = async (page: number = 1, search?: string) => {
+export const getAllUsers = async (page: number = 1, search?: string, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1332,6 +1409,10 @@ export const getAllUsers = async (page: number = 1, search?: string) => {
     let url = `${API_ENDPOINTS.ALL_USERS.List}?page=${page}`;
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
+    }
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1343,14 +1424,20 @@ export const getAllUsers = async (page: number = 1, search?: string) => {
 
 /**
  * Get all users statistics
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getAllUsersStats = async () => {
+export const getAllUsersStats = async (period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Stats, 'GET', undefined, token);
+    let url = API_ENDPOINTS.ALL_USERS.Stats;
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `?period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('All users stats API call error:', error);
@@ -1379,13 +1466,23 @@ export const deleteAllUser = async (userId: number | string) => {
 /**
  * Get user details by ID
  */
-export const getUserDetails = async (userId: number | string) => {
+/**
+ * Get user details/profile
+ * @param userId - User ID
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
+ */
+export const getUserDetails = async (userId: number | string, period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(API_ENDPOINTS.ALL_USERS.Details(userId), 'GET', undefined, token);
+    let url = API_ENDPOINTS.ALL_USERS.Details(userId);
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `?period=${apiPeriod}`;
+    }
+    const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('User details API call error:', error);
@@ -1396,7 +1493,14 @@ export const getUserDetails = async (userId: number | string) => {
 /**
  * Get user notifications (admin can view any user's notifications)
  */
-export const getUserNotifications = async (userId: number | string, page: number = 1, status?: 'read' | 'unread') => {
+/**
+ * Get user notifications
+ * @param userId - User ID
+ * @param page - Page number (default: 1)
+ * @param status - Optional status filter: 'read' | 'unread'
+ * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
+ */
+export const getUserNotifications = async (userId: number | string, page: number = 1, status?: 'read' | 'unread', period?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1405,6 +1509,10 @@ export const getUserNotifications = async (userId: number | string, page: number
     let url = `${API_ENDPOINTS.BUYER_USERS.Notifications(userId)}?page=${page}`;
     if (status) {
       url += `&status=${status}`;
+    }
+    const apiPeriod = period ? mapPeriodToApi(period) : null;
+    if (apiPeriod) {
+      url += `&period=${apiPeriod}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;

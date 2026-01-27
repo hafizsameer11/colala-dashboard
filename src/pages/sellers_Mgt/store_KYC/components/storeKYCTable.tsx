@@ -324,16 +324,8 @@ const StoreKYCTable: React.FC<StoreKYCTableProps> = ({
               {/* Page Numbers */}
               <div className="flex items-center space-x-1">
                 {Array.from({ length: Math.min(5, pagination.last_page || 1) }, (_, i) => {
-                  let pageNum;
-                  if (pagination.last_page <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= pagination.last_page - 2) {
-                    pageNum = pagination.last_page - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
+                  const pageNum = Math.max(1, Math.min((pagination.last_page || 1) - 4, currentPage - 2)) + i;
+                  if (pageNum > (pagination.last_page || 1)) return null;
                   
                   return (
                     <button

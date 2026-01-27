@@ -422,7 +422,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
       {pagination && pagination.last_page > 1 && (
         <div className="flex justify-between items-center mt-4 px-4 py-3 bg-white border-t border-gray-200">
           <div className="text-sm text-gray-700">
-            Showing {pagination.from} to {pagination.to} of {pagination.total} results
+            Showing {pagination.from || ((pagination.current_page - 1) * pagination.per_page + 1)} to {pagination.to || Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} results
           </div>
           <div className="flex items-center space-x-2">
             {/* Previous Button */}
@@ -437,7 +437,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
             {/* Page Numbers */}
             <div className="flex space-x-1">
               {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                const pageNum = i + 1;
+                const pageNum = Math.max(1, Math.min(pagination.last_page - 4, pagination.current_page - 2)) + i;
+                if (pageNum > pagination.last_page) return null;
                 const isActive = pageNum === pagination.current_page;
                 return (
                   <button

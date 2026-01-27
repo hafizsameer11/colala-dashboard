@@ -12,7 +12,6 @@ import { getSellerUsers } from "../../../utils/queries/users";
 import LevelDropdown from "../../../components/levelDropdown";
 import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
 import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -55,8 +54,8 @@ const stores_mgt = () => {
 
   // Fetch seller users
   const { data: sellerData, isLoading, error } = useQuery({
-    queryKey: ['sellerUsers', currentPage, selectedLevel, debouncedSearch],
-    queryFn: () => getSellerUsers(currentPage, selectedLevel, debouncedSearch),
+    queryKey: ['sellerUsers', currentPage, selectedLevel, debouncedSearch, selectedPeriod],
+    queryFn: () => getSellerUsers(currentPage, selectedLevel, debouncedSearch, selectedPeriod),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -64,16 +63,8 @@ const stores_mgt = () => {
   const usersPage = sellerData?.data?.users;
   const allUsers = usersPage?.data || [];
   
-  // Filter users by date period
-  const filteredUsers = useMemo(() => {
-    return filterByPeriod(
-      allUsers,
-      selectedPeriod,
-      ['created_at', 'formatted_date', 'date']
-    );
-  }, [allUsers, selectedPeriod]);
-  
-  const users = filteredUsers;
+  // Users are already filtered by backend based on selectedPeriod
+  const users = allUsers;
 
   // Delivery pricing entries (unchanged)
   const [deliveryPricingEntries, setDeliveryPricingEntries] = useState<

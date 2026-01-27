@@ -344,9 +344,23 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             >
               Previous
             </button>
-            <span className="px-4 py-2">
-              Page {currentPage} of {pagination.last_page}
-            </span>
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, currentPage - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => onPageChange && onPageChange(pageNum)}
+                  className={`px-4 py-2 border border-gray-300 rounded-lg ${
+                    currentPage === pageNum
+                      ? 'bg-[#E53E3E] text-white border-[#E53E3E]'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
             <button
               onClick={() => onPageChange && onPageChange(currentPage + 1)}
               disabled={currentPage === pagination.last_page}

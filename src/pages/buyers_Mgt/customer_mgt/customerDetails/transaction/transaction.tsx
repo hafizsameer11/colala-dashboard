@@ -26,9 +26,10 @@ function normalizeType(
 
 interface TransactionProps {
   userId?: string;
+  selectedPeriod?: string;
 }
 
-const Transactions: React.FC<TransactionProps> = ({ userId }) => {
+const Transactions: React.FC<TransactionProps> = ({ userId, selectedPeriod = "All time" }) => {
   const [activeTab, setActiveTab] = useState<
     "All" | "Pending" | "Successful" | "Failed"
   >("All");
@@ -52,8 +53,8 @@ const Transactions: React.FC<TransactionProps> = ({ userId }) => {
 
   // Fetch user transactions data from API
   const { data: transactionsData, isLoading, error } = useQuery({
-    queryKey: ['userTransactions', userId, currentPage],
-    queryFn: () => getUserTransactions(userId!, currentPage),
+    queryKey: ['userTransactions', userId, currentPage, selectedPeriod],
+    queryFn: () => getUserTransactions(userId!, currentPage, selectedPeriod),
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
@@ -237,10 +238,6 @@ const Transactions: React.FC<TransactionProps> = ({ userId }) => {
           <div className="flex flex-row items-center gap-2">
             <TabButtons />
 
-            <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-3.5 bg-white cursor-pointer">
-              <div>Today</div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-            </div>
 
             {/* TYPE FILTER (DepositDropdown) */}
             <DepositDropdown onActionSelect={handleDepositActionSelect} />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import BuyerOrderDetails from "../../../../../components/buyerOrderDetails";
+import { formatCurrency } from "../../../../../utils/formatCurrency";
 
 interface Order {
   id: string | number;
@@ -72,6 +73,8 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
   activeTab = "All",
   searchQuery = "",
   orders = [],
+  pagination,
+  onPageChange,
   isLoading = false,
   error = null,
   onViewChat,
@@ -354,7 +357,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                   </td>
                   <td className="p-3 text-left">{order.store_name}</td>
                   <td className="p-3 text-left">{order.product_name}</td>
-                  <td className="p-3 font-bold">{order.price}</td>
+                  <td className="p-3 font-bold">{formatCurrency(order.price)}</td>
                   <td className="p-3">{order.order_date}</td>
                   <td className="p-3">
                     <span
@@ -390,6 +393,48 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="bg-white border-t border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-gray-700">
+            Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => onPageChange?.(pagination.current_page - 1)} 
+              disabled={pagination.current_page <= 1} 
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(pagination.last_page - 4, pagination.current_page - 2)) + i;
+              if (pageNum > pagination.last_page) return null;
+              return (
+                <button 
+                  key={pageNum} 
+                  onClick={() => onPageChange?.(pageNum)} 
+                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                    pagination.current_page === pageNum 
+                      ? 'bg-[#E53E3E] text-white' 
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button 
+              onClick={() => onPageChange?.(pagination.current_page + 1)} 
+              disabled={pagination.current_page >= pagination.last_page} 
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {selectedOrderId && (
         <BuyerOrderDetails 

@@ -230,9 +230,23 @@ const ReferralTable: React.FC<ReferralTableProps> = ({
             >
               Previous
             </button>
-            <span className="px-3 py-1 text-sm">
-              Page {currentPage} of {referralsData.data.pagination.last_page || 1}
-            </span>
+            {referralsData.data.pagination.last_page > 1 && Array.from({ length: Math.min(5, referralsData.data.pagination.last_page || 1) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min((referralsData.data.pagination.last_page || 1) - 4, currentPage - 2)) + i;
+              if (pageNum > (referralsData.data.pagination.last_page || 1)) return null;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => onPageChange?.(pageNum)}
+                  className={`px-3 py-1 text-sm border rounded ${
+                    currentPage === pageNum
+                      ? 'bg-[#E53E3E] text-white border-[#E53E3E]'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
             <button
               onClick={() => onPageChange?.(currentPage + 1)}
               disabled={currentPage >= (referralsData.data.pagination.last_page || 1)}

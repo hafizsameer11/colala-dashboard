@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import images from "../../../../../constants/images";
 import BulkActionDropdown from "../../../../../components/BulkActionDropdown";
@@ -9,11 +9,13 @@ import { getUserOrders } from "../../../../../utils/queries/users";
 interface OrdersProps {
   userId?: string | number;
   onViewChat?: (orderId: string | number) => void;
+  selectedPeriod?: string;
 }
 
-const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
+const Orders: React.FC<OrdersProps> = ({ userId, onViewChat, selectedPeriod = "All time" }) => {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = [
@@ -27,11 +29,16 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
 
   // Fetch user orders data from API
   const { data: ordersData, isLoading, error } = useQuery({
-    queryKey: ['userOrders', userId],
-    queryFn: () => getUserOrders(userId!),
+    queryKey: ['userOrders', userId, currentPage, selectedPeriod],
+    queryFn: () => getUserOrders(userId!, currentPage, selectedPeriod),
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
+
+  // Reset to page 1 when tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const handleUserSelection = (selectedIds: string[]) => {
     console.log("Selected user IDs:", selectedIds);
@@ -133,12 +140,6 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
           <div>
             <TabButtons />
           </div>
-          <div className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer">
-            <div>Today</div>
-            <div>
-              <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-            </div>
-          </div>
           <div>
             <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
           </div>
@@ -180,7 +181,12 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat }) => {
               ordersData?.data?.orders || 
               []
             }
-            pagination={ordersData?.data?.pagination || null}
+            pagination={ordersData?.data?.store_orders?.pagination || ordersData?.data?.pagination || null}
+            onPageChange={(page: number) => {
+              setCurrentPage(page);
+              // Scroll to top when page changes
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             isLoading={isLoading}
             error={error?.message || null}
             userId={userId}

@@ -43,16 +43,15 @@ interface ActivityProps {
     phoneNumber?: string;
     walletBalance?: string;
   };
+  selectedPeriod?: string;
 }
 
-const Activity: React.FC<ActivityProps> = ({ userData }) => {
+const Activity: React.FC<ActivityProps> = ({ userData, selectedPeriod = "All time" }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<string>("All Time");
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpDescription, setTopUpDescription] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -60,7 +59,6 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
   const [notificationsPage, setNotificationsPage] = useState(1);
   const [notificationsFilter, setNotificationsFilter] = useState<'read' | 'unread' | undefined>(undefined);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const filterDropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -137,8 +135,8 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
 
   // Get user notifications query
   const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({
-    queryKey: ['userNotifications', userData.id, notificationsPage, notificationsFilter],
-    queryFn: () => getUserNotifications(userData.id!, notificationsPage, notificationsFilter),
+    queryKey: ['userNotifications', userData.id, notificationsPage, notificationsFilter, selectedPeriod],
+    queryFn: () => getUserNotifications(userData.id!, notificationsPage, notificationsFilter, selectedPeriod),
     enabled: showNotificationsModal && !!userData.id,
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
@@ -157,12 +155,6 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsDropdownOpen(false);
-      }
-      if (
-        filterDropdownRef.current &&
-        !filterDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsFilterDropdownOpen(false);
       }
     };
 
@@ -233,51 +225,8 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
     setShowNotificationsModal(true);
   };
 
-  // Filter activities based on selected period
-  const filterActivities = (activities: Array<{ id: number; activity: string; created_at: string }>, filter: string) => {
-    if (!activities || activities.length === 0) return [];
-    
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    switch (filter) {
-      case "Today":
-        return activities.filter((activity) => {
-          const activityDate = new Date(activity.created_at);
-          return activityDate >= today;
-        });
-      case "This Week":
-        const weekAgo = new Date(today);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return activities.filter((activity) => {
-          const activityDate = new Date(activity.created_at);
-          return activityDate >= weekAgo;
-        });
-      case "This Month":
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        return activities.filter((activity) => {
-          const activityDate = new Date(activity.created_at);
-          return activityDate >= monthAgo;
-        });
-      case "All Time":
-        return activities;
-      default:
-        return activities;
-    }
-  };
-
-  const handleFilterSelect = (filter: string) => {
-    setSelectedFilter(filter);
-    setIsFilterDropdownOpen(false);
-  };
-
-  const filteredActivities = useMemo(() => {
-    if (!userData?.activities || !Array.isArray(userData.activities) || userData.activities.length === 0) {
-      return [];
-    }
-    return filterActivities(userData.activities, selectedFilter);
-  }, [userData?.activities, selectedFilter]);
+  // Activities are already filtered by backend based on selectedPeriod
+  const filteredActivities = userData?.activities || [];
 
   const DotsDropdown = () => (
     <div className="relative" ref={dropdownRef}>
@@ -464,36 +413,6 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
           </div>
         </div>
         <div className="flex flex-row mt-5 gap-5">
-          <div className="relative" ref={filterDropdownRef}>
-            <div 
-              className="flex flex-row items-center gap-5 border border-[#989898] rounded-lg px-4 py-2 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-            >
-              <div>{selectedFilter}</div>
-              <div>
-                <img className="w-3 h-3 mt-1" src={images.dropdown} alt="" />
-              </div>
-            </div>
-            
-            {isFilterDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-40 z-50 shadow-lg"
-                style={{ boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)" }}
-              >
-                {["Today", "This Week", "This Month", "All Time"].map((filter) => (
-                  <div
-                    key={filter}
-                    onClick={() => handleFilterSelect(filter)}
-                    className={`px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors ${
-                      selectedFilter === filter ? "bg-gray-100 font-semibold" : ""
-                    }`}
-                  >
-                    {filter}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
           <div>
             <BulkActionDropdown 
               onActionSelect={handleBulkActionSelect}
@@ -548,9 +467,7 @@ const Activity: React.FC<ActivityProps> = ({ userData }) => {
                   ) : (
                     <tr>
                       <td colSpan={3} className="py-8 px-4 text-center text-gray-500">
-                        {userData.activities && userData.activities.length > 0 
-                          ? `No activities found for ${selectedFilter.toLowerCase()}`
-                          : "No recent activities found"}
+                        "No activities found"
                       </td>
                     </tr>
                   )}

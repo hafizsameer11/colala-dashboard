@@ -230,30 +230,6 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
 
   return (
     <div className="">
-      {/* Main Product Image */}
-      {productData?.complete?.images && productData.complete.images.length > 0 && (
-        <div className="mb-6 cursor-pointer hover:opacity-90 transition-opacity">
-          <img
-            src={productData.complete.images[0]?.path?.startsWith('http')
-              ? productData.complete.images[0].path
-              : `https://colala.hmstech.xyz/storage/${productData.complete.images[0]?.path || ''}`}
-            alt={productData?.complete?.product?.name || 'Product'}
-            className="w-full h-80 object-cover rounded-2xl"
-            onClick={() => {
-              if (productData?.complete?.images?.[0]?.path) {
-                const imageUrl = productData.complete.images[0].path.startsWith('http')
-                  ? productData.complete.images[0].path
-                  : `https://colala.hmstech.xyz/storage/${productData.complete.images[0].path}`;
-                window.open(imageUrl, '_blank');
-              }
-            }}
-            onError={(e) => {
-              e.currentTarget.src = images.iphone;
-            }}
-          />
-        </div>
-      )}
-
       <div>
         <div className="flex flex-row justify-between w-80">
           <span className="font-semibold text-[17px]">
@@ -413,13 +389,12 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
         {/* Store Details */}
         <div className="mt-5">
           <span className="text-lg font-medium">Store Details</span>
-          <div>
-            <div
-              className="rounded-2xl w-full mt-5"
-              style={{
-                boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)",
-              }}
-            >
+          <div
+            className="rounded-2xl w-full mt-5"
+            style={{
+              boxShadow: "0px 0px 4px 0px rgba(0, 0, 0, 0.25)",
+            }}
+          >
               <div className="space-y-4">
                 {/* Store Card */}
                 <div className="rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
@@ -627,7 +602,6 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
           </div>
         </div>
       </div>

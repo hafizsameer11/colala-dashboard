@@ -498,9 +498,23 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 >
                   Previous
                 </button>
-                <span className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
-                  Page {currentPage} of {usersData.data.pagination.last_page || 1}
-                </span>
+                {usersData.data.pagination.last_page > 1 && Array.from({ length: Math.min(5, usersData.data.pagination.last_page || 1) }, (_, i) => {
+                  const pageNum = Math.max(1, Math.min((usersData.data.pagination.last_page || 1) - 4, currentPage - 2)) + i;
+                  if (pageNum > (usersData.data.pagination.last_page || 1)) return null;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => onPageChange?.(pageNum)}
+                      className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md ${
+                        currentPage === pageNum
+                          ? 'bg-[#E53E3E] text-white'
+                          : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
                 <button
                   onClick={() => onPageChange?.(currentPage + 1)}
                   disabled={currentPage >= (usersData.data.pagination.last_page || 1)}

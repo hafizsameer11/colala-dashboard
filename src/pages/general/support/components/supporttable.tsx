@@ -269,9 +269,23 @@ const SupportTable: React.FC<SupportTableProps> = ({
               >
                 Previous
               </button>
-              <span className="px-3 py-1 text-sm">
-                Page {currentPage} of {ticketsData.data.pagination.last_page || 1}
-              </span>
+              {ticketsData.data.pagination.last_page > 1 && Array.from({ length: Math.min(5, ticketsData.data.pagination.last_page || 1) }, (_, i) => {
+                const pageNum = Math.max(1, Math.min((ticketsData.data.pagination.last_page || 1) - 4, currentPage - 2)) + i;
+                if (pageNum > (ticketsData.data.pagination.last_page || 1)) return null;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange?.(pageNum)}
+                    className={`px-3 py-1 text-sm border border-gray-300 rounded ${
+                      currentPage === pageNum
+                        ? 'bg-[#E53E3E] text-white border-[#E53E3E]'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
               <button
                 onClick={() => onPageChange?.(currentPage + 1)}
                 disabled={currentPage >= (ticketsData.data.pagination.last_page || 1)}

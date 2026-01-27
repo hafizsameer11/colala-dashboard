@@ -9,7 +9,6 @@ import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import AddUserModal from "../../../components/addUserModel";
 import { getAllUsersStats, getAllUsers } from "../../../utils/queries/users";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Buyers" | "Sellers";
 
@@ -31,8 +30,8 @@ const AllUsers = () => {
 
   // Fetch all users data for export
   const { data: allUsersData } = useQuery({
-    queryKey: ['allUsers', currentPage, debouncedSearch],
-    queryFn: () => getAllUsers(currentPage, debouncedSearch || undefined),
+    queryKey: ['allUsers', currentPage, debouncedSearch, selectedPeriod],
+    queryFn: () => getAllUsers(currentPage, debouncedSearch || undefined, selectedPeriod),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -60,19 +59,13 @@ const AllUsers = () => {
     }));
   }, [allUsersData]);
   
-  // Filter users by selected period
-  const allUsers = useMemo(() => {
-    return filterByPeriod(
-      allUsersRaw,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'date', 'createdAt']
-    );
-  }, [allUsersRaw, selectedPeriod]);
+  // Users are already filtered by backend based on selectedPeriod
+  const allUsers = allUsersRaw;
 
   // Fetch statistics
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['allUsersStats'],
-    queryFn: getAllUsersStats,
+    queryKey: ['allUsersStats', selectedPeriod],
+    queryFn: () => getAllUsersStats(selectedPeriod),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 

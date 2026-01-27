@@ -12,7 +12,6 @@ import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import ChatsModel from "../../general/chats/components/chatmodel";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 const OrdersMgt = () => {
   const [activeTab, setActiveTab] = useState("All");
@@ -45,10 +44,24 @@ const OrdersMgt = () => {
   } | null>(null);
   const debouncedQuery = useDebouncedValue(query, 400);
 
+  // Map tab names to backend status values
+  const getStatusFromTab = (tab: string): string | undefined => {
+    const statusMap: { [key: string]: string } = {
+      "All": undefined,
+      "Order Placed": "placed",
+      "Out for delivery": "out_for_delivery",
+      "Delivered": "delivered",
+      "Completed": "completed",
+      "Disputed": "disputed",
+      "Uncompleted": "uncompleted",
+    };
+    return statusMap[tab];
+  };
+
   // Fetch buyer orders data from API
   const { data: ordersData, isLoading, error } = useQuery({
-    queryKey: ['buyerOrders', currentPage],
-    queryFn: () => getBuyerOrders(currentPage),
+    queryKey: ['buyerOrders', currentPage, activeTab, selectedPeriod],
+    queryFn: () => getBuyerOrders(currentPage, getStatusFromTab(activeTab), selectedPeriod),
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
@@ -192,7 +205,14 @@ const OrdersMgt = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Reset to page 1 when tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const handleViewChat = (orderId: string | number) => {
     console.log("Opening chat modal for order:", orderId);
@@ -289,15 +309,9 @@ const OrdersMgt = () => {
     };
   }, [isDateDropdownOpen]);
 
-  // Filter orders by period
+  // Orders are already filtered by backend based on selectedPeriod
   const allOrders = ordersData?.data?.store_orders?.data || [];
-  const filteredOrders = useMemo(() => {
-    return filterByPeriod(
-      allOrders,
-      selectedPeriod,
-      ['order_date', 'created_at', 'date', 'formatted_date']
-    );
-  }, [allOrders, selectedPeriod]);
+  const filteredOrders = allOrders;
 
   return (
     <>
