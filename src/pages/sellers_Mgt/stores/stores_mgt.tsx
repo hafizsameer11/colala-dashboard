@@ -9,7 +9,6 @@ import DeliveryPricing from "../Modals/deliveryPricing";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerUsers } from "../../../utils/queries/users";
-import LevelDropdown from "../../../components/levelDropdown";
 import AddNewDeliveryPricing from "../Modals/addNewDeliveryPricing";
 import type { DeliveryPricingEntry } from "../Modals/addNewDeliveryPricing";
 
@@ -35,7 +34,6 @@ const stores_mgt = () => {
   >("Level 1");
 
   // NEW: filters
-  const [selectedLevel, setSelectedLevel] = useState<number | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,8 +52,8 @@ const stores_mgt = () => {
 
   // Fetch seller users
   const { data: sellerData, isLoading, error } = useQuery({
-    queryKey: ['sellerUsers', currentPage, selectedLevel, debouncedSearch, selectedPeriod],
-    queryFn: () => getSellerUsers(currentPage, selectedLevel, debouncedSearch, selectedPeriod),
+    queryKey: ['sellerUsers', currentPage, debouncedSearch, selectedPeriod],
+    queryFn: () => getSellerUsers(currentPage, undefined, debouncedSearch, selectedPeriod),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -108,15 +106,6 @@ const stores_mgt = () => {
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Dashboard:", action);
-  };
-
-  // NEW: level dropdown wiring
-  const handleLevelActionSelect = (level: string) => {
-    if (level === "All") setSelectedLevel("all");
-    else if (level === "Level 1") setSelectedLevel(1);
-    else if (level === "Level 2") setSelectedLevel(2);
-    else if (level === "Level 3") setSelectedLevel(3);
-    else setSelectedLevel("all");
   };
   
   // Handler for PageHeader period change
@@ -204,9 +193,6 @@ const stores_mgt = () => {
                     selectedOrders={selectedUsers}
                   />
                 </div>
-                <div>
-                  <LevelDropdown onLevelSelect={handleLevelActionSelect} />
-                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:gap-5">
                 <div>
@@ -252,7 +238,6 @@ const stores_mgt = () => {
               title="Stores"
               onRowSelect={handleUserSelection}
               onSelectedUsersChange={setSelectedUsers}
-              levelFilter={selectedLevel}
               searchTerm={debouncedSearch}
               users={users}
               pagination={usersPage}

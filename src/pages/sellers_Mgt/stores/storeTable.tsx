@@ -296,8 +296,6 @@ interface StoreTableProps {
   title?: string;
   onRowSelect?: (selectedIds: string[]) => void;
   onSelectedUsersChange?: (users: StoreApi[]) => void;
-  /** NEW: filter by level ("all" shows everything) */
-  levelFilter?: number | "all";
   /** NEW: debounced search term from parent */
   searchTerm?: string;
   users?: StoreApi[];
@@ -312,7 +310,6 @@ const StoreTable: React.FC<StoreTableProps> = ({
   title = "Users",
   onRowSelect,
   onSelectedUsersChange,
-  levelFilter = "all",
   searchTerm = "",
   users = [],
   pagination,
@@ -350,7 +347,6 @@ const StoreTable: React.FC<StoreTableProps> = ({
   const filteredStores = useMemo(() => {
     const q = (searchTerm || "").trim().toLowerCase();
     return stores
-      .filter((s) => (levelFilter === "all" ? true : s.level === levelFilter))
       .filter((s) => {
         if (!q) return true;
         const haystack = [s.storeName, s.email, s.phoneNumber, String(s.level)]
@@ -358,13 +354,13 @@ const StoreTable: React.FC<StoreTableProps> = ({
           .toLowerCase();
         return haystack.includes(q);
       });
-  }, [stores, levelFilter, searchTerm]);
+  }, [stores, searchTerm]);
 
   // Reset selection when filters change
   useEffect(() => {
     setSelectedRows([]);
     setSelectAll(false);
-  }, [levelFilter, searchTerm, stores]);
+  }, [searchTerm, stores]);
 
   const handleSelectAll = () => {
     const allIds = filteredStores.map((store) => store.id);
