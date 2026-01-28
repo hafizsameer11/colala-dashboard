@@ -1,7 +1,9 @@
 import images from "../../../constants/images";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getAdminServiceDetails } from "../../../utils/queries/users";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminServiceDetails, approveService, updateServiceStatus, deleteService } from "../../../utils/queries/users";
+import { useToast } from "../../../contexts/ToastContext";
+import ServiceModal from "./serviceModal";
 
 interface ServiceData {
   id: number;
@@ -36,8 +38,15 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
   if (!isOpen) return null;
 
   const [activeTab, setActiveTab] = useState<
-    "Product Details" | "Product Stats"
-  >("Product Details");
+    "Service Details" | "Service Stats"
+  >("Service Details");
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Fetch service details from API
   const { data: serviceDetails, isLoading, error } = useQuery({
@@ -61,11 +70,84 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
     statistics: serviceDetails.data.statistics || {},
   } : null;
 
-  const tabs = ["Product Details", "Product Stats"];
+  const tabs = ["Service Details", "Service Stats"];
+
+  // Approve service mutation
+  const approveServiceMutation = useMutation({
+    mutationFn: () => approveService(serviceData!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminServiceDetails', serviceData?.id] });
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      showToast('Service approved successfully', 'success');
+    },
+    onError: (error: unknown) => {
+      console.error('Approve service error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to approve service. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  // Update service status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: (statusData: { status: string; rejection_reason?: string; is_sold?: boolean; is_unavailable?: boolean }) =>
+      updateServiceStatus(serviceData!.id, statusData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminServiceDetails', serviceData?.id] });
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      showToast('Service status updated successfully', 'success');
+      setShowRejectionModal(false);
+      setRejectionReason("");
+    },
+    onError: (error: unknown) => {
+      console.error('Update service status error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update service status. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  // Delete service mutation
+  const deleteServiceMutation = useMutation({
+    mutationFn: () => deleteService(serviceData!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      showToast('Service deleted successfully', 'success');
+      setShowDeleteConfirm(false);
+      onClose();
+    },
+    onError: (error: unknown) => {
+      console.error('Delete service error:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to delete service. Please try again.';
+      showToast(errorMessage, 'error');
+    },
+  });
+
+  const handleApprove = () => {
+    approveServiceMutation.mutate();
+  };
+
+  const handleReject = () => {
+    setShowRejectionModal(true);
+    setRejectionReason("");
+  };
+
+  const handleRejectionSubmit = () => {
+    if (!rejectionReason.trim()) {
+      showToast('Please provide a rejection reason', 'error');
+      return;
+    }
+    updateStatusMutation.mutate({
+      status: 'inactive',
+      rejection_reason: rejectionReason.trim(),
+    });
+  };
+
+  const handleDelete = () => {
+    deleteServiceMutation.mutate();
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "Product Details":
+      case "Service Details":
         if (isLoading) {
           return (
             <div className="flex flex-col justify-center items-center py-16">
@@ -175,40 +257,79 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
                 </div>
               )}
             </div>
-            <div className="mt-5">
-              <div className="flex gap-3">
-                {/* Delete Button */}
-                <button
-                  type="button"
-                  className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+            {/* Status Management */}
+            {realServiceData && (
+              <div className="mt-5 flex flex-col gap-3">
+                {realServiceData.service_info.status === 'pending' || realServiceData.service_info.status === 'draft' ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleApprove}
+                      disabled={approveServiceMutation.isPending}
+                      className="flex-1 bg-green-600 text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {approveServiceMutation.isPending ? 'Approving...' : 'Approve Service'}
+                    </button>
+                    <button
+                      onClick={handleReject}
+                      disabled={approveServiceMutation.isPending}
+                      className="flex-1 bg-red-600 text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Reject Service
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    {realServiceData.service_info.status === 'inactive' && (
+                      <button
+                        onClick={handleApprove}
+                        disabled={approveServiceMutation.isPending}
+                        className="flex-1 bg-green-600 text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {approveServiceMutation.isPending ? 'Approving...' : 'Approve Service'}
+                      </button>
+                    )}
+                    {realServiceData.service_info.status === 'active' && (
+                      <button
+                        onClick={handleReject}
+                        disabled={updateStatusMutation.isPending}
+                        className="flex-1 bg-red-600 text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Reject Service
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={deleteServiceMutation.isPending}
+                    className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Delete Service"
+                  >
+                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
 
-                {/* Analytics Button */}
-                <button
-                  type="button"
-                  className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </button>
-
-                {/* Edit Product Button */}
-                <button
-                  type="button"
-                  className="flex-1 bg-[#E53E3E] text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-red-600 transition-colors"
-                >
-                  Edit Product
-                </button>
+                  {/* Edit Service Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (realServiceData?.service_info) {
+                        setShowEditModal(true);
+                      }
+                    }}
+                    className="flex-1 bg-[#E53E3E] text-white rounded-2xl py-4 px-6 font-medium cursor-pointer hover:bg-red-600 transition-colors"
+                  >
+                    Edit Service
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
-      case "Product Stats":
+      case "Service Stats":
         if (isLoading) {
           return (
             <div className="flex justify-center items-center py-8">
@@ -308,7 +429,7 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
               <button
                 key={tab}
                 onClick={() =>
-                  setActiveTab(tab as "Product Details" | "Product Stats")
+                  setActiveTab(tab as "Service Details" | "Service Stats")
                 }
                 className={`px-6 py-3 rounded-xl cursor-pointer font-medium transition-colors text-sm ${activeTab === tab
                     ? "bg-[#E53E3E] text-white shadow-sm"
@@ -323,6 +444,130 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
           {renderTabContent()}
         </div>
       </div>
+
+      {/* Rejection Reason Modal */}
+      {showRejectionModal && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Reject Service</h3>
+                <button
+                  onClick={() => {
+                    setShowRejectionModal(false);
+                    setRejectionReason("");
+                  }}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <img src={images.close} alt="Close" className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason for rejecting this service (e.g., Service description is incomplete)"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-[#E53E3E] resize-none"
+                  maxLength={500}
+                />
+                <div className="mt-1 text-xs text-gray-500 text-right">
+                  {rejectionReason.length}/500 characters
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowRejectionModal(false);
+                    setRejectionReason("");
+                  }}
+                  disabled={updateStatusMutation.isPending}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectionSubmit}
+                  disabled={updateStatusMutation.isPending || !rejectionReason.trim()}
+                  className="flex-1 px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {updateStatusMutation.isPending ? 'Rejecting...' : 'Confirm Rejection'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Delete Service</h3>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <img src={images.close} alt="Close" className="w-6 h-6" />
+                </button>
+              </div>
+
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this service? This action cannot be undone.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleteServiceMutation.isPending}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteServiceMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {deleteServiceMutation.isPending ? 'Deleting...' : 'Delete Service'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Service Modal */}
+      {showEditModal && realServiceData?.service_info && (
+        <ServiceModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            // Refetch service details after edit
+            queryClient.invalidateQueries({ queryKey: ['adminServiceDetails', serviceData?.id] });
+          }}
+          editingService={{
+            id: realServiceData.service_info.id,
+            name: realServiceData.service_info.name,
+            short_description: realServiceData.service_info.short_description || '',
+            full_description: realServiceData.service_info.full_description || '',
+            price_from: realServiceData.service_info.price_from || '',
+            price_to: realServiceData.service_info.price_to || null,
+            discount_price: realServiceData.service_info.discount_price || null,
+            category_id: serviceDetails?.data?.category_info?.id,
+            status: realServiceData.service_info.status,
+          }}
+        />
+      )}
     </div>
   );
 };

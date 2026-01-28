@@ -237,11 +237,6 @@ const NotificationTable: React.FC<NotificationTableProps> = ({
       });
     }
     
-    // Handle attachment
-    if (data.attachment) {
-      formData.append('attachment', data.attachment);
-    }
-    
     // Handle scheduled_for (optional)
     if (data.scheduled_for && data.scheduled_for.trim()) {
       // Convert datetime-local format to backend expected format

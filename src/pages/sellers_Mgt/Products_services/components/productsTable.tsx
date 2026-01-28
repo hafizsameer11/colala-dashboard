@@ -80,18 +80,24 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState<{ [key: string]: boolean }>({});
   const statusDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ productId: string; status: string } | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
   
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   
   // Status update mutation
   const updateStatusMutation = useMutation({
-    mutationFn: ({ productId, statusData }: { productId: number | string; statusData: { status: string; is_sold?: boolean; is_unavailable?: boolean } }) =>
+    mutationFn: ({ productId, statusData }: { productId: number | string; statusData: { status: string; rejection_reason?: string; is_sold?: boolean; is_unavailable?: boolean } }) =>
       updateProductStatus(productId, statusData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['adminServices'] });
       showToast('Product status updated successfully', 'success');
+      setShowRejectionModal(false);
+      setRejectionReason("");
+      setPendingStatusChange(null);
     },
     onError: (error: unknown) => {
       console.error('Update product status error:', error);
@@ -209,12 +215,35 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   };
   
   const handleStatusChange = (productId: string, newStatus: string) => {
+    // Close dropdown
+    setStatusDropdownOpen(prev => ({
+      ...prev,
+      [productId]: false
+    }));
+
+    // If status is inactive, show rejection reason modal
+    if (newStatus === 'inactive') {
+      setPendingStatusChange({ productId, status: newStatus });
+      setShowRejectionModal(true);
+      setRejectionReason("");
+    } else {
+      // For other statuses, update directly
+      confirmStatusChange(productId, newStatus);
+    }
+  };
+
+  const confirmStatusChange = (productId: string, newStatus: string, rejectionReason?: string) => {
     const product = normalizedProducts.find(p => p.id === productId);
     if (!product) return;
     
-    const statusData: { status: string; is_sold?: boolean; is_unavailable?: boolean } = {
+    const statusData: { status: string; rejection_reason?: string; is_sold?: boolean; is_unavailable?: boolean } = {
       status: newStatus,
     };
+    
+    // Add rejection reason if provided
+    if (rejectionReason && rejectionReason.trim()) {
+      statusData.rejection_reason = rejectionReason.trim();
+    }
     
     // Include is_sold and is_unavailable if they exist
     if (product.is_sold !== undefined) {
@@ -225,10 +254,18 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     }
     
     updateStatusMutation.mutate({ productId, statusData });
-    setStatusDropdownOpen(prev => ({
-      ...prev,
-      [productId]: false
-    }));
+  };
+
+  const handleRejectionSubmit = () => {
+    if (pendingStatusChange) {
+      confirmStatusChange(pendingStatusChange.productId, pendingStatusChange.status, rejectionReason);
+    }
+  };
+
+  const handleRejectionCancel = () => {
+    setShowRejectionModal(false);
+    setRejectionReason("");
+    setPendingStatusChange(null);
   };
   
   // Close dropdowns when clicking outside
@@ -440,6 +477,60 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
         onClose={() => setShowModal(false)}
         product={selectedProduct || undefined}
       />
+
+      {/* Rejection Reason Modal */}
+      {showRejectionModal && pendingStatusChange && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Set Product to Inactive</h3>
+                <button
+                  onClick={handleRejectionCancel}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <img src={images.close} alt="Close" className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason for making this product inactive (e.g., Product images are low quality)"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-[#E53E3E] resize-none"
+                  maxLength={500}
+                />
+                <div className="mt-1 text-xs text-gray-500 text-right">
+                  {rejectionReason.length}/500 characters
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleRejectionCancel}
+                  disabled={updateStatusMutation.isPending}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectionSubmit}
+                  disabled={updateStatusMutation.isPending || !rejectionReason.trim()}
+                  className="flex-1 px-4 py-2 bg-[#E53E3E] text-white rounded-lg hover:bg-[#D32F2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {updateStatusMutation.isPending ? 'Updating...' : 'Confirm Inactive'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

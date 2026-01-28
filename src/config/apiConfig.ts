@@ -261,6 +261,11 @@ const API_ENDPOINTS = {
     List: API_DOMAIN + "/admin/services", // GET
     Create: API_DOMAIN + "/admin/services", // POST
     Details: (serviceId: number | string) => `${API_DOMAIN}/admin/services/${serviceId}/details`, // GET
+    Approve: (serviceId: number | string) => `${API_DOMAIN}/admin/services/${serviceId}/approve`, // POST
+    UpdateStatus: (serviceId: number | string) => `${API_DOMAIN}/admin/services/${serviceId}/status`, // PUT
+    Update: (serviceId: number | string) => `${API_DOMAIN}/admin/services/${serviceId}`, // PUT
+    Delete: (serviceId: number | string) => `${API_DOMAIN}/admin/services/${serviceId}`, // DELETE
+    Analytics: API_DOMAIN + "/admin/services/analytics", // GET
   },
 
   // ADMIN STORES

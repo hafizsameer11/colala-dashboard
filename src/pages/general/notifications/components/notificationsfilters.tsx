@@ -123,11 +123,6 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
       });
     }
     
-    // Handle attachment
-    if (data.attachment) {
-      formData.append('attachment', data.attachment);
-    }
-    
     // Handle scheduled_for (optional)
     if (data.scheduled_for && data.scheduled_for.trim()) {
       // Convert datetime-local format to backend expected format

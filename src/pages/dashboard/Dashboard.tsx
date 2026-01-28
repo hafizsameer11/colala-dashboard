@@ -436,7 +436,7 @@ const Dashboard = () => {
           increase: useApiStats ? (buyerStats.total_orders?.increase || 0) : 0,
         },
         completed_orders: {
-          value: completedOrders,
+          value: useApiStats ? (buyerStats.completed_orders?.value || 0) : completedOrders,
           increase: useApiStats ? (buyerStats.completed_orders?.increase || 0) : 0,
         },
         total_transactions: {
@@ -454,7 +454,7 @@ const Dashboard = () => {
           increase: useApiStats ? (sellerStats.total_orders?.increase || 0) : 0,
         },
         completed_orders: {
-          value: completedOrders,
+          value: useApiStats ? (sellerStats.completed_orders?.value || 0) : completedOrders,
           increase: useApiStats ? (sellerStats.completed_orders?.increase || 0) : 0,
         },
         total_transactions: {

@@ -1262,7 +1262,7 @@ export const getAdminProducts = async (page: number = 1, status?: string) => {
 /**
  * Update product status
  */
-export const updateProductStatus = async (productId: number | string, statusData: { status: string; is_sold?: boolean; is_unavailable?: boolean }) => {
+export const updateProductStatus = async (productId: number | string, statusData: { status: string; rejection_reason?: string; is_sold?: boolean; is_unavailable?: boolean }) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1327,6 +1327,57 @@ export const getAdminServiceDetails = async (serviceId: number | string) => {
     return response;
   } catch (error) {
     console.error('Admin service details API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Approve service (sets status to active)
+ */
+export const approveService = async (serviceId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SERVICES.Approve(serviceId), 'POST', {}, token);
+    return response;
+  } catch (error) {
+    console.error('Approve service API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update service status
+ */
+export const updateServiceStatus = async (serviceId: number | string, statusData: { status: string; rejection_reason?: string; is_sold?: boolean; is_unavailable?: boolean }) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SERVICES.UpdateStatus(serviceId), 'PUT', statusData, token);
+    return response;
+  } catch (error) {
+    console.error('Update service status API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete service
+ */
+export const deleteService = async (serviceId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SERVICES.Delete(serviceId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Delete service API call error:', error);
     throw error;
   }
 };
@@ -1687,6 +1738,24 @@ export const createService = async (serviceData: FormData) => {
     return response;
   } catch (error) {
     console.error('Create service API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update service
+ * Note: Uses POST method, all fields are optional for partial updates
+ */
+export const updateService = async (serviceId: number | string, serviceData: FormData) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_SERVICES.Update(serviceId), 'POST', serviceData, token);
+    return response;
+  } catch (error) {
+    console.error('Update service API call error:', error);
     throw error;
   }
 };

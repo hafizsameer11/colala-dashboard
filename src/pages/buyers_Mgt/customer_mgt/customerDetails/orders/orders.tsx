@@ -16,6 +16,7 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat, selectedPeriod = "A
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
   const debouncedQuery = useDebouncedValue(query, 400);
 
   const tabs = [
@@ -141,7 +142,18 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat, selectedPeriod = "A
             <TabButtons />
           </div>
           <div>
-            <BulkActionDropdown onActionSelect={handleBulkActionSelect} />
+            <BulkActionDropdown 
+              onActionSelect={handleBulkActionSelect}
+              selectedOrders={selectedOrders}
+              orders={
+                ordersData?.data?.store_orders?.data || 
+                ordersData?.data?.orders?.data || 
+                ordersData?.data?.recent_orders || 
+                ordersData?.data?.orders || 
+                []
+              }
+              dataType="orders"
+            />
           </div>
           <div className="relative">
             <input
@@ -172,6 +184,7 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat, selectedPeriod = "A
           <LatestOrders
             title="Latest Orders"
             onRowSelect={handleUserSelection}
+            onSelectedOrdersChange={setSelectedOrders}
             activeTab={activeTab}
             searchQuery={debouncedQuery}
             orders={

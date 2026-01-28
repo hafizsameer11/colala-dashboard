@@ -28,6 +28,19 @@ export interface ServiceCategoriesResponse {
 }
 
 /**
+ * Get all service categories (Public - No auth required)
+ */
+export const getServiceCategoriesPublic = async (): Promise<{ status: boolean; data: ServiceCategory[] }> => {
+  try {
+    const response = await apiCall(API_ENDPOINTS.SERVICE_CATEGORIES.List, 'GET', undefined, undefined);
+    return response;
+  } catch (error) {
+    console.error('Get service categories (public) API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all service categories (Admin - Paginated)
  */
 export const getServiceCategories = async (

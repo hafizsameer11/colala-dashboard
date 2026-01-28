@@ -1,12 +1,25 @@
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createService, getCategories } from "../../../utils/queries/users";
+import { createService, updateService, getAdminServiceDetails } from "../../../utils/queries/users";
+import { getServiceCategoriesPublic } from "../../../utils/queries/serviceCategories";
+import { useToast } from "../../../contexts/ToastContext";
 
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedStore?: any;
+  editingService?: {
+    id: number;
+    name: string;
+    short_description: string;
+    full_description: string;
+    price_from: string;
+    price_to: string | null;
+    discount_price: string | null;
+    category_id?: number;
+    status: string;
+  } | null;
 }
 
 interface SubService {
@@ -15,14 +28,24 @@ interface SubService {
   to: string;
 }
 
-const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedStore }) => {
+const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedStore, editingService }) => {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const isEditMode = !!editingService;
 
-  // Fetch categories data
+  // Fetch service categories data
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories,
+    queryKey: ['serviceCategories'],
+    queryFn: getServiceCategoriesPublic,
     enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch service details for editing
+  const { data: serviceDetailsData, isLoading: loadingServiceDetails } = useQuery({
+    queryKey: ['adminServiceDetails', editingService?.id],
+    queryFn: () => getAdminServiceDetails(editingService!.id),
+    enabled: isOpen && isEditMode && !!editingService?.id,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -30,6 +53,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
   const [selectedCategory, setSelectedCategory] = useState("");
   const [productVideo, setProductVideo] = useState<File | null>(null);
   const [productImages, setProductImages] = useState<File[]>([]);
+  const [existingVideoUrl, setExistingVideoUrl] = useState<string | null>(null);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fullDescription, setFullDescription] = useState("");
   const [discountPrice, setDiscountPrice] = useState("");
@@ -53,6 +78,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
   });
 
   // Extract categories from API data
+  // Public endpoint returns: { status: boolean, data: ServiceCategory[] }
   const categories = categoriesData?.data || [];
   const priceRange = ["Under $100", "$100 - $500", "Above $500"];
 
@@ -63,16 +89,116 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
       // Invalidate and refetch services data
       queryClient.invalidateQueries({ queryKey: ['adminServices'] });
       queryClient.invalidateQueries({ queryKey: ['sellerServices'] });
+      queryClient.invalidateQueries({ queryKey: ['adminServiceDetails'] });
+      showToast('Service created successfully', 'success');
       // Reset form and close modal
       resetForm();
       onClose();
     },
     onError: (error) => {
       console.error('Failed to create service:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create service. Please try again.';
+      showToast(errorMessage, 'error');
       setIsSubmitting(false);
     },
   });
 
+  // Update service mutation
+  const updateServiceMutation = useMutation({
+    mutationFn: (serviceData: FormData) => updateService(editingService!.id, serviceData),
+    onSuccess: () => {
+      // Invalidate and refetch services data
+      queryClient.invalidateQueries({ queryKey: ['adminServices'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerServices'] });
+      queryClient.invalidateQueries({ queryKey: ['adminServiceDetails', editingService?.id] });
+      showToast('Service updated successfully', 'success');
+      // Reset form and close modal
+      resetForm();
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Failed to update service:', error);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update service. Please try again.';
+      showToast(errorMessage, 'error');
+      setIsSubmitting(false);
+    },
+  });
+
+
+  // Populate form when editing
+  useEffect(() => {
+    if (isOpen && isEditMode && serviceDetailsData?.data) {
+      const serviceInfo = serviceDetailsData.data.service_info;
+      const media = serviceDetailsData.data.media || [];
+      const subServicesData = serviceDetailsData.data.sub_services || [];
+
+      setProductName(serviceInfo.name || '');
+      setFullDescription(serviceInfo.full_description || '');
+      setDiscountPrice(serviceInfo.discount_price || '');
+      
+      // Set price range - format for display
+      if (serviceInfo.price_from && serviceInfo.price_to) {
+        const fromNum = parseFloat(serviceInfo.price_from);
+        const toNum = parseFloat(serviceInfo.price_to);
+        if (fromNum < 100 && toNum <= 100) {
+          setSelectedPriceRange("Under $100");
+        } else if (fromNum >= 500) {
+          setSelectedPriceRange("Above $500");
+        } else if (fromNum >= 100 && toNum <= 500) {
+          setSelectedPriceRange("$100 - $500");
+        } else {
+          // Custom range - display as is
+          setSelectedPriceRange(`₦${serviceInfo.price_from} - ₦${serviceInfo.price_to}`);
+        }
+      } else if (serviceInfo.price_from) {
+        const fromNum = parseFloat(serviceInfo.price_from);
+        if (fromNum < 100) {
+          setSelectedPriceRange("Under $100");
+        } else if (fromNum >= 500) {
+          setSelectedPriceRange("Above $500");
+        } else {
+          setSelectedPriceRange("$100 - $500");
+        }
+      }
+
+      // Set category - check both category_info and category
+      const categoryId = serviceDetailsData.data.category_info?.id || 
+                         serviceDetailsData.data.category?.id ||
+                         serviceInfo.category_id;
+      if (categoryId) {
+        setSelectedCategory(categoryId.toString());
+      }
+
+      // Set existing media URLs
+      const videoMedia = media.find((m: any) => m.type === 'video');
+      if (videoMedia) {
+        setExistingVideoUrl(videoMedia.url || videoMedia.path);
+      } else {
+        setExistingVideoUrl(null);
+      }
+
+      const imageMedia = media.filter((m: any) => m.type === 'image');
+      setExistingImageUrls(imageMedia.map((m: any) => m.url || m.path));
+
+      // Set sub-services
+      const formattedSubServices = subServicesData.map((sub: any) => ({
+        name: sub.name || '',
+        from: sub.price_from || '',
+        to: sub.price_to || '',
+      }));
+      
+      // Fill remaining slots
+      while (formattedSubServices.length < 8) {
+        formattedSubServices.push({ name: '', from: '', to: '' });
+      }
+      setSubServices(formattedSubServices.slice(0, 8));
+    } else if (isOpen && !isEditMode) {
+      // Reset form for new service
+      resetForm();
+      setExistingVideoUrl(null);
+      setExistingImageUrls([]);
+    }
+  }, [isOpen, isEditMode, serviceDetailsData]);
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -158,12 +284,13 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
 
   // Form validation
   const validateForm = () => {
+    // In edit mode, all fields are optional, so validation is more lenient
     const newErrors = {
-      productName: productName.trim() === "" ? "Product name is required" : "",
-      category: selectedCategory === "" ? "Category is required" : "",
-      productImages: productImages.length < 3 ? "At least 3 images are required" : "",
-      fullDescription: fullDescription.trim() === "" ? "Full description is required" : "",
-      priceRange: selectedPriceRange === "" ? "Price range is required" : "",
+      productName: !isEditMode && productName.trim() === "" ? "Product name is required" : "",
+      category: !isEditMode && selectedCategory === "" ? "Category is required" : "",
+      productImages: !isEditMode && productImages.length < 3 ? "At least 3 images are required" : "", // Images optional when editing
+      fullDescription: !isEditMode && fullDescription.trim() === "" ? "Full description is required" : "",
+      priceRange: !isEditMode && selectedPriceRange === "" ? "Price range is required" : "",
     };
 
     setErrors(newErrors);
@@ -174,13 +301,14 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!validateForm()) {
+    // Validation only for new services (edit mode has all optional fields)
+    if (!isEditMode && !validateForm()) {
       alert("Please fill in all required fields");
       return;
     }
 
-    // Additional safety check for required fields
-    if (!selectedStore?.id) {
+    // Additional safety check for required fields (only for new services)
+    if (!isEditMode && !selectedStore?.id) {
       alert("Please select a store first");
       return;
     }
@@ -205,22 +333,32 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
         discountPrice: discountPrice
       });
       
-      // Add required fields according to backend validation
-      formData.append('store_id', selectedStore?.id?.toString() || '');
-      formData.append('name', productName);
-      formData.append('full_description', fullDescription);
-      formData.append('category_id', '1'); // Default category
+      // Add required fields for new services
+      if (!isEditMode) {
+        formData.append('store_id', selectedStore?.id?.toString() || '');
+        formData.append('name', productName);
+        formData.append('full_description', fullDescription);
+        formData.append('short_description', productName);
+      } else {
+        // For edit mode, all fields are optional - only send what's provided
+        if (productName.trim()) {
+          formData.append('name', productName);
+        }
+        if (fullDescription.trim()) {
+          formData.append('full_description', fullDescription);
+        }
+        if (productName.trim()) {
+          formData.append('short_description', productName);
+        }
+      }
       
-      // Add optional fields
+      // Add category fields (optional)
       if (selectedCategory) {
         formData.append('category_id', selectedCategory);
+        formData.append('service_category_id', selectedCategory); // Also send service_category_id
       }
       
-      if (productName) {
-        formData.append('short_description', productName);
-      }
-      
-      // Add price fields
+      // Add price fields (optional)
       if (selectedPriceRange && selectedPriceRange.trim() !== '') {
         if (selectedPriceRange === "Under $100") {
           formData.append('price_from', '0');
@@ -229,31 +367,57 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
           formData.append('price_from', '500');
           formData.append('price_to', '999999');
         } else {
-          // Handle range format like "$100 - $500"
+          // Handle range format like "$100 - $500" or "₦100 - ₦500" or direct values
           const priceRangeParts = selectedPriceRange.split(' - ');
           if (priceRangeParts.length >= 2) {
-            const from = priceRangeParts[0];
-            const to = priceRangeParts[1];
-            if (from && typeof from === 'string') {
-              formData.append('price_from', from.replace(/[^\d.]/g, ''));
+            const from = priceRangeParts[0].trim();
+            const to = priceRangeParts[1].trim();
+            // Remove currency symbols and extract numbers
+            const fromValue = from.replace(/[^\d.]/g, '');
+            const toValue = to.replace(/[^\d.]/g, '');
+            if (fromValue) {
+              formData.append('price_from', fromValue);
             }
-            if (to && typeof to === 'string') {
-              formData.append('price_to', to.replace(/[^\d.]/g, ''));
+            if (toValue) {
+              formData.append('price_to', toValue);
+            }
+          } else {
+            // Single value - extract number
+            const singleValue = selectedPriceRange.replace(/[^\d.]/g, '');
+            if (singleValue) {
+              formData.append('price_from', singleValue);
             }
           }
         }
       }
       
+      // Add discount price (optional)
       if (discountPrice && discountPrice.trim() !== '') {
         formData.append('discount_price', discountPrice);
       }
       
-      // Add video file
+      // Add is_sold and is_unavailable (optional, only in edit mode if available)
+      if (isEditMode && serviceDetailsData?.data?.service_info) {
+        const serviceInfo = serviceDetailsData.data.service_info;
+        if (serviceInfo.is_sold !== undefined) {
+          formData.append('is_sold', serviceInfo.is_sold ? '1' : '0');
+        }
+        if (serviceInfo.is_unavailable !== undefined) {
+          formData.append('is_unavailable', serviceInfo.is_unavailable ? '1' : '0');
+        }
+      }
+      
+      // Add video file (separate field for service video)
+      // Backend supports: video - Single video file for the service
       if (productVideo) {
         formData.append('video', productVideo);
       }
       
-      // Add media files (images and videos)
+      // Add media files (images and videos in media[] array)
+      // Backend supports: media[] - Array of image/video files
+      // Format: media[0], media[1], media[2], etc.
+      // Supported types: Images (jpg, jpeg, png, gif, webp), Videos (mp4, mov, avi, webm)
+      // Max size: 10MB per file
       productImages.forEach((image, index) => {
         formData.append(`media[${index}]`, image);
       });
@@ -271,8 +435,12 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
         }
       });
 
-      // Call the mutation
-      await createServiceMutation.mutateAsync(formData);
+      // Call the appropriate mutation
+      if (isEditMode) {
+        await updateServiceMutation.mutateAsync(formData);
+      } else {
+        await createServiceMutation.mutateAsync(formData);
+      }
       
     } catch (error) {
       console.error("Error creating service:", error);
@@ -288,6 +456,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
     setSelectedCategory("");
     setProductVideo(null);
     setProductImages([]);
+    setExistingVideoUrl(null);
+    setExistingImageUrls([]);
     setFullDescription("");
     setDiscountPrice("");
     setSelectedPriceRange("");
@@ -308,7 +478,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
           {/* Header */}
           <div className="border-b border-[#787878] px-3 py-3 sticky top-0 bg-white z-10">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Add New Service</h2>
+              <h2 className="text-xl font-bold">{isEditMode ? 'Edit Service' : 'Add New Service'}</h2>
               <div className="flex items-center">
                 <button
                   onClick={onClose}
@@ -348,7 +518,20 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
                           📹 Video
                         </div>
                       </div>
-                    ) : (
+                    ) : existingVideoUrl ? (
+                      <div className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden">
+                        <video
+                          src={existingVideoUrl}
+                          className="w-full h-full object-cover"
+                          controls={false}
+                          muted
+                        />
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
+                          📹 Existing
+                        </div>
+                      </div>
+                    ) : null}
+                    {(!productVideo && !existingVideoUrl) && (
                       <div className="border border-[#CDCDCD] rounded-2xl justify-center items-center w-24 h-24 relative cursor-pointer flex flex-col">
                         <input
                           type="file"
@@ -366,14 +549,36 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
                     Upload at least 3 clear pictures of your product
                   </div>
                   <div className="flex gap-3 flex-wrap">
+                    {/* Existing images */}
+                    {existingImageUrls.map((imageUrl, index) => (
+                      <div
+                        key={`existing-${index}`}
+                        className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden"
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={`Existing ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Hide broken images
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded">
+                          Existing
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* New uploaded images */}
                     {productImages.map((image, index) => (
                       <div
-                        key={index}
+                        key={`new-${index}`}
                         className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden"
                       >
                         <img
                           src={URL.createObjectURL(image)}
-                          alt={`Product ${index + 1}`}
+                          alt={`New ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
                         <button
@@ -388,10 +593,13 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
                         >
                           ×
                         </button>
+                        <div className="absolute bottom-1 left-1 bg-green-600 bg-opacity-70 text-white text-xs px-1 py-0.5 rounded">
+                          New
+                        </div>
                       </div>
                     ))}
 
-                    {productImages.length < 3 && (
+                    {(existingImageUrls.length + productImages.length < 3 || isEditMode) && (
                       <div className="border border-[#CDCDCD] rounded-2xl justify-center items-center w-24 h-24 relative cursor-pointer flex flex-col">
                         <input
                           type="file"
@@ -449,7 +657,9 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
                           selectedCategory ? "text-black" : "text-[#00000080]"
                         }
                       >
-                        {selectedCategory || "Select Category"}
+                        {selectedCategory 
+                          ? categories.find((cat: any) => cat.id.toString() === selectedCategory)?.title || "Select Category"
+                          : "Select Category"}
                       </div>
                       <div
                         className={`transform transition-transform duration-200 ${
@@ -468,7 +678,9 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
                           categories.map((category: any) => (
                             <div
                               key={category.id}
-                              className="p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0"
+                              className={`p-4 hover:bg-gray-50 cursor-pointer text-base border-b border-gray-100 last:border-b-0 ${
+                                selectedCategory === category.id.toString() ? 'bg-blue-50 font-semibold' : ''
+                              }`}
                               onClick={() => handleCategorySelect(category.id.toString())}
                             >
                               {category.title}
@@ -634,9 +846,11 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, selectedSt
                     <button 
                       type="submit" 
                       className="bg-[#E53E3E] w-full text-white py-4 cursor-pointer rounded-xl disabled:opacity-50"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || (isEditMode && loadingServiceDetails)}
                     >
-                      {isSubmitting ? "Posting..." : "Post Service"}
+                      {isSubmitting 
+                        ? (isEditMode ? "Updating..." : "Posting...") 
+                        : (isEditMode ? "Update Service" : "Post Service")}
                     </button>
                 </div>
               </form>
