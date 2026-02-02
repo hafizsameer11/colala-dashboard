@@ -3,11 +3,12 @@ import PageHeader from "../../../components/PageHeader";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
-import { useState, useEffect, useRef, useMemo } from "react";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
+import { useState, useEffect, useRef } from "react";
 import PromotionsTable from "./promotionsTable";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAdminPromotions, updatePromotionStatus, extendPromotion } from "../../../utils/queries/users";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -35,41 +36,31 @@ const Promotions = () => {
   const debouncedSearch = useDebouncedValue(search, 450);
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Date period filter
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
-  
-  // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
   // API data fetching
   const { data: promotionsData, isLoading, error } = useQuery({
-    queryKey: ['adminPromotions', activeTab, currentPage],
-    queryFn: () => getAdminPromotions(currentPage, activeTab === "All" ? undefined : activeTab),
+    queryKey: ['adminPromotions', activeTab, currentPage, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getAdminPromotions(
+      currentPage, 
+      activeTab === "All" ? undefined : activeTab,
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
     keepPreviousData: true,
   });
 
   const queryClient = useQueryClient();
 
-  // Extract data
-  const allPromotions = promotionsData?.data?.promotions || [];
-  
-  // Filter promotions by selected period
-  const promotions = useMemo(() => {
-    return filterByPeriod(
-      allPromotions,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'date']
-    );
-  }, [allPromotions, selectedPeriod]);
+  // Extract data - date filtering is now handled by backend
+  const promotions = promotionsData?.data?.promotions || [];
   
   const statistics = promotionsData?.data?.statistics || {};
   const pagination = promotionsData?.data?.pagination;
@@ -134,48 +125,16 @@ const Promotions = () => {
     // do your bulk logic here using selected IDs from table (if you wire it up)
   };
   
-  // Handle local date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-  
-  // Handle local date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
+  // Handle date filter change
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
   };
-  
-  // Handle PageHeader period change
-  const handlePageHeaderPeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setCurrentPage(1);
-  };
-  
-  // Close date dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
 
   return (
     <div>
       <PageHeader 
         title="Latest Promotions"
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
-        onPeriodChange={handlePageHeaderPeriodChange}
       />
       <div className="p-3 sm:p-4 md:p-5">
         {/* Stat cards - responsive grid */}
@@ -207,39 +166,26 @@ const Promotions = () => {
             <div className="w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="relative" ref={dateDropdownRef}>
-              <div 
-                className="flex flex-row items-center gap-2 sm:gap-3 md:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 md:py-3.5 bg-white cursor-pointer text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto justify-between sm:justify-start hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => handleDatePeriodSelect(option)}
-                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             <div className="w-full sm:w-auto">
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
                 orders={promotions}
                 dataType="promotions"
+                exportConfig={{
+                  dataType: "promotions",
+                  status: activeTab !== "All" ? activeTab : undefined,
+                  period: dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                  search: debouncedSearch?.trim() || undefined,
+                }}
               />
             </div>
           </div>

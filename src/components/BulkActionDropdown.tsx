@@ -480,18 +480,37 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       let dataToExport: any[] = [];
       
       // If export config is provided, fetch all data from API
-      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users')) {
+      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users' || dataType === 'support' || dataType === 'chats' || dataType === 'disputes' || dataType === 'adminTransactions' || dataType === 'sellerUsers' || dataType === 'stores' || dataType === 'allUsers' || dataType === 'promotions' || dataType === 'withdrawals' || dataType === 'notifications' || dataType === 'banners' || dataType === 'ratings' || dataType === 'reviews' || dataType === 'subscriptions' || dataType === 'leaderboard' || dataType === 'activities')) {
         try {
           const exportDataType = dataType === 'orders' ? 'orders' : 
                                 dataType === 'transactions' ? 'transactions' : 
                                 dataType === 'products' ? 'products' : 
-                                dataType === 'services' ? 'services' : 'users';
+                                dataType === 'services' ? 'services' : 
+                                dataType === 'support' ? 'support' :
+                                dataType === 'chats' ? 'chats' :
+                                dataType === 'disputes' ? 'disputes' :
+                                dataType === 'adminTransactions' ? 'adminTransactions' :
+                                dataType === 'sellerUsers' ? 'sellerUsers' :
+                                dataType === 'stores' ? 'stores' :
+                                dataType === 'allUsers' ? 'allUsers' :
+                                dataType === 'promotions' ? 'promotions' :
+                                dataType === 'withdrawals' ? 'withdrawals' :
+                                dataType === 'notifications' ? 'notifications' :
+                                dataType === 'banners' ? 'banners' :
+                                dataType === 'ratings' || dataType === 'reviews' ? 'ratings' :
+                                dataType === 'subscriptions' ? 'subscriptions' :
+                                dataType === 'leaderboard' ? 'leaderboard' :
+                                dataType === 'activities' ? 'activities' : 'users';
           
           const apiData = await fetchExportData({
             dataType: exportDataType,
             ...exportConfig
           } as ExportConfigType);
-          dataToExport = apiData;
+          console.log(`Export API response for ${exportDataType}:`, apiData);
+          console.log(`Export API response type:`, typeof apiData);
+          console.log(`Export API response is array:`, Array.isArray(apiData));
+          console.log(`Export API response length:`, apiData?.length);
+          dataToExport = Array.isArray(apiData) ? apiData : (apiData ? [apiData] : []);
         } catch (error) {
           console.error('Error fetching export data from API:', error);
           // Fallback to local data if API fails
@@ -502,7 +521,11 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
       }
       
-      if (dataToExport.length === 0) {
+      console.log(`Final dataToExport for ${dataType}:`, dataToExport);
+      console.log(`Final dataToExport length:`, dataToExport?.length);
+      console.log(`Final dataToExport is array:`, Array.isArray(dataToExport));
+      
+      if (!dataToExport || !Array.isArray(dataToExport) || dataToExport.length === 0) {
         alert(`No ${dataType} to export`);
         setIsExporting(false);
         return;
@@ -510,7 +533,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
 
     let csvData: Record<string, string | number>[];
     
-    if (dataType === 'users') {
+    if (dataType === 'users' || dataType === 'sellerUsers' || dataType === 'allUsers') {
       csvData = (dataToExport as User[]).map((user) => ({
         'User ID': user.id,
         'Full Name': user.full_name || user.userName || 'N/A',
@@ -532,7 +555,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         'Is Dispute': (chat.is_dispute !== undefined ? chat.is_dispute : chat.isDispute) ? 'Yes' : 'No',
         'Unread Count': chat.unread_count || chat.unreadCount || 0
       }));
-    } else if (dataType === 'transactions') {
+    } else if (dataType === 'transactions' || dataType === 'adminTransactions') {
       csvData = (dataToExport as Transaction[]).map((transaction) => {
         // Format amount properly
         let amountValue = 'N/A';
@@ -1034,18 +1057,37 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       let dataToExport: any[] = [];
       
       // If export config is provided, fetch all data from API
-      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users')) {
+      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users' || dataType === 'support' || dataType === 'chats' || dataType === 'disputes' || dataType === 'adminTransactions' || dataType === 'sellerUsers' || dataType === 'stores' || dataType === 'allUsers' || dataType === 'promotions' || dataType === 'withdrawals' || dataType === 'notifications' || dataType === 'banners' || dataType === 'ratings' || dataType === 'reviews' || dataType === 'subscriptions' || dataType === 'leaderboard' || dataType === 'activities')) {
         try {
           const exportDataType = dataType === 'orders' ? 'orders' : 
                                 dataType === 'transactions' ? 'transactions' : 
                                 dataType === 'products' ? 'products' : 
-                                dataType === 'services' ? 'services' : 'users';
+                                dataType === 'services' ? 'services' : 
+                                dataType === 'support' ? 'support' :
+                                dataType === 'chats' ? 'chats' :
+                                dataType === 'disputes' ? 'disputes' :
+                                dataType === 'adminTransactions' ? 'adminTransactions' :
+                                dataType === 'sellerUsers' ? 'sellerUsers' :
+                                dataType === 'stores' ? 'stores' :
+                                dataType === 'allUsers' ? 'allUsers' :
+                                dataType === 'promotions' ? 'promotions' :
+                                dataType === 'withdrawals' ? 'withdrawals' :
+                                dataType === 'notifications' ? 'notifications' :
+                                dataType === 'banners' ? 'banners' :
+                                dataType === 'ratings' || dataType === 'reviews' ? 'ratings' :
+                                dataType === 'subscriptions' ? 'subscriptions' :
+                                dataType === 'leaderboard' ? 'leaderboard' :
+                                dataType === 'activities' ? 'activities' : 'users';
           
           const apiData = await fetchExportData({
             dataType: exportDataType,
             ...exportConfig
           } as ExportConfigType);
-          dataToExport = apiData;
+          console.log(`Export API response for ${exportDataType} (PDF):`, apiData);
+          console.log(`Export API response type (PDF):`, typeof apiData);
+          console.log(`Export API response is array (PDF):`, Array.isArray(apiData));
+          console.log(`Export API response length (PDF):`, apiData?.length);
+          dataToExport = Array.isArray(apiData) ? apiData : (apiData ? [apiData] : []);
         } catch (error) {
           console.error('Error fetching export data from API:', error);
           // Fallback to local data if API fails
@@ -1056,7 +1098,11 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
       }
       
-      if (dataToExport.length === 0) {
+      console.log(`Final dataToExport for ${dataType} (PDF):`, dataToExport);
+      console.log(`Final dataToExport length (PDF):`, dataToExport?.length);
+      console.log(`Final dataToExport is array (PDF):`, Array.isArray(dataToExport));
+      
+      if (!dataToExport || !Array.isArray(dataToExport) || dataToExport.length === 0) {
         alert(`No ${dataType} to export`);
         setIsExporting(false);
         return;
@@ -1072,7 +1118,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       let tableData;
       let headers;
     
-    if (dataType === 'users') {
+    if (dataType === 'users' || dataType === 'sellerUsers' || dataType === 'allUsers') {
       headers = ['User ID', 'Full Name', 'Email', 'Phone', 'Role', 'Wallet Balance', 'Status'];
       tableData = (dataToExport as User[]).map((user) => [
         String(user.id),
@@ -1094,7 +1140,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         (chat.is_read !== undefined ? chat.is_read : chat.isRead) ? 'Yes' : 'No',
         (chat.is_dispute !== undefined ? chat.is_dispute : chat.isDispute) ? 'Yes' : 'No'
       ]);
-    } else if (dataType === 'transactions') {
+    } else if (dataType === 'transactions' || dataType === 'adminTransactions') {
       headers = ['Transaction ID', 'Reference/TX ID', 'Amount', 'Type', 'Status', 'Status Color', 'Date', 'User Name', 'User Email'];
       tableData = (dataToExport as Transaction[]).map((transaction) => {
         // Format amount properly

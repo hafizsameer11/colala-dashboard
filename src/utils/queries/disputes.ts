@@ -20,6 +20,26 @@ export const getDisputeStatistics = async () => {
 };
 
 /**
+ * Map UI period options to API period values
+ */
+const mapPeriodToApi = (period: string): string | null => {
+  const periodMap: Record<string, string> = {
+    'Today': 'today',
+    'This Week': 'this_week',
+    'This Month': 'this_month',
+    'Last Month': 'last_month',
+    'This Year': 'this_year',
+    'Last Year': 'this_year',
+  };
+  
+  if (period === 'All time' || !period) {
+    return null;
+  }
+  
+  return periodMap[period] || null;
+};
+
+/**
  * Get disputes list with pagination and filters
  */
 export const getDisputesList = async (params?: {
@@ -27,6 +47,7 @@ export const getDisputesList = async (params?: {
   per_page?: number;
   status?: string;
   category?: string;
+  period?: string;
   date_from?: string;
   date_to?: string;
   search?: string;
@@ -42,8 +63,22 @@ export const getDisputesList = async (params?: {
     const queryParams = new URLSearchParams();
     
     if (params) {
+      // Handle period vs date_from/date_to priority
+      if (params.period) {
+        const apiPeriod = mapPeriodToApi(params.period);
+        if (apiPeriod) {
+          queryParams.append('period', apiPeriod);
+        }
+      } else if (params.date_from && params.date_to) {
+        // Only add date_from/date_to if period is not provided
+        queryParams.append('date_from', params.date_from);
+        queryParams.append('date_to', params.date_to);
+      }
+      
+      // Add other params (excluding period, date_from, date_to which are handled above)
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (key !== 'period' && key !== 'date_from' && key !== 'date_to' && 
+            value !== undefined && value !== null && value !== '') {
           queryParams.append(key, value.toString());
         }
       });

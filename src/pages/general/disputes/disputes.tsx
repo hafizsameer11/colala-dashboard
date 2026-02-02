@@ -2,15 +2,22 @@ import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import { useEffect, useState, useMemo } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import DisputesTable from "./components/disputeTable";
 import { getDisputeStatistics, getDisputesList } from "../../../utils/queries/disputes";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Pending" | "On Hold" | "Resolved";
 
 const Disputes = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const [selectedPeriod] = useState<string>("All time"); // Fixed to "All time", no filter UI
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
   const tabs: Tab[] = ["All", "Pending", "On Hold", "Resolved"];
 
   // --- Search with debounce ---
@@ -81,34 +88,42 @@ const Disputes = () => {
     console.log("Bulk action selected in Orders:", action);
   };
   
-  // Fetch all disputes for export (without pagination to get all data)
+  // Fetch disputes with filters
   useEffect(() => {
-    const fetchAllDisputes = async () => {
+    const fetchDisputes = async () => {
       try {
         setIsLoadingDisputes(true);
+        const statusMap: Record<string, string> = {
+          'All': '',
+          'Pending': 'pending',
+          'On Hold': 'on_hold',
+          'Resolved': 'resolved',
+        };
         const response = await getDisputesList({
-          page: 1,
-          per_page: 1000, // Large number to get all disputes
+          page: currentPage,
+          per_page: 15,
+          status: statusMap[activeTab] || undefined,
+          search: debouncedSearch || undefined,
+          period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+          date_from: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+          date_to: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
         });
         if (response.status === 'success') {
           setAllDisputes(response.data.disputes || []);
         }
       } catch (error) {
-        console.error('Error fetching disputes for export:', error);
+        console.error('Error fetching disputes:', error);
       } finally {
         setIsLoadingDisputes(false);
       }
     };
     
-    fetchAllDisputes();
-  }, []);
-  
-  // Filter disputes by period
-  const periodFilteredDisputes = filterByPeriod(allDisputes, selectedPeriod, ['created_at', 'updated_at', 'resolved_at', 'closed_at', 'date', 'formatted_date']);
+    fetchDisputes();
+  }, [currentPage, activeTab, debouncedSearch, dateFilter]);
   
   // Transform disputes for BulkActionDropdown export
   const disputesForExport = useMemo(() => {
-    return periodFilteredDisputes.map((dispute: any) => {
+    return allDisputes.map((dispute: any) => {
       // Get user and store names from nested structures
       const userName = dispute.user_name || dispute.userName || dispute.user?.name || dispute.dispute_chat?.buyer?.name || 'N/A';
       const userEmail = dispute.user_email || dispute.userEmail || dispute.user?.email || dispute.dispute_chat?.buyer?.email || 'N/A';
@@ -145,7 +160,7 @@ const Disputes = () => {
         date: dispute.formatted_date || dispute.created_at || '',
       };
     });
-  }, [periodFilteredDisputes]);
+  }, [allDisputes]);
 
   return (
     <>
@@ -236,17 +251,34 @@ const Disputes = () => {
           </div>
         </div>
 
-        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
+        <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={(filter) => {
+                setDateFilter(filter);
+                setCurrentPage(1);
+              }}
+            />
             <div>
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
                 orders={disputesForExport}
                 dataType="disputes"
+                exportConfig={{
+                  dataType: "disputes",
+                  status: activeTab !== "All" ? activeTab.toLowerCase().replace(' ', '_') : undefined,
+                  period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                  search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+                }}
               />
             </div>
           </div>
@@ -289,7 +321,9 @@ const Disputes = () => {
         <DisputesTable 
           activeTab={activeTab} 
           search={debouncedSearch} 
-          selectedPeriod={selectedPeriod}
+          selectedPeriod={dateFilter.filterType === 'period' ? dateFilter.period || 'All time' : 'All time'}
+          dateFrom={dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined}
+          dateTo={dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined}
         />
       </div>
     </>

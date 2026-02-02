@@ -3,9 +3,60 @@ import { API_ENDPOINTS } from '../../config/apiConfig';
 import Cookies from 'js-cookie';
 
 /**
+ * Map UI period options to API period values
+ */
+const mapPeriodToApi = (period: string): string | null => {
+  const periodMap: Record<string, string> = {
+    'Today': 'today',
+    'This Week': 'this_week',
+    'This Month': 'this_month',
+    'Last Month': 'last_month',
+    'This Year': 'this_year',
+    'Last Year': 'this_year',
+  };
+  
+  if (period === 'All time' || !period) {
+    return null;
+  }
+  
+  return periodMap[period] || null;
+};
+
+/**
+ * Build date filter query parameters
+ * Priority: period > date_from/date_to
+ */
+const buildDateFilterQuery = (period?: string, dateFrom?: string | null, dateTo?: string | null): string => {
+  let query = '';
+  
+  // Priority 1: Period filter (highest priority)
+  const apiPeriod = period ? mapPeriodToApi(period) : null;
+  if (apiPeriod) {
+    query += `&period=${apiPeriod}`;
+    return query; // Period takes priority, ignore custom date range
+  }
+  
+  // Priority 2: Custom date range (only if both dateFrom and dateTo are provided)
+  if (dateFrom && dateTo) {
+    query += `&date_from=${dateFrom}`;
+    query += `&date_to=${dateTo}`;
+  }
+  
+  return query;
+};
+
+/**
  * Get chats list with pagination and filtering
  */
-export const getChats = async (page: number = 1, search?: string, type?: string) => {
+export const getChats = async (
+  page: number = 1, 
+  search?: string, 
+  type?: string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  status?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -18,6 +69,10 @@ export const getChats = async (page: number = 1, search?: string, type?: string)
     if (type) {
       url += `&type=${encodeURIComponent(type)}`;
     }
+    if (status) {
+      url += `&status=${encodeURIComponent(status)}`;
+    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {

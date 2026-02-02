@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import ProductsTable from "./components/productsTable";
 import AddNewProduct from "../Modals/addNewProduct";
 import ServiceModal from "../Modals/serviceModal";
@@ -12,7 +14,6 @@ import { getAdminProducts, getAdminServices } from "../../../utils/queries/users
 import { apiCall } from "../../../utils/customApiCall";
 import { API_ENDPOINTS } from "../../../config/apiConfig";
 import Cookies from "js-cookie";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -47,20 +48,13 @@ const Products_Services = () => {
   const debouncedSearch = useDebouncedValue(search, 450);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Date filter - synchronized with PageHeader
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("All time");
-  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
-  const dateFilterRef = useRef<HTMLDivElement>(null);
-  
-  // Date period options matching PageHeader
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
   // Category filter
   const [selectedCategory, setSelectedCategory] = useState<string>("All Categories");
@@ -121,11 +115,15 @@ const Products_Services = () => {
 
   // API data fetching for products
   const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ['adminProducts', activeTab, currentPage, selectedCategory, debouncedSearch],
+    queryKey: ['adminProducts', activeTab, currentPage, selectedCategory, debouncedSearch, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
     queryFn: () => getAdminProducts(
       currentPage, 
       activeTab === "All" ? undefined : activeTab.toLowerCase(), 
-      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+      false,
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
     ),
     placeholderData: (previousData) => previousData,
     enabled: selectedProductType === "Products",
@@ -133,11 +131,16 @@ const Products_Services = () => {
 
   // API data fetching for services
   const { data: servicesData, isLoading: servicesLoading, error: servicesError } = useQuery({
-    queryKey: ['adminServices', activeTab, currentPage, selectedCategory, debouncedSearch],
+    queryKey: ['adminServices', activeTab, currentPage, selectedCategory, debouncedSearch, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
     queryFn: () => getAdminServices(
       currentPage, 
       activeTab === "All" ? undefined : activeTab.toLowerCase(), 
-      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+      false,
+      selectedCategory !== "All Categories" ? selectedCategory : undefined,
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
     ),
     placeholderData: (previousData) => previousData,
     enabled: selectedProductType === "Services",
@@ -269,9 +272,6 @@ const Products_Services = () => {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dateFilterRef.current && !dateFilterRef.current.contains(event.target as Node)) {
-        setIsDateFilterOpen(false);
-      }
       if (categoryFilterRef.current && !categoryFilterRef.current.contains(event.target as Node)) {
         setIsCategoryFilterOpen(false);
       }
@@ -283,9 +283,9 @@ const Products_Services = () => {
     };
   }, []);
 
-  // Handler for PageHeader period change
-  const handlePageHeaderPeriodChange = (period: string) => {
-    setSelectedDateFilter(period);
+  // Handler for date filter change
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1); // Reset to first page when filter changes
   };
 
@@ -485,14 +485,10 @@ const Products_Services = () => {
 
   // Apply filters to current data
   // Only apply category filter for Products, not for Services
-  const dateFilteredData = filterByPeriod(
-    currentData, 
-    selectedDateFilter, 
-    ['formatted_date', 'created_at', 'date']
-  );
+  // Date filtering is now handled by backend
   const filteredData = selectedProductType === "Products" 
-    ? filterByCategory(dateFilteredData, selectedCategory)
-    : dateFilteredData; // Services don't use category filter
+    ? filterByCategory(currentData, selectedCategory)
+    : currentData; // Services don't use category filter
 
 
   const TabButtons = () => (
@@ -519,9 +515,6 @@ const Products_Services = () => {
       <div>
         <PageHeader 
           title="Products / Services" 
-          defaultPeriod={selectedDateFilter}
-          timeOptions={datePeriodOptions}
-          onPeriodChange={handlePageHeaderPeriodChange}
         />
         <div className="p-3 sm:p-4 md:p-5">
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
@@ -609,38 +602,13 @@ const Products_Services = () => {
               </div>
               <ProductsDropdown onProductSelect={handleProductSelect} />
 
-              <div className="relative" ref={dateFilterRef}>
-                <div 
-                  className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                  onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
-                >
-                  <div>{selectedDateFilter}</div>
-                  <img 
-                    className={`w-3 h-3 mt-1 transition-transform ${isDateFilterOpen ? 'rotate-180' : ''}`} 
-                    src={images.dropdown} 
-                    alt="" 
-                  />
-                </div>
-                {isDateFilterOpen && (
-                  <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                    {datePeriodOptions.map((option) => (
-                      <div
-                        key={option}
-                        onClick={() => {
-                          setSelectedDateFilter(option);
-                          setIsDateFilterOpen(false);
-                          setCurrentPage(1);
-                        }}
-                        className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                          selectedDateFilter === option ? "bg-gray-100 font-semibold" : ""
-                        }`}
-                      >
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <DateFilter
+                defaultFilterType={dateFilter.filterType}
+                defaultPeriod={dateFilter.period || 'All time'}
+                defaultDateFrom={dateFilter.dateFrom}
+                defaultDateTo={dateFilter.dateTo}
+                onFilterChange={handleDateFilterChange}
+              />
 
               {/* Category Filter - Only show for Products */}
               {selectedProductType === "Products" && (
@@ -700,6 +668,9 @@ const Products_Services = () => {
                   status: activeTab === "All" ? undefined : activeTab.toLowerCase(),
                   search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
                   category: selectedCategory !== "All Categories" ? selectedCategory : undefined,
+                  period: dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
                 }}
               />
             </div>

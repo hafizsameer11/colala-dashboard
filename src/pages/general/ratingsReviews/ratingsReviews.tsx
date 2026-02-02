@@ -375,6 +375,12 @@ const AllRatingAndReview = () => {
                   onActionSelect={handleBulkActionSelect}
                   orders={reviewsForExport}
                   dataType="ratings"
+                  exportConfig={{
+                    dataType: "ratings",
+                    reviewType: activeTab === "Store" ? "stores" : activeTab === "Product" ? "products" : undefined,
+                    search: debouncedSearch?.trim() || undefined,
+                    period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                  }}
                 />
               </div>
             </div>

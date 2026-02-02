@@ -4,6 +4,8 @@ import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
 import { useState, useEffect } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import DepositDropdown from "../../../components/DepositsDropdown";
 import TransactionTable from "./transactionTable";
 import { useQuery } from "@tanstack/react-query";
@@ -54,75 +56,32 @@ const Transactions = () => {
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // period/date filter - default to "All time" so we don't hide existing data
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-
-  // Date period options
-  const datePeriodOptions = [
-    "All time",
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-  ];
-
-  // Helper function to filter transactions by period
-  const filterTransactionsByPeriod = (transactions: any[], period: string) => {
-    if (period === "All time") return transactions;
-    
-    const now = new Date();
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    let startDate: Date;
-    
-    switch (period) {
-      case "Today":
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        return transactions.filter((tx) => {
-          const txDate = tx.created_at || tx.date || tx.formatted_date;
-          if (!txDate) return false;
-          const date = new Date(txDate);
-          return date >= startDate && date <= endOfToday;
-        });
-      case "This Week":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "Last Month":
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        break;
-      case "Last 6 Months":
-        startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-        break;
-      case "Last Year":
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        break;
-      default:
-        return transactions;
-    }
-    
-    return transactions.filter((tx) => {
-      const txDate = tx.created_at || tx.date || tx.formatted_date;
-      if (!txDate) return false;
-      const date = new Date(txDate);
-      return date >= startDate && date <= now;
-    });
-  };
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
   // API data fetching
   const { data: transactionsData, isLoading, error } = useQuery({
-    queryKey: ['adminTransactions', activeTab, typeFilter, currentPage],
-    queryFn: () => getAdminTransactions(currentPage, activeTab === "All" ? undefined : activeTab, typeFilter === "All" ? undefined : typeFilter.toLowerCase()),
+    queryKey: ['adminTransactions', activeTab, typeFilter, currentPage, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getAdminTransactions(
+      currentPage, 
+      activeTab === "All" ? undefined : activeTab, 
+      typeFilter === "All" ? undefined : typeFilter.toLowerCase(),
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
     placeholderData: (previousData) => previousData,
   });
 
-  // Extract data
-  const allTransactions = transactionsData?.data?.transactions || [];
+  // Extract data (backend handles filtering)
+  const transactions = transactionsData?.data?.transactions || [];
   const statistics = transactionsData?.data?.statistics || {};
   const pagination = transactionsData?.data?.pagination;
-
-  // Filter transactions by selected period
-  const transactions = filterTransactionsByPeriod(allTransactions, selectedPeriod);
 
   const handlePageChange = (page: number) => {
     if (page !== currentPage) setCurrentPage(page);
@@ -158,49 +117,16 @@ const Transactions = () => {
     console.log("Deposit action selected:", action, "=> filter:", normalized);
   };
 
-  // Handle period change from PageHeader
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setCurrentPage(1); // Reset to first page when period changes
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
+    setCurrentPage(1);
   };
-
-  // Handle date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-
-  // Handle date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
-    setCurrentPage(1); // Reset to first page when period changes
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (isDateDropdownOpen && !target.closest('.date-dropdown-container')) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
 
   return (
     <>
       <PageHeader 
         title="Transactions - Stores" 
-        onPeriodChange={handlePeriodChange}
-        defaultPeriod="All time"
-        timeOptions={datePeriodOptions}
+        showDropdown={false}
       />
 
       <div className="p-3 sm:p-4 md:p-5">
@@ -273,13 +199,28 @@ const Transactions = () => {
               )}
             </div>
 
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             {/* TYPE FILTER (DepositDropdown) */}
             <DepositDropdown onActionSelect={handleDepositActionSelect} />
 
             <BulkActionDropdown 
               onActionSelect={handleBulkActionSelect}
               orders={transactions}
-              dataType="transactions"
+              dataType="adminTransactions"
+              exportConfig={{
+                dataType: "adminTransactions",
+                status: activeTab !== "All" ? activeTab : undefined,
+                typeFilter: typeFilter !== "All" ? typeFilter : undefined,
+                period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+              }}
             />
           </div>
 

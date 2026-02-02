@@ -7,8 +7,9 @@ import { useLocation } from "react-router-dom";
 import { getAdminOrders, getSellerOrders, updateOrderStatus } from "../../../utils/queries/users";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import LatestOrders from "./latestOrders";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 function useDebouncedValue<T>(value: T, delay = 450) {
   const [debounced, setDebounced] = useState<T>(value);
@@ -23,20 +24,14 @@ const OrdersMgt = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
   const debouncedSearch = useDebouncedValue(search, 450);
   const location = useLocation();
-
-  // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time"
-  ];
 
   const queryClient = useQueryClient();
 
@@ -57,11 +52,26 @@ const OrdersMgt = () => {
   const sellerId = 1; // For seller-specific orders
   const { data: ordersData, isLoading, error } = useQuery({
     queryKey: isAdminOrdersPage 
-      ? ['adminOrders', activeTab, currentPage]
-      : ['sellerOrders', sellerId, activeTab, currentPage],
+      ? ['adminOrders', activeTab, currentPage, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo, debouncedSearch]
+      : ['sellerOrders', sellerId, activeTab, currentPage, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo, debouncedSearch],
     queryFn: () => isAdminOrdersPage 
-      ? getAdminOrders(currentPage, activeTab === "All" ? undefined : activeTab)
-      : getSellerOrders(sellerId, currentPage, activeTab === "All" ? undefined : activeTab),
+      ? getAdminOrders(
+          currentPage, 
+          activeTab === "All" ? undefined : activeTab,
+          dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+          dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+          dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+          debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+        )
+      : getSellerOrders(
+          sellerId, 
+          currentPage, 
+          activeTab === "All" ? undefined : activeTab,
+          dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+          dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+          dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+          debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+        ),
     placeholderData: (previousData) => previousData,
   });
 
@@ -139,69 +149,13 @@ const OrdersMgt = () => {
     console.log("Bulk action selected in Orders:", action);
   };
 
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
   };
 
-  // Handle date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-
-  // Handle date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
-    setCurrentPage(1); // Reset to first page when period changes
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (isDateDropdownOpen && !target.closest('.date-dropdown-container')) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
-
-  // Filter orders by period
-  const filteredOrders = useMemo(() => {
-    if (!orders || !Array.isArray(orders) || orders.length === 0) {
-      return [];
-    }
-    
-    const filtered = filterByPeriod(orders, selectedPeriod, ['formatted_date', 'created_at', 'order_date', 'date']);
-    
-    // Debug logging for filtering
-    if (process.env.NODE_ENV === 'development') {
-      console.log('=== FILTER DEBUG ===');
-      console.log('Selected Period:', selectedPeriod);
-      console.log('Total Orders:', orders.length);
-      console.log('Filtered Orders:', filtered.length);
-      if (orders.length > 0) {
-        console.log('Sample Order Date Fields:', {
-          formatted_date: orders[0]?.formatted_date,
-          created_at: orders[0]?.created_at,
-          order_date: orders[0]?.order_date,
-          date: orders[0]?.date,
-          allKeys: Object.keys(orders[0] || {})
-        });
-      }
-      console.log('=== END FILTER DEBUG ===');
-    }
-    
-    return filtered;
-  }, [orders, selectedPeriod]);
+  // Backend handles filtering, so use orders directly
+  const filteredOrders = orders;
 
   // Transform orders for BulkActionDropdown export
   const ordersForExport = useMemo(() => {
@@ -225,9 +179,7 @@ const OrdersMgt = () => {
     <>
       <PageHeader 
         title="Orders Management - Stores" 
-        onPeriodChange={handlePeriodChange} 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
+        showDropdown={false}
       />
       <div className="p-3 sm:p-4 md:p-5">
         {/* Debug Panel - Remove this after testing */}
@@ -298,6 +250,11 @@ const OrdersMgt = () => {
                 onActionSelect={handleBulkActionSelect}
                 orders={ordersForExport}
                 dataType="orders"
+                exportConfig={{
+                  dataType: "orders",
+                  status: activeTab !== "All" ? activeTab : undefined,
+                  period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                }}
               />
             </div>
           </div>

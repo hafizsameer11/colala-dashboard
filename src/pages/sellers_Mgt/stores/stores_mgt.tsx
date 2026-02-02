@@ -1,6 +1,8 @@
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import StoresTable from "./storeTable";
 import AddStoreModal from "../Modals/addStoreModel";
 import SavedAddressModal from "../Modals/savedAddressModal";
@@ -46,21 +48,25 @@ const stores_mgt = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   
-  // Date period filter - synchronized with PageHeader
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
-  // Fetch seller users
+  // Fetch seller users (stores)
   const { data: sellerData, isLoading, error } = useQuery({
-    queryKey: ['sellerUsers', currentPage, debouncedSearch, selectedPeriod],
-    queryFn: () => getSellerUsers(currentPage, undefined, debouncedSearch, selectedPeriod),
+    queryKey: ['sellerUsers', currentPage, debouncedSearch, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getSellerUsers(
+      currentPage, 
+      undefined, 
+      debouncedSearch, 
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -140,19 +146,16 @@ const stores_mgt = () => {
     return selectedUsers.map(user => user.store_name || user.full_name || 'Unknown Store');
   };
   
-  // Handler for PageHeader period change
-  const handlePageHeaderPeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setCurrentPage(1); // Reset to first page when filter changes
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
+    setCurrentPage(1);
   };
 
   return (
     <>
       <PageHeader 
         title="User Management - Stores" 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
-        onPeriodChange={handlePageHeaderPeriodChange}
+        showDropdown={false}
       />
       <div className="bg-[#F5F5F5]">
         <div className="p-3 sm:p-4 md:p-5">
@@ -215,15 +218,33 @@ const stores_mgt = () => {
           </div>
 
           <div className="mt-4 sm:mt-5">
-            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <div>
-                  <BulkActionDropdown 
-                    onActionSelect={handleBulkActionSelect}
-                    dataType="users"
-                    orders={users}
-                    selectedOrders={selectedUsers}
-                  />
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                <DateFilter
+                  defaultFilterType={dateFilter.filterType}
+                  defaultPeriod={dateFilter.period || 'All time'}
+                  defaultDateFrom={dateFilter.dateFrom}
+                  defaultDateTo={dateFilter.dateTo}
+                  onFilterChange={handleDateFilterChange}
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <div>
+                    <BulkActionDropdown 
+                      onActionSelect={handleBulkActionSelect}
+                      dataType="sellerUsers"
+                      orders={users}
+                      selectedOrders={selectedUsers}
+                      exportConfig={{
+                        dataType: "sellerUsers",
+                        search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+                        period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                        dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                        dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                      }}
+                    />
+                  </div>
                 </div>
                 {canAssignAccountOfficer && selectedUsers.length > 0 && (
                   <div>

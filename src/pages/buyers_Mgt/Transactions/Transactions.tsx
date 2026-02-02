@@ -4,11 +4,12 @@ import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
 import { useState, useEffect, useMemo, useRef } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import DepositDropdown from "../../../components/DepositsDropdown";
 import TransactionTable from "../customer_mgt/customerDetails/transaction/transactionTable";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminTransactions } from "../../../utils/queries/users";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 // tiny debounce hook
 function useDebouncedValue<T>(value: T, delay = 450) {
@@ -64,20 +65,13 @@ const Transactions = () => {
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // period/date filter - synchronized with PageHeader
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
-  
-  // Date period options matching PageHeader
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
+  // Date filter state - supports both period and custom date range
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
   // selected transactions for bulk actions
   const [selectedTransactions, setSelectedTransactions] = useState<Array<{
@@ -94,72 +88,26 @@ const Transactions = () => {
 
   // API data fetching
   const { data: transactionsData, isLoading, error } = useQuery({
-    queryKey: ['adminTransactions', activeTab, typeFilter, currentPage],
-    queryFn: () => getAdminTransactions(currentPage, activeTab === "All" ? undefined : activeTab, getTypeForAPI(typeFilter)),
+    queryKey: ['adminTransactions', activeTab, typeFilter, currentPage, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo, debouncedSearch],
+    queryFn: () => getAdminTransactions(
+      currentPage, 
+      activeTab === "All" ? undefined : activeTab, 
+      getTypeForAPI(typeFilter),
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+    ),
   });
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, typeFilter]);
+  }, [activeTab, typeFilter, dateFilter, debouncedSearch]);
 
-  // Extract data
-  const allTransactions = transactionsData?.data?.transactions || [];
+  // Extract data (backend handles filtering)
+  const transactions = transactionsData?.data?.transactions || [];
   const pagination = transactionsData?.data?.pagination;
-
-  // Close date dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
-
-  // Filter transactions by selected period, status, and type
-  const transactions = useMemo(() => {
-    // First filter by period using the utility function
-    let filtered = filterByPeriod(
-      allTransactions,
-      selectedPeriod,
-      ['formatted_date', 'created_at', 'date']
-    );
-    
-    // Apply status filter if not "All"
-    if (activeTab !== "All") {
-      const statusFilter = activeTab.toLowerCase().trim();
-      filtered = filtered.filter((tx: any) => {
-        const txStatus = String(tx.status || '').toLowerCase().trim();
-        return txStatus === statusFilter || txStatus.includes(statusFilter);
-      });
-    }
-    
-    // Apply type filter if not "All"
-    if (typeFilter !== "All") {
-      const typeFilterLower = typeFilter.toLowerCase().trim();
-      filtered = filtered.filter((tx: any) => {
-        const txType = String(tx.type || tx.transaction_type || '').toLowerCase().trim();
-        if (typeFilterLower === 'deposit') {
-          return txType.includes('deposit');
-        } else if (typeFilterLower === 'withdrawals') {
-          return txType.includes('withdraw') || txType.includes('withdrawal');
-        } else if (typeFilterLower === 'payments') {
-          return txType.includes('payment') || txType.includes('pay');
-        }
-        return true;
-      });
-    }
-    
-    return filtered;
-  }, [allTransactions, selectedPeriod, activeTab, typeFilter]);
 
   // Calculate statistics from filtered transactions
   const statistics = useMemo(() => {
@@ -228,31 +176,16 @@ const Transactions = () => {
     console.log("Deposit action selected:", action, "=> filter:", normalized);
   };
 
-  // Handle period change from PageHeader
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setCurrentPage(1); // Reset to first page when period changes
-  };
-  
-  // Handle local date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-  
-  // Handle local date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
-    setCurrentPage(1); // Reset to first page when period changes
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
+    setCurrentPage(1);
   };
 
   return (
     <>
       <PageHeader 
         title="Transactions" 
-        onPeriodChange={handlePeriodChange}
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
+        showDropdown={false}
       />
 
       <div className="p-3 sm:p-4 md:p-5">
@@ -289,39 +222,18 @@ const Transactions = () => {
           </StatCardGrid>
         )}
 
-        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2 flex-wrap">
+        <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="relative" ref={dateDropdownRef}>
-              <div 
-                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => handleDatePeriodSelect(option)}
-                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             <div>
               <DepositDropdown onActionSelect={handleDepositActionSelect} />
             </div>
@@ -330,7 +242,16 @@ const Transactions = () => {
                 onActionSelect={handleBulkActionSelect}
                 selectedOrders={selectedTransactions}
                 orders={transactions}
-                dataType="transactions"
+                dataType="adminTransactions"
+                exportConfig={{
+                  dataType: "adminTransactions",
+                  status: activeTab !== "All" ? activeTab : undefined,
+                  typeFilter: typeFilter !== "All" ? typeFilter : undefined,
+                  period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                  search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+                }}
               />
             </div>
           </div>

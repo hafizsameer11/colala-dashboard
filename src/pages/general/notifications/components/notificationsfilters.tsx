@@ -216,6 +216,11 @@ const NotificationsFilters: React.FC<NotificationsFiltersProps> = ({
             onActionSelect={handleBulkActionSelect}
             orders={activeTab === "Notification" ? notificationsForExport : bannersForExport}
             dataType={activeTab === "Notification" ? "notifications" : "banners"}
+            exportConfig={{
+              dataType: activeTab === "Notification" ? "notifications" : "banners",
+              search: search?.trim() || undefined,
+              period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+            }}
           />
         </div>
 
