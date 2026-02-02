@@ -247,6 +247,12 @@ const Transactions: React.FC<TransactionProps> = ({ userId, selectedPeriod = "Al
               selectedOrders={selectedTransactions}
               orders={transactionsData?.data?.transactions?.data || []}
               dataType="transactions"
+              exportConfig={{
+                dataType: "transactions",
+                userId: userId,
+                status: activeTab !== "All" ? activeTab.toLowerCase() : undefined,
+                period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+              }}
             />
           </div>
 

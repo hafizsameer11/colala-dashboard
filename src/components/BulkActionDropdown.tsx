@@ -3,6 +3,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Papa from 'papaparse';
 import images from '../constants/images';
+import { fetchExportData } from '../utils/exportHelpers';
+import type { ExportConfig as ExportConfigType } from '../utils/exportHelpers';
 
 interface User {
   id: string | number;
@@ -417,11 +419,21 @@ interface Activity {
   date?: string;
 }
 
+interface ExportConfig {
+  status?: string;
+  period?: string;
+  search?: string;
+  category?: string;
+  userId?: number | string;
+  typeFilter?: string;
+}
+
 interface BulkActionDropdownProps {
   onActionSelect?: (action: string) => void;
   selectedOrders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
   orders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
   dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities' | 'leaderboard';
+  exportConfig?: ExportConfig; // Current filters for export
 }
 
 const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
@@ -429,9 +441,11 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
   selectedOrders = [],
   orders = [],
   dataType = 'orders',
+  exportConfig,
 }) => {
   const [isBulkDropdownOpen, setIsBulkDropdownOpen] = useState(false);
   const [selectedBulkAction, setSelectedBulkAction] = useState("Bulk Action");
+  const [isExporting, setIsExporting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Only export actions
@@ -460,13 +474,39 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
 
 
   // Export to CSV
-  const exportToCSV = () => {
-    const dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
-    
-    if (dataToExport.length === 0) {
-      alert(`No ${dataType} to export`);
-      return;
-    }
+  const exportToCSV = async () => {
+    setIsExporting(true);
+    try {
+      let dataToExport: any[] = [];
+      
+      // If export config is provided, fetch all data from API
+      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users')) {
+        try {
+          const exportDataType = dataType === 'orders' ? 'orders' : 
+                                dataType === 'transactions' ? 'transactions' : 
+                                dataType === 'products' ? 'products' : 
+                                dataType === 'services' ? 'services' : 'users';
+          
+          const apiData = await fetchExportData({
+            dataType: exportDataType,
+            ...exportConfig
+          } as ExportConfigType);
+          dataToExport = apiData;
+        } catch (error) {
+          console.error('Error fetching export data from API:', error);
+          // Fallback to local data if API fails
+          dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+        }
+      } else {
+        // Use local data if no export config
+        dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+      }
+      
+      if (dataToExport.length === 0) {
+        alert(`No ${dataType} to export`);
+        setIsExporting(false);
+        return;
+      }
 
     let csvData: Record<string, string | number>[];
     
@@ -924,47 +964,113 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         };
       });
     } else {
-      csvData = (dataToExport as Order[]).map((order) => ({
-        'Order ID': order.id,
-        'Store Name': order.store_name || order.storeName || 'N/A',
-        'Buyer Name': order.buyer_name || order.buyerName || 'N/A',
-        'Product Name': order.product_name || order.productName || 'N/A',
-        'Price': order.price || 'N/A',
-        'Order Date': order.order_date || order.orderDate || 'N/A',
-        'Status': order.status || 'N/A'
-      }));
+      // Handle orders with nested API structure (same as normal API response)
+      csvData = (dataToExport as any[]).map((order: any) => {
+        // Extract store name from nested structure
+        const storeName = order.store?.store_name || order.store_name || order.storeName || 'N/A';
+        
+        // Extract buyer name from nested structure
+        const buyerName = order.order?.user?.full_name || order.buyer?.name || order.buyer_name || order.buyerName || 'N/A';
+        
+        // Extract product name - handle multiple items
+        let productName = 'N/A';
+        if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+          if (order.items.length === 1) {
+            productName = order.items[0].name || order.items[0].product?.name || 'N/A';
+          } else {
+            productName = `${order.items.length} items`;
+          }
+        } else {
+          productName = order.product?.name || order.product_name || order.productName || 'N/A';
+        }
+        
+        // Extract price
+        const price = order.subtotal_with_shipping || order.pricing?.subtotal_with_shipping || order.grand_total || order.price || 'N/A';
+        
+        // Extract order date
+        const orderDate = order.formatted_date || order.order_date || order.orderDate || order.created_at || order.order?.created_at || 'N/A';
+        
+        // Extract order number
+        const orderNo = order.order?.order_no || order.order_no || 'N/A';
+        
+        // Extract status
+        const status = order.status || order.order?.status || 'N/A';
+        
+        return {
+          'Order ID': order.id || order.order_id || 'N/A',
+          'Order No': orderNo,
+          'Store Name': storeName,
+          'Buyer Name': buyerName,
+          'Product Name': productName,
+          'Price': price,
+          'Order Date': orderDate,
+          'Status': status
+        };
+      });
     }
 
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${dataType}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const csv = Papa.unparse(csvData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${dataType}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Export to CSV error:', error);
+      alert(`Failed to export ${dataType}. Please try again.`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Export to PDF
-  const exportToPDF = () => {
-    const dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
-    
-    if (dataToExport.length === 0) {
-      alert(`No ${dataType} to export`);
-      return;
-    }
+  const exportToPDF = async () => {
+    setIsExporting(true);
+    try {
+      let dataToExport: any[] = [];
+      
+      // If export config is provided, fetch all data from API
+      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users')) {
+        try {
+          const exportDataType = dataType === 'orders' ? 'orders' : 
+                                dataType === 'transactions' ? 'transactions' : 
+                                dataType === 'products' ? 'products' : 
+                                dataType === 'services' ? 'services' : 'users';
+          
+          const apiData = await fetchExportData({
+            dataType: exportDataType,
+            ...exportConfig
+          } as ExportConfigType);
+          dataToExport = apiData;
+        } catch (error) {
+          console.error('Error fetching export data from API:', error);
+          // Fallback to local data if API fails
+          dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+        }
+      } else {
+        // Use local data if no export config
+        dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+      }
+      
+      if (dataToExport.length === 0) {
+        alert(`No ${dataType} to export`);
+        setIsExporting(false);
+        return;
+      }
 
-    const doc = new jsPDF();
-    
-    // Add title
-    doc.setFontSize(16);
-    doc.text(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Report`, 14, 22);
-    
-    // Prepare table data
-    let tableData;
-    let headers;
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(16);
+      doc.text(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Report`, 14, 22);
+      
+      // Prepare table data
+      let tableData;
+      let headers;
     
     if (dataType === 'users') {
       headers = ['User ID', 'Full Name', 'Email', 'Phone', 'Role', 'Wallet Balance', 'Status'];
@@ -1446,29 +1552,69 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         ];
       });
     } else {
-      headers = ['Order ID', 'Store Name', 'Buyer Name', 'Product Name', 'Price', 'Order Date', 'Status'];
-      tableData = (dataToExport as Order[]).map((order) => [
-        String(order.id),
-        order.store_name || order.storeName || 'N/A',
-        order.buyer_name || order.buyerName || 'N/A',
-        order.product_name || order.productName || 'N/A',
-        order.price || 'N/A',
-        order.order_date || order.orderDate || 'N/A',
-        order.status || 'N/A'
-      ]);
+      // Handle orders with nested API structure (same as normal API response)
+      headers = ['Order ID', 'Order No', 'Store Name', 'Buyer Name', 'Product Name', 'Price', 'Order Date', 'Status'];
+      tableData = (dataToExport as any[]).map((order: any) => {
+        // Extract store name from nested structure
+        const storeName = order.store?.store_name || order.store_name || order.storeName || 'N/A';
+        
+        // Extract buyer name from nested structure
+        const buyerName = order.order?.user?.full_name || order.buyer?.name || order.buyer_name || order.buyerName || 'N/A';
+        
+        // Extract product name - handle multiple items
+        let productName = 'N/A';
+        if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+          if (order.items.length === 1) {
+            productName = order.items[0].name || order.items[0].product?.name || 'N/A';
+          } else {
+            productName = `${order.items.length} items`;
+          }
+        } else {
+          productName = order.product?.name || order.product_name || order.productName || 'N/A';
+        }
+        
+        // Extract price
+        const price = order.subtotal_with_shipping || order.pricing?.subtotal_with_shipping || order.grand_total || order.price || 'N/A';
+        
+        // Extract order date
+        const orderDate = order.formatted_date || order.order_date || order.orderDate || order.created_at || order.order?.created_at || 'N/A';
+        
+        // Extract order number
+        const orderNo = order.order?.order_no || order.order_no || 'N/A';
+        
+        // Extract status
+        const status = order.status || order.order?.status || 'N/A';
+        
+        return [
+          String(order.id || order.order_id || 'N/A'),
+          orderNo,
+          storeName,
+          buyerName,
+          productName,
+          price,
+          orderDate,
+          status
+        ];
+      });
+      }
+
+      // Add table using autoTable
+      autoTable(doc, {
+        head: [headers],
+        body: tableData,
+        startY: 30,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [229, 62, 62] }
+      });
+
+      // Save the PDF
+      doc.save(`${dataType}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Export to PDF error:', error);
+      alert(`Failed to export ${dataType}. Please try again.`);
+    } finally {
+      setIsExporting(false);
     }
-
-    // Add table using autoTable
-    autoTable(doc, {
-      head: [headers],
-      body: tableData,
-      startY: 30,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [229, 62, 62] }
-    });
-
-    // Save the PDF
-    doc.save(`${dataType}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const handleBulkOptionSelect = (action: string) => {
@@ -1499,9 +1645,10 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
         onClick={handleBulkDropdownToggle}
-        className="inline-flex justify-center items-center px-6 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+        disabled={isExporting}
+        className="inline-flex justify-center items-center px-6 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {selectedBulkAction}
+        {isExporting ? 'Exporting...' : selectedBulkAction}
         <img 
           src={images.dropdown} 
           alt="" 

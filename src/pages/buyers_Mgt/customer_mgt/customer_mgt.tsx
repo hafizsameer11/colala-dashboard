@@ -213,6 +213,11 @@ const customer_mgt = () => {
                   orders={allUsers}
                   selectedOrders={selectedUsers}
                   dataType="users"
+                  exportConfig={{
+                    dataType: "users",
+                    search: debouncedQuery && debouncedQuery.trim() ? debouncedQuery.trim() : undefined,
+                    period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                  }}
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-5">

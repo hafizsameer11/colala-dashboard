@@ -54,7 +54,7 @@ export const getUserStats = async (period?: string) => {
  * @param search - Optional search query
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUsersList = async (page: number = 1, search?: string, period?: string) => {
+export const getUsersList = async (page: number = 1, search?: string, period?: string, exportData: boolean = false) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -67,6 +67,9 @@ export const getUsersList = async (page: number = 1, search?: string, period?: s
     const apiPeriod = period ? mapPeriodToApi(period) : null;
     if (apiPeriod) {
       url += `&period=${apiPeriod}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -249,7 +252,7 @@ export const getChatDetails = async (userId: number | string, chatId: number | s
  * @param page - Page number (default: 1)
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserTransactions = async (userId: number | string, page: number = 1, period?: string) => {
+export const getUserTransactions = async (userId: number | string, page: number = 1, period?: string, exportData: boolean = false, status?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -259,6 +262,12 @@ export const getUserTransactions = async (userId: number | string, page: number 
     const apiPeriod = period ? mapPeriodToApi(period) : null;
     if (apiPeriod) {
       url += `&period=${apiPeriod}`;
+    }
+    if (status && status !== 'All') {
+      url += `&status=${status}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -292,7 +301,7 @@ export const getTransactionDetails = async (userId: number | string, transaction
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  * @param search - Optional search query
  */
-export const getBuyerOrders = async (page: number = 1, status?: string, period?: string, search?: string) => {
+export const getBuyerOrders = async (page: number = 1, status?: string, period?: string, search?: string, exportData: boolean = false) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -308,6 +317,9 @@ export const getBuyerOrders = async (page: number = 1, status?: string, period?:
     }
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1248,7 +1260,7 @@ export const updatePromotion = async (promotionId: number | string, updateData: 
  * @param status - Optional status filter
  * @param search - Optional search query
  */
-export const getAdminProducts = async (page: number = 1, status?: string, search?: string) => {
+export const getAdminProducts = async (page: number = 1, status?: string, search?: string, exportData: boolean = false) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1260,6 +1272,9 @@ export const getAdminProducts = async (page: number = 1, status?: string, search
     }
     if (search && search.trim()) {
       url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1309,7 +1324,7 @@ export const getAdminProductDetails = async (productId: number | string) => {
  * @param status - Optional status filter
  * @param search - Optional search query
  */
-export const getAdminServices = async (page: number = 1, status?: string, search?: string) => {
+export const getAdminServices = async (page: number = 1, status?: string, search?: string, exportData: boolean = false, category?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1321,6 +1336,12 @@ export const getAdminServices = async (page: number = 1, status?: string, search
     }
     if (search && search.trim()) {
       url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    if (category && category !== 'All Categories') {
+      url += `&category=${encodeURIComponent(category)}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;

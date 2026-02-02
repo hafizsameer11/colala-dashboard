@@ -8,9 +8,6 @@ import LatestOrders from "../customer_mgt/customerDetails/orders/latestOrders";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
 import { useQuery } from "@tanstack/react-query";
 import { getBuyerOrders } from "../../../utils/queries/users";
-import Papa from 'papaparse';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import ChatsModel from "../../general/chats/components/chatmodel";
 
 const OrdersMgt = () => {
@@ -101,91 +98,14 @@ const OrdersMgt = () => {
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected in Orders:", action);
     
-    if (selectedOrders.length === 0) {
-      alert("Please select orders to perform this action");
-      return;
-    }
-
+    // Export actions are handled by BulkActionDropdown component internally
+    // Only handle non-export actions here
     switch (action) {
-      case "Export as CSV": {
-        // Export selected orders to CSV
-        const csvData = selectedOrders.map((order: unknown) => {
-          const orderObj = order as {
-            id: string | number;
-            order_no?: string;
-            buyer?: { name?: string };
-            store?: { name?: string };
-            product?: { name?: string };
-            status?: string;
-            order_date?: string;
-            pricing?: { subtotal_with_shipping?: string };
-          };
-          return {
-            'Order ID': orderObj.id,
-            'Order No': orderObj.order_no || 'N/A',
-            'Buyer Name': orderObj.buyer?.name || 'N/A',
-            'Store Name': orderObj.store?.name || 'N/A',
-            'Product Name': orderObj.product?.name || 'N/A',
-            'Status': orderObj.status || 'N/A',
-            'Order Date': orderObj.order_date || 'N/A',
-            'Total Price': orderObj.pricing?.subtotal_with_shipping || 'N/A'
-          };
-        });
-        
-        const csv = Papa.unparse(csvData);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `orders_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        break;
-      }
-        
-      case "Export as PDF": {
-        // Export selected orders to PDF
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text('Orders Report', 14, 22);
-        
-        const headers = ['Order ID', 'Order No', 'Buyer Name', 'Store Name', 'Product Name', 'Status', 'Order Date'];
-        const tableData = selectedOrders.map((order: unknown) => {
-          const orderObj = order as {
-            id: string | number;
-            order_no?: string;
-            buyer?: { name?: string };
-            store?: { name?: string };
-            product?: { name?: string };
-            status?: string;
-            order_date?: string;
-          };
-          return [
-            orderObj.id,
-            orderObj.order_no || 'N/A',
-            orderObj.buyer?.name || 'N/A',
-            orderObj.store?.name || 'N/A',
-            orderObj.product?.name || 'N/A',
-            orderObj.status || 'N/A',
-            orderObj.order_date || 'N/A'
-          ];
-        });
-        
-        (doc as unknown as { autoTable: (options: unknown) => void }).autoTable({
-          head: [headers],
-          body: tableData,
-          startY: 30,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [229, 62, 62] }
-        });
-        
-        doc.save(`orders_${new Date().toISOString().split('T')[0]}.pdf`);
-        break;
-      }
-        
       case "Delete": {
+        if (selectedOrders.length === 0) {
+          alert("Please select orders to perform this action");
+          return;
+        }
         if (confirm(`Are you sure you want to delete ${selectedOrders.length} order(s)?`)) {
           console.log("Deleting orders:", selectedOrders);
           // Add delete logic here
@@ -194,7 +114,8 @@ const OrdersMgt = () => {
       }
         
       default: {
-        console.log("Unknown action:", action);
+        // Export actions (CSV/PDF) are handled by BulkActionDropdown
+        console.log("Action handled by BulkActionDropdown:", action);
       }
     }
   };
@@ -382,6 +303,12 @@ const OrdersMgt = () => {
                 selectedOrders={selectedOrders}
                 orders={filteredOrders}
                 dataType="orders"
+                exportConfig={{
+                  dataType: "orders",
+                  status: getStatusFromTab(activeTab),
+                  period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                  search: debouncedQuery && debouncedQuery.trim() ? debouncedQuery.trim() : undefined,
+                }}
               />
             </div>
           </div>

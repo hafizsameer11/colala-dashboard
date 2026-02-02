@@ -695,6 +695,12 @@ const Products_Services = () => {
                 onActionSelect={handleBulkActionSelect}
                 orders={filteredData}
                 dataType={selectedProductType === "Products" ? "products" : "services"}
+                exportConfig={{
+                  dataType: selectedProductType === "Products" ? "products" : "services",
+                  status: activeTab === "All" ? undefined : activeTab.toLowerCase(),
+                  search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+                  category: selectedCategory !== "All Categories" ? selectedCategory : undefined,
+                }}
               />
             </div>
 
