@@ -126,7 +126,7 @@ const SocialFeedModel: React.FC<SocialFeedModelProps> = ({
   // Helper function to construct proper image URL
   const getImageUrl = (profilePicture: string | null) => {
     if (!profilePicture) return images.adam;
-    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+    return `hhttps://api.colalamall.com/storage/${profilePicture}`;
   };
 
   // Toast and query client

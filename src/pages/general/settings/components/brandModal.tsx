@@ -74,7 +74,7 @@ const BrandModal: React.FC<BrandModalProps> = ({
           description: editingBrand.description,
           status: editingBrand.status,
         });
-        setLogoPreview(editingBrand.logo ? `https://colala.hmstech.xyz/storage/${editingBrand.logo}` : null);
+        setLogoPreview(editingBrand.logo ? `hhttps://api.colalamall.com/storage/${editingBrand.logo}` : null);
         setLogoFile(null);
       } else {
         setFormData({

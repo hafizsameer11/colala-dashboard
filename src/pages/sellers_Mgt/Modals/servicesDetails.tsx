@@ -176,7 +176,7 @@ const ServicesDetails: React.FC<ServicesDetailsProps> = ({
                 <video
                   src={realServiceData.service_info.video.startsWith('http')
                     ? realServiceData.service_info.video
-                    : `https://colala.hmstech.xyz/storage/${realServiceData.service_info.video}`}
+                    : `hhttps://api.colalamall.com/storage/${realServiceData.service_info.video}`}
                   controls
                   className="w-full h-auto object-cover"
                   preload="metadata"

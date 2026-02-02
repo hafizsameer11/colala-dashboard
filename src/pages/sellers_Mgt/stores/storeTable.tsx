@@ -6,7 +6,7 @@ import { useToast } from "../../../contexts/ToastContext";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { apiCall } from "../../../utils/customApiCall";
 import Cookies from "js-cookie";
-import { deleteStore } from "../../../utils/queries/users";
+import { deleteStore, hardDeleteStore } from "../../../utils/queries/users";
 
 // Seller-specific API functions
 const toggleSellerBlock = async (sellerId: string | number, action: 'block' | 'unblock') => {
@@ -16,7 +16,7 @@ const toggleSellerBlock = async (sellerId: string | number, action: 'block' | 'u
   }
   try {
     const response = await apiCall(
-      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/toggle-block`,
+      `hhttps://api.colalamall.com/api/admin/seller-users/${sellerId}/toggle-block`,
       'POST',
       { action },
       token
@@ -35,7 +35,7 @@ const removeSeller = async (sellerId: string | number) => {
   }
   try {
     const response = await apiCall(
-      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/remove`,
+      `hhttps://api.colalamall.com/api/admin/seller-users/${sellerId}/remove`,
       'DELETE',
       undefined,
       token
@@ -65,6 +65,7 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
   const canBlock = hasPermission('sellers.suspend');
   const canBan = hasPermission('sellers.remove');
   const canDelete = hasPermission('sellers.delete');
+  const canHardDelete = hasPermission('sellers.delete'); // reuse same permission for hard delete
   // Account officers should NEVER be able to assign account officers, even if they have the permission
   const canAssignAccountOfficer = hasPermission('sellers.assign_account_officer') && !hasRole('account_officer');
 
@@ -139,6 +140,31 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
     },
   });
 
+  // Hard delete store mutation
+  const hardDeleteStoreMutation = useMutation({
+    mutationFn: (storeId: string | number) => hardDeleteStore(storeId),
+    onSuccess: () => {
+      showToast('Store hard-deleted successfully', 'success');
+      setShowDeleteConfirm(false);
+      
+      // Invalidate all store-related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['adminStores'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellersList'] });
+      queryClient.invalidateQueries({ queryKey: ['sellers'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['sellerStats'] });
+      
+      // Notify parent component about deleted store
+      onStoreDeleted?.(store.id);
+    },
+    onError: (error) => {
+      console.error('Hard delete store error:', error);
+      showToast('Failed to hard delete store', 'error');
+      setShowDeleteConfirm(false);
+    },
+  });
+
   const handleDropdownAction = (action: string) => {
     setIsDotsDropdownOpen(false);
     
@@ -157,6 +183,10 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
       }
     } else if (action === 'Delete store') {
       setShowDeleteConfirm(true);
+    } else if (action === 'Hard delete store') {
+      if (window.confirm('This will permanently delete the store and all related data. This action cannot be undone. Continue?')) {
+        hardDeleteStoreMutation.mutate(store.storeId);
+      }
     } else if (action === 'Assign Account Officer') {
       onAssignAccountOfficer?.(store);
     }
@@ -178,6 +208,7 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
     { name: "Block user", permission: canBlock },
     { name: "Ban user", permission: canBan },
     { name: "Delete store", permission: canDelete },
+    { name: "Hard delete store", permission: canHardDelete },
   ];
   const DotsActions = allActions.filter(action => action.permission).map(action => action.name);
   
@@ -185,6 +216,7 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
     "Block user": "/assets/layout/block.svg",
     "Ban user": "/assets/layout/ban.svg",
     "Delete store": "/assets/layout/ban.svg",
+    "Hard delete store": "/assets/layout/ban.svg",
   };
   
   // If no permissions, don't show dropdown
@@ -207,12 +239,12 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
               <button
                 key={action}
                 onClick={() => handleDropdownAction(action)}
-                disabled={toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending}
+                disabled={toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending || hardDeleteStoreMutation.isPending}
                 className={`flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm ${
                   action === "Ban user" || action === "Delete store" ? "text-[#FF0000]" : 
                   action === "Assign Account Officer" ? "text-[#1DB61D]" : "text-black"
                 } font-medium ${
-                  toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending
+                  toggleBlockMutation.isPending || removeSellerMutation.isPending || deleteStoreMutation.isPending || hardDeleteStoreMutation.isPending
                     ? 'opacity-50 cursor-not-allowed' 
                     : 'cursor-pointer'
                 }`}
@@ -228,6 +260,7 @@ const DotsDropdown: React.FC<DotsDropdownProps> = ({ onActionSelect, store, onSt
                   {action === 'Block user' && toggleBlockMutation.isPending ? 'Processing...' :
                    action === 'Ban user' && removeSellerMutation.isPending ? 'Processing...' :
                    action === 'Delete store' && deleteStoreMutation.isPending ? 'Processing...' :
+                   action === 'Hard delete store' && hardDeleteStoreMutation.isPending ? 'Processing...' :
                    action === 'Block user' && !store.isActive ? 'Unblock Seller' :
                    action === 'Block user' ? 'Block Seller' :
                    action}
@@ -294,6 +327,17 @@ interface StoreApi {
   total_revenue: number;
   created_at: string;
   last_login: string;
+  subscription?: {
+    id: number;
+    plan_name: string;
+    plan_id: number;
+    status: string;
+    start_date: string;
+    end_date: string;
+    price: string;
+    currency: string;
+    duration_days: number;
+  } | null;
 }
 
 interface Store {
@@ -311,6 +355,9 @@ interface Store {
   lastLogin: string;
   profileImage: string | null;
   full_name?: string;
+  subscriptionPlan?: string | null;
+  subscriptionStatus?: string | null;
+  subscriptionEndDate?: string | null;
 }
 
 interface PaginationApi {
@@ -369,6 +416,9 @@ const StoreTable: React.FC<StoreTableProps> = ({
       lastLogin: u.last_login,
       profileImage: u.profile_picture,
       full_name: u.full_name,
+      subscriptionPlan: u.subscription?.plan_name || null,
+      subscriptionStatus: u.subscription?.status || null,
+      subscriptionEndDate: u.subscription?.end_date || null,
     }));
   }, [users]);
 
@@ -460,6 +510,7 @@ const StoreTable: React.FC<StoreTableProps> = ({
                       <th className="p-2 md:p-3 text-center font-medium text-gray-600 text-xs md:text-sm whitespace-nowrap">Stores</th>
                       <th className="p-2 md:p-3 text-center font-medium text-gray-600 text-xs md:text-sm whitespace-nowrap">Orders</th>
                       <th className="p-2 md:p-3 text-center font-medium text-gray-600 text-xs md:text-sm whitespace-nowrap">Revenue</th>
+                      <th className="p-2 md:p-3 text-center font-medium text-gray-600 text-xs md:text-sm whitespace-nowrap">Subscription</th>
                       <th className="p-2 md:p-3 text-center font-medium text-gray-600 text-xs md:text-sm whitespace-nowrap">Actions</th>
                       <th className="p-2 md:p-3 text-right font-medium text-gray-600 text-xs md:text-sm whitespace-nowrap">Other</th>
                     </tr>
@@ -510,6 +561,18 @@ const StoreTable: React.FC<StoreTableProps> = ({
                         <td className="p-2 md:p-3 text-center font-semibold text-gray-700 text-xs md:text-sm whitespace-nowrap">{store.storeCount || 0}</td>
                         <td className="p-2 md:p-3 text-center font-semibold text-gray-700 text-xs md:text-sm whitespace-nowrap">{store.totalOrders || 0}</td>
                         <td className="p-2 md:p-3 text-center font-semibold text-gray-700 text-xs md:text-sm whitespace-nowrap">₦{(store.totalRevenue || 0).toLocaleString()}</td>
+                        <td className="p-2 md:p-3 text-center text-xs md:text-sm whitespace-nowrap">
+                          {store.subscriptionPlan ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-semibold text-gray-900">{store.subscriptionPlan}</span>
+                              <span className="text-[10px] md:text-xs text-gray-500">
+                                {store.subscriptionStatus || ''}{store.subscriptionEndDate ? ` · ends ${store.subscriptionEndDate}` : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">No plan</span>
+                          )}
+                        </td>
                         <td className="p-2 md:p-3 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1 md:gap-2 flex-wrap">
                             <button
@@ -623,9 +686,21 @@ const StoreTable: React.FC<StoreTableProps> = ({
                           <span className="text-gray-500 text-xs">Orders:</span>
                           <p className="text-gray-900 font-semibold">{store.totalOrders || 0}</p>
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <span className="text-gray-500 text-xs">Revenue:</span>
                           <p className="text-gray-900 font-semibold">₦{(store.totalRevenue || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs">Subscription:</span>
+                          {store.subscriptionPlan ? (
+                            <p className="text-gray-900 font-semibold text-xs">
+                              {store.subscriptionPlan}
+                              {store.subscriptionStatus ? ` · ${store.subscriptionStatus}` : ''}
+                              {store.subscriptionEndDate ? ` · ends ${store.subscriptionEndDate}` : ''}
+                            </p>
+                          ) : (
+                            <p className="text-gray-400 text-xs">No plan</p>
+                          )}
                         </div>
                       </div>
 

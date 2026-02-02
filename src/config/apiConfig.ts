@@ -1,8 +1,8 @@
 // Colala API base URL
-const API_DOMAIN = "https://colala.hmstech.xyz/api";
+const API_DOMAIN = "https://api.colalamall.com/api";
 
 // Storage base URL for images and files
-const STORAGE_DOMAIN = "https://colala.hmstech.xyz/storage";
+const STORAGE_DOMAIN = "https://api.colalamall.com/storage";
 
 const API_ENDPOINTS = {
   AUTH: {
@@ -274,7 +274,8 @@ const API_ENDPOINTS = {
     Details: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/details`, // GET
     UpdateStatus: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/kyc-status`, // PUT
     UpdateLevel: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/level`, // PUT
-    Delete: (storeId: number | string) => `${API_DOMAIN}/admin/stores-delete/${storeId}`, // POST
+    Delete: (storeId: number | string) => `${API_DOMAIN}/admin/stores-delete/${storeId}`, // POST (soft delete / deactivate)
+    HardDelete: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/hard-delete`, // DELETE (hard delete)
     AssignAccountOfficer: (storeId: number | string) => `${API_DOMAIN}/admin/stores/${storeId}/assign-account-officer`, // PUT
   },
 

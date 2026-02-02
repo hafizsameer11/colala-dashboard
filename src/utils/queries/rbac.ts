@@ -1,8 +1,6 @@
 import { apiCall } from '../customApiCall';
 import Cookies from 'js-cookie';
-
-const API_DOMAIN = "https://colala.hmstech.xyz/api";
-const RBAC_BASE = `${API_DOMAIN}/admin/rbac`;
+import { API_ENDPOINTS } from '../../config/apiConfig';
 
 /**
  * Get current user's permissions and roles
@@ -13,7 +11,7 @@ export const getCurrentUserPermissions = async () => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/me/permissions`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.MePermissions, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get current user permissions error:', error);
@@ -30,7 +28,7 @@ export const getAllModules = async () => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/modules`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.Modules, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get all modules error:', error);
@@ -47,7 +45,7 @@ export const getAllPermissions = async (module?: string) => {
     throw new Error('No authentication token found');
   }
   try {
-    let url = `${RBAC_BASE}/permissions`;
+    let url = API_ENDPOINTS.RBAC.Permissions;
     if (module) {
       url += `?module=${module}`;
     }
@@ -68,7 +66,7 @@ export const getPermissionsByModule = async (module: string) => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/permissions/module/${module}`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.PermissionsByModule(module), 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get permissions by module error:', error);
@@ -85,7 +83,7 @@ export const getPermissionDetails = async (permissionId: number | string) => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/permissions/${permissionId}`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.PermissionDetails(permissionId), 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get permission details error:', error);
@@ -102,7 +100,7 @@ export const getAllRoles = async () => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/roles`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.Roles, 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get all roles error:', error);
@@ -119,7 +117,7 @@ export const getRoleDetails = async (roleId: number | string) => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/roles/${roleId}`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.RoleDetails(roleId), 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get role details error:', error);
@@ -136,7 +134,7 @@ export const getUserRoles = async (userId: number | string) => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/users/${userId}/roles`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.UserRoles(userId), 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get user roles error:', error);
@@ -153,7 +151,7 @@ export const getUserPermissions = async (userId: number | string) => {
     throw new Error('No authentication token found');
   }
   try {
-    const response = await apiCall(`${RBAC_BASE}/users/${userId}/permissions`, 'GET', undefined, token);
+    const response = await apiCall(API_ENDPOINTS.RBAC.UserPermissions(userId), 'GET', undefined, token);
     return response;
   } catch (error) {
     console.error('Get user permissions error:', error);
@@ -171,7 +169,7 @@ export const checkUserPermission = async (userId: number | string, permission: s
   }
   try {
     const response = await apiCall(
-      `${RBAC_BASE}/users/${userId}/check-permission`,
+      API_ENDPOINTS.RBAC.CheckPermission(userId),
       'POST',
       { permission },
       token
@@ -195,7 +193,7 @@ export const updateRolePermissions = async (roleId: number | string, permissionI
   }
   try {
     const response = await apiCall(
-      `${RBAC_BASE}/roles/${roleId}/permissions`,
+      API_ENDPOINTS.RBAC.UpdateRolePermissions(roleId),
       'POST',
       { permission_ids: permissionIds },
       token
@@ -219,7 +217,7 @@ export const assignUserRoles = async (userId: number | string, roleIds: number[]
   }
   try {
     const response = await apiCall(
-      `${RBAC_BASE}/users/${userId}/roles`,
+      API_ENDPOINTS.RBAC.AssignUserRoles(userId),
       'POST',
       { role_ids: roleIds },
       token

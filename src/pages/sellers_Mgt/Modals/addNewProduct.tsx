@@ -120,6 +120,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
     setLoyaltyPoints(false);
     setProductVideo(null);
     setExistingImages([]);
+    setInformationTag1("");
+    setInformationTag2("");
+    setInformationTag3("");
   };
 
   // Create/Update product mutation
@@ -237,6 +240,9 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
         setReferralPersonLimit((productInfo.referral_person_limit ?? "").toString());
         setHasVariants(productInfo.has_variants || false);
         setLoyaltyPoints(productInfo.loyalty_points_applicable || false);
+        setInformationTag1(productInfo.tag1 || "");
+        setInformationTag2(productInfo.tag2 || "");
+        setInformationTag3(productInfo.tag3 || "");
 
         // Set existing images data
         if (imagesData.length > 0) {
@@ -456,6 +462,17 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
       // Add loyalty points (boolean) - backend expects true/false as boolean-ish values
       formData.append('loyality_points_applicable', loyaltyPoints ? '1' : '0');
 
+      // Add information tags (nullable)
+      if (informationTag1.trim() !== "") {
+        formData.append('tag1', informationTag1.trim());
+      }
+      if (informationTag2.trim() !== "") {
+        formData.append('tag2', informationTag2.trim());
+      }
+      if (informationTag3.trim() !== "") {
+        formData.append('tag3', informationTag3.trim());
+      }
+
       // Add has_variants (boolean) - required field
       formData.append('has_variants', hasVariants ? '1' : '0');
 
@@ -625,7 +642,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                       className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden"
                     >
                       <img
-                        src={image.url.startsWith('http') ? image.url : `https://colala.hmstech.xyz/storage/${image.path}`}
+                        src={image.url.startsWith('http') ? image.url : `hhttps://api.colalamall.com/storage/${image.path}`}
                         alt={`Existing Product ${index + 1}`}
                         className="w-full h-full object-cover"
                       />

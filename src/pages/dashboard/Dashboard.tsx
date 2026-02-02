@@ -1120,7 +1120,7 @@ const Dashboard = () => {
                         <div className="flex flex-row items-center gap-2 min-w-0 flex-1">
                           <img
                             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-                            src={chat.store?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.store.profile_image}` : images.Users}
+                            src={chat.store?.profile_image ? `hhttps://api.colalamall.com/storage/${chat.store.profile_image}` : images.Users}
                             alt={chat.store?.name || 'Store'}
                           />
                           <span className="text-xs sm:text-sm truncate">{chat.store?.name || 'Unknown Store'}</span>
@@ -1128,7 +1128,7 @@ const Dashboard = () => {
                         <div className="flex flex-row items-center gap-2 min-w-0 flex-1 sm:justify-end">
                           <img
                             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-                            src={chat.customer?.profile_image ? `https://colala.hmstech.xyz/storage/${chat.customer.profile_image}` : images.Users}
+                            src={chat.customer?.profile_image ? `hhttps://api.colalamall.com/storage/${chat.customer.profile_image}` : images.Users}
                             alt={chat.customer?.name || 'Customer'}
                           />
                           <span className="text-xs sm:text-sm truncate">{chat.customer?.name || 'Unknown Customer'}</span>

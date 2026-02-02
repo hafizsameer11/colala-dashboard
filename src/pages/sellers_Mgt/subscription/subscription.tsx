@@ -56,6 +56,10 @@ const Subscription = () => {
   // search (debounced)
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 450);
+
+  // plan filter (by plan name, dropdown)
+  const [planFilter, setPlanFilter] = useState<string>("All");
+  const debouncedPlanFilter = useDebouncedValue(planFilter, 450);
   
   // Date period filter
   const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
@@ -92,6 +96,15 @@ const Subscription = () => {
   const statistics = subscriptionsData?.data?.statistics || {};
   const pagination = subscriptionsData?.data?.pagination;
   const plans = plansData?.data?.plans || [];
+
+  // Unique plan names for dropdown
+  const planOptions = useMemo(() => {
+    const names = (plans || [])
+      .map((p: Plan) => p.name)
+      .filter((n) => !!n);
+    const unique = Array.from(new Set(names));
+    return ["All", ...unique];
+  }, [plans]);
 
   // Mutations
   const createPlanMutation = useMutation({
@@ -350,11 +363,29 @@ const Subscription = () => {
               View Plans
             </button>
 
-            {/* Search (debounced) */}
+            {/* Plan name filter (dropdown by plan name) */}
+            <div className="relative w-full sm:w-auto">
+              <select
+                value={planFilter}
+                onChange={(e) => {
+                  setPlanFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="py-2.5 sm:py-3.5 px-3 border border-[#00000080] rounded-lg text-sm sm:text-[15px] w-full sm:w-[220px] md:w-[240px] focus:outline-none bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)]"
+              >
+                {planOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "All" ? "All plans" : option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Global search (debounced) */}
             <div className="relative w-full sm:w-auto">
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search store / owner / plan"
                 value={search}
                 onChange={(e) => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -386,6 +417,7 @@ const Subscription = () => {
           <SubscriptionTable
             activeTab={activeTab}
             searchTerm={debouncedSearch}
+            planFilterTerm={debouncedPlanFilter}
             subscriptions={subscriptions}
             pagination={pagination}
             currentPage={currentPage}

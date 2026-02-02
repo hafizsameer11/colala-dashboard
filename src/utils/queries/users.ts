@@ -1484,6 +1484,23 @@ export const deleteStore = async (storeId: number | string) => {
 };
 
 /**
+ * Hard delete store (permanently remove store and related data)
+ */
+export const hardDeleteStore = async (storeId: number | string) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const response = await apiCall(API_ENDPOINTS.ADMIN_STORES.HardDelete(storeId), 'DELETE', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Hard delete store API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Delete user (buyer only)
  */
 export const deleteUser = async (userId: number | string) => {

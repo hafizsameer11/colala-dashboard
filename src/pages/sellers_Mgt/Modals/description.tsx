@@ -26,6 +26,32 @@ const Description: React.FC<DescriptionProps> = ({ productInfo, variants = [] })
         </p>
       </div>
 
+      {/* Information Tags Section */}
+      {(productInfo?.tag1 || productInfo?.tag2 || productInfo?.tag3) && (
+        <div className="mb-5">
+          <h3 className="text-sm font-medium text-[#00000080] mb-2">
+            Information Tags
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {productInfo?.tag1 && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#FFF5E5] text-[#D97706] border border-[#FBBF24]">
+                {productInfo.tag1}
+              </span>
+            )}
+            {productInfo?.tag2 && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#E0F2FE] text-[#0369A1] border border-[#38BDF8]">
+                {productInfo.tag2}
+              </span>
+            )}
+            {productInfo?.tag3 && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#ECFDF3] text-[#15803D] border border-[#4ADE80]">
+                {productInfo.tag3}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Variant Details Section - Only show if variants exist */}
       {variants && variants.length > 0 && (
         <div>

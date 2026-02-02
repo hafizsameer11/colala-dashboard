@@ -145,7 +145,7 @@ const toggleSellerBlock = async (sellerId: string | number, action: 'block' | 'u
   }
   try {
     const response = await apiCall(
-      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/toggle-block`,
+      `hhttps://api.colalamall.com/api/admin/seller-users/${sellerId}/toggle-block`,
       'POST',
       { action },
       token
@@ -164,7 +164,7 @@ const removeSeller = async (sellerId: string | number) => {
   }
   try {
     const response = await apiCall(
-      `https://colala.hmstech.xyz/api/admin/seller-users/${sellerId}/remove`,
+      `hhttps://api.colalamall.com/api/admin/seller-users/${sellerId}/remove`,
       'DELETE',
       undefined,
       token

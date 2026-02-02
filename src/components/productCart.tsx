@@ -142,7 +142,7 @@ const ProductCart: React.FC<ProductCartProps> = ({ orderData }) => {
                           <picture>
                             <img
                               className="w-32 h-32 rounded-l-2xl object-cover"
-                              src={productImage.startsWith('http') ? productImage : `https://colala.hmstech.xyz/storage/${productImage}`}
+                              src={productImage.startsWith('http') ? productImage : `hhttps://api.colalamall.com/storage/${productImage}`}
                               alt={productName}
                               onError={(e) => {
                                 e.currentTarget.src = images.iphone;

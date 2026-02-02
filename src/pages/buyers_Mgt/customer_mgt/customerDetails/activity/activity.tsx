@@ -361,7 +361,7 @@ const Activity: React.FC<ActivityProps> = ({ userData, selectedPeriod = "All tim
               <img 
                 className="w-20 h-20 rounded-full object-cover" 
                 src={userData.profile_picture 
-                  ? `https://colala.hmstech.xyz/storage/${userData.profile_picture}` 
+                  ? `hhttps://api.colalamall.com/storage/${userData.profile_picture}` 
                   : images.admin
                 } 
                 alt="Profile" 

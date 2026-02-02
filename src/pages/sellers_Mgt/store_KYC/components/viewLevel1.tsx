@@ -39,7 +39,7 @@ const ViewLevel1: React.FC<ViewLevel1Props> = ({
   const getStorageUrl = (path: string | null | undefined): string => {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return `https://colala.hmstech.xyz/storage/${path}`;
+    return `hhttps://api.colalamall.com/storage/${path}`;
   };
 
   // Helper function to get field rejection status

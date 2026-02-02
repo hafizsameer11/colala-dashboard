@@ -49,6 +49,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         discount_price: productDetails.data.product_info?.discount_price,
         status: productDetails.data.product_info?.status,
         quantity: productDetails.data.product_info?.quantity,
+        tag1: productDetails.data.product_info?.tag1,
+        tag2: productDetails.data.product_info?.tag2,
+        tag3: productDetails.data.product_info?.tag3,
         created_at: productDetails.data.product_info?.created_at,
         updated_at: productDetails.data.product_info?.updated_at,
         average_rating: productDetails.data.statistics?.average_rating || 0,
@@ -140,7 +143,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           <img
             src={realProductData.complete.video.startsWith('http') 
               ? realProductData.complete.video 
-              : `https://colala.hmstech.xyz/storage/${realProductData.complete.video}`}
+              : `hhttps://api.colalamall.com/storage/${realProductData.complete.video}`}
             alt="Product video thumbnail"
             className="w-full h-auto object-cover rounded-2xl"
             onError={(e) => {
@@ -169,7 +172,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 src={
                   realProductData.complete.images[currentImageIndex].path.startsWith('http')
                     ? realProductData.complete.images[currentImageIndex].path
-                    : `https://colala.hmstech.xyz/storage/${realProductData.complete.images[currentImageIndex].path}`
+                    : `hhttps://api.colalamall.com/storage/${realProductData.complete.images[currentImageIndex].path}`
                 }
                 alt={`Product image ${currentImageIndex + 1}`}
                 className="w-full h-auto object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
@@ -252,7 +255,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 {realProductData.complete.images.map((image: any, index: number) => {
                   const thumbUrl = image.path.startsWith('http')
                     ? image.path
-                    : `https://colala.hmstech.xyz/storage/${image.path}`;
+                    : `hhttps://api.colalamall.com/storage/${image.path}`;
                   return (
                     <button
                       key={index}
@@ -371,7 +374,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
               src={
                 realProductData.complete.images[selectedImageIndex].path.startsWith('http')
                   ? realProductData.complete.images[selectedImageIndex].path
-                  : `https://colala.hmstech.xyz/storage/${realProductData.complete.images[selectedImageIndex].path}`
+                  : `hhttps://api.colalamall.com/storage/${realProductData.complete.images[selectedImageIndex].path}`
               }
               alt={`Product image ${selectedImageIndex + 1}`}
               className="max-w-full max-h-full object-contain rounded-lg"
@@ -394,7 +397,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 {realProductData.complete.images.map((image: any, index: number) => {
                   const thumbUrl = image.path.startsWith('http')
                     ? image.path
-                    : `https://colala.hmstech.xyz/storage/${image.path}`;
+                    : `hhttps://api.colalamall.com/storage/${image.path}`;
                   return (
                     <button
                       key={index}

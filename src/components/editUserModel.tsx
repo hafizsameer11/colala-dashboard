@@ -616,7 +616,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, userData
                       />
                     ) : userData?.user_info?.profile_picture ? (
                       <img
-                        src={`https://colala.hmstech.xyz/storage/${userData.user_info.profile_picture}`}
+                        src={`hhttps://api.colalamall.com/storage/${userData.user_info.profile_picture}`}
                         alt="Current profile"
                         className="w-full h-full object-cover rounded-full"
                       />

@@ -75,6 +75,8 @@ interface SubscriptionTableProps {
   activeTab: "All" | "active" | "cancelled" | "expired";
   /** debounced string */
   searchTerm?: string;
+  /** debounced plan name filter text */
+  planFilterTerm?: string;
 }
 
 const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
@@ -89,6 +91,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   onViewPlans,
   activeTab,
   searchTerm = "",
+  planFilterTerm = "",
 }) => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -156,6 +159,7 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   // Filter subscriptions based on activeTab and searchTerm
   const visibleSubscriptions = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
+    const planQ = planFilterTerm.trim().toLowerCase();
 
     const statusOk = (sub: Subscription) =>
       activeTab === "All" ? true : sub.status === activeTab;
@@ -168,8 +172,14 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
         .includes(q);
     };
 
-    return normalizedSubscriptions.filter((sub) => statusOk(sub) && searchOk(sub));
-  }, [normalizedSubscriptions, activeTab, searchTerm]);
+    const planOk = (sub: Subscription) => {
+      // When using dropdown, "all" (or empty) means no extra filter
+      if (!planQ || planQ === "all") return true;
+      return sub.plan.toLowerCase().includes(planQ);
+    };
+
+    return normalizedSubscriptions.filter((sub) => statusOk(sub) && searchOk(sub) && planOk(sub));
+  }, [normalizedSubscriptions, activeTab, searchTerm, planFilterTerm]);
 
   const getPlanTabName = (planName: string | undefined | null): "Basic" | "Standard" | "Ultra" => {
     if (!planName) return "Basic"; // Default fallback for undefined/null
@@ -190,10 +200,10 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   // --- FILTERING (tab + debounced search)
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
+    const planQ = planFilterTerm.trim().toLowerCase();
     return subscriptions.filter((s) => {
       const tabOk =
         activeTab === "All" ? true : s.status === activeTab;
-      if (!q) return tabOk;
 
       const haystack = [
         s.store_name,
@@ -207,9 +217,13 @@ const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
         .join(" ")
         .toLowerCase();
 
-      return tabOk && haystack.includes(q);
+      const searchMatches = !q || haystack.includes(q);
+      const planMatches =
+        !planQ || planQ === "all" || (s.plan_name || "").toLowerCase().includes(planQ);
+
+      return tabOk && searchMatches && planMatches;
     });
-  }, [subscriptions, activeTab, searchTerm]);
+  }, [subscriptions, activeTab, searchTerm, planFilterTerm]);
 
   // --- SELECTION (acts on visible rows only)
   const handleSelectAll = () => {

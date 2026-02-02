@@ -75,17 +75,28 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const reviews = productDetails?.data?.reviews || [];
   const statistics = productDetails?.data?.statistics;
 
+  // Get userId from prop or from storeInfo (fallback)
+  const resolvedUserId = userId || storeInfo?.id || storeInfo?.user_id || storeInfo?.store_id;
+
   const resolveStorageUrl = (path?: string | null) => {
     if (!path) return "";
     const trimmedPath = path.replace(/^\/+/, "");
     return path.startsWith("http")
       ? path
-      : `https://colala.hmstech.xyz/storage/${trimmedPath}`;
+      : `hhttps://api.colalamall.com/storage/${trimmedPath}`;
   };
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
-    mutationFn: () => deleteSellerProduct(userId!, product!.id),
+    mutationFn: () => {
+      if (!resolvedUserId) {
+        throw new Error('Store/User ID not found. Cannot delete product.');
+      }
+      if (!product?.id) {
+        throw new Error('Product ID not found. Cannot delete product.');
+      }
+      return deleteSellerProduct(resolvedUserId, product.id);
+    },
     onSuccess: () => {
       showToast('Product deleted successfully', 'success');
       // Invalidate and refetch product lists
@@ -95,9 +106,10 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       // Close the modal
       onClose();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Failed to delete product:', error);
-      showToast('Failed to delete product', 'error');
+      const errorMessage = error?.message || error?.response?.data?.message || 'Failed to delete product';
+      showToast(errorMessage, 'error');
     },
   });
 
@@ -106,6 +118,14 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   };
 
   const handleDeleteProduct = () => {
+    if (!resolvedUserId) {
+      showToast('Store/User ID not found. Cannot delete product.', 'error');
+      return;
+    }
+    if (!product?.id) {
+      showToast('Product ID not found. Cannot delete product.', 'error');
+      return;
+    }
     setShowDeleteConfirm(true);
   };
 

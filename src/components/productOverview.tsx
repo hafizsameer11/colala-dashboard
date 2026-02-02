@@ -74,6 +74,9 @@ interface ProductData {
       discount_price?: string;
       quantity: number;
       status: string;
+      tag1?: string | null;
+      tag2?: string | null;
+      tag3?: string | null;
       is_featured?: boolean;
       created_at: string;
       average_rating?: number;
@@ -406,7 +409,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                       src={productData?.complete?.store?.banner_image
                         ? (productData.complete.store.banner_image.startsWith('http')
                             ? productData.complete.store.banner_image
-                            : `https://colala.hmstech.xyz/storage/${productData.complete.store.banner_image}`)
+                            : `hhttps://api.colalamall.com/storage/${productData.complete.store.banner_image}`)
                         : images.cover
                       }
                       alt="Store cover"
@@ -421,7 +424,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
                         src={productData?.complete?.store?.profile_image
                           ? (productData.complete.store.profile_image.startsWith('http')
                               ? productData.complete.store.profile_image
-                              : `https://colala.hmstech.xyz/storage/${productData.complete.store.profile_image}`)
+                              : `hhttps://api.colalamall.com/storage/${productData.complete.store.profile_image}`)
                           : images.icon
                         }
                         alt="Store profile"

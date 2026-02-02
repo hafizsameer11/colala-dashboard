@@ -25,7 +25,7 @@ const Others = () => {
   // Helper function to construct proper image URL
   const getImageUrl = (profilePicture: string | null) => {
     if (!profilePicture) return images.sasha;
-    return `https://colala.hmstech.xyz/storage/${profilePicture}`;
+    return `hhttps://api.colalamall.com/storage/${profilePicture}`;
   };
 
   // Fetch coupons data

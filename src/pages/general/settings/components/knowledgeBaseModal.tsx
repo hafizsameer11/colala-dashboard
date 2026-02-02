@@ -92,7 +92,7 @@ const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
         // Determine media type based on what exists
         if (editingItem.video) {
           setMediaType("video");
-          setVideoPreview(`https://colala.hmstech.xyz/storage/${editingItem.video}`);
+          setVideoPreview(`hhttps://api.colalamall.com/storage/${editingItem.video}`);
         } else if (editingItem.url) {
           setMediaType("url");
         } else {
