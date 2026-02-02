@@ -121,16 +121,24 @@ const Products_Services = () => {
 
   // API data fetching for products
   const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ['adminProducts', activeTab, currentPage, selectedCategory],
-    queryFn: () => getAdminProducts(currentPage, activeTab === "All" ? undefined : activeTab.toLowerCase()),
+    queryKey: ['adminProducts', activeTab, currentPage, selectedCategory, debouncedSearch],
+    queryFn: () => getAdminProducts(
+      currentPage, 
+      activeTab === "All" ? undefined : activeTab.toLowerCase(), 
+      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+    ),
     placeholderData: (previousData) => previousData,
     enabled: selectedProductType === "Products",
   });
 
   // API data fetching for services
   const { data: servicesData, isLoading: servicesLoading, error: servicesError } = useQuery({
-    queryKey: ['adminServices', activeTab, currentPage, selectedCategory],
-    queryFn: () => getAdminServices(currentPage, activeTab === "All" ? undefined : activeTab.toLowerCase()),
+    queryKey: ['adminServices', activeTab, currentPage, selectedCategory, debouncedSearch],
+    queryFn: () => getAdminServices(
+      currentPage, 
+      activeTab === "All" ? undefined : activeTab.toLowerCase(), 
+      debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined
+    ),
     placeholderData: (previousData) => previousData,
     enabled: selectedProductType === "Services",
   });
@@ -167,6 +175,11 @@ const Products_Services = () => {
   const handlePageChange = (page: number) => {
     if (page !== currentPage) setCurrentPage(page);
   };
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   const handleBulkActionSelect = (action: string) => {
     console.log("Bulk action selected:", action);

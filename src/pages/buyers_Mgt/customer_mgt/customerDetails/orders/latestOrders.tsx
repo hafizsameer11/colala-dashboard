@@ -239,22 +239,15 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     return filtered;
   }, [normalizedOrders, activeTab]);
 
-  // 2) Filter by search (case-insensitive)
-  const filteredOrders = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return byTab;
-    return byTab.filter((o) =>
-      [o.store_name, o.product_name, o.price, o.order_date, o.order_no].some((field) =>
-        field?.toLowerCase().includes(q)
-      )
-    );
-  }, [byTab, searchQuery]);
+  // 2) Filter by search - removed client-side filtering as search is now handled by backend
+  // The backend returns already filtered results, so we just use byTab directly
+  const filteredOrders = byTab;
 
-  // Reset selection when tab or search changes
+  // Reset selection when tab changes
   useEffect(() => {
     setSelectedRows([]);
     setSelectAll(false);
-  }, [activeTab, searchQuery]);
+  }, [activeTab]);
 
   const handleSelectAll = () => {
     const visibleIds = filteredOrders.map((o) => String(o.id));
@@ -396,7 +389,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
             {!isLoading && !error && filteredOrders.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
-                  No orders found for "{searchQuery}".
+                  {searchQuery ? `No orders found for "${searchQuery}".` : "No orders found."}
                 </td>
               </tr>
             )}

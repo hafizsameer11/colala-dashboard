@@ -126,9 +126,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     }));
   }, [products]);
 
+  // Filter by tab only - search is now handled by backend
   const visibleProducts = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-
     const tabMatch = (p: Product) =>
       activeTab === "All"
         ? true
@@ -136,16 +135,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
         ? p.sponsored
         : !p.sponsored;
 
-    const searchMatch = (p: Product) => {
-      if (!q) return true;
-      return [p.storeName, p.productName, p.price, p.date]
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
-    };
-
-    return normalizedProducts.filter((p) => tabMatch(p) && searchMatch(p));
-  }, [normalizedProducts, activeTab, searchTerm]);
+    return normalizedProducts.filter((p) => tabMatch(p));
+  }, [normalizedProducts, activeTab]);
 
   // keep selectAll synced with currently visible rows
   useEffect(() => {

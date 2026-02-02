@@ -60,8 +60,8 @@ const OrdersMgt = () => {
 
   // Fetch buyer orders data from API
   const { data: ordersData, isLoading, error } = useQuery({
-    queryKey: ['buyerOrders', currentPage, activeTab, selectedPeriod],
-    queryFn: () => getBuyerOrders(currentPage, getStatusFromTab(activeTab), selectedPeriod),
+    queryKey: ['buyerOrders', currentPage, activeTab, selectedPeriod, debouncedQuery],
+    queryFn: () => getBuyerOrders(currentPage, getStatusFromTab(activeTab), selectedPeriod, debouncedQuery),
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
@@ -209,10 +209,10 @@ const OrdersMgt = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Reset to page 1 when tab changes
+  // Reset to page 1 when tab or search query changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, debouncedQuery]);
 
   const handleViewChat = (orderId: string | number) => {
     console.log("Opening chat modal for order:", orderId);

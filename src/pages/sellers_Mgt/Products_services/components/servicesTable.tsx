@@ -103,16 +103,8 @@ const ServicesTable: React.FC<ServicesTableProps> = ({
     }));
   }, [services]);
 
-  const visibleServices = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return transformedServices;
-    return transformedServices.filter((s) =>
-      [s.storeName, s.serviceName, s.price, s.date]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [transformedServices, searchTerm]);
+  // Search is now handled by backend - use transformed services directly
+  const visibleServices = transformedServices;
 
   useEffect(() => {
     const visIds = new Set(visibleServices.map((s) => s.id));

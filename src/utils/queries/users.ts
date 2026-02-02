@@ -290,8 +290,9 @@ export const getTransactionDetails = async (userId: number | string, transaction
  * @param page - Page number
  * @param status - Optional status filter
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
+ * @param search - Optional search query
  */
-export const getBuyerOrders = async (page: number = 1, status?: string, period?: string) => {
+export const getBuyerOrders = async (page: number = 1, status?: string, period?: string, search?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -304,6 +305,9 @@ export const getBuyerOrders = async (page: number = 1, status?: string, period?:
     const apiPeriod = period ? mapPeriodToApi(period) : null;
     if (apiPeriod) {
       url += `&period=${apiPeriod}`;
+    }
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1240,8 +1244,11 @@ export const updatePromotion = async (promotionId: number | string, updateData: 
 
 /**
  * Get admin products with pagination and filtering
+ * @param page - Page number
+ * @param status - Optional status filter
+ * @param search - Optional search query
  */
-export const getAdminProducts = async (page: number = 1, status?: string) => {
+export const getAdminProducts = async (page: number = 1, status?: string, search?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1250,6 +1257,9 @@ export const getAdminProducts = async (page: number = 1, status?: string) => {
     let url = `${API_ENDPOINTS.ADMIN_PRODUCTS.List}?page=${page}`;
     if (status && status !== 'All') {
       url += `&status=${status}`;
+    }
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1295,8 +1305,11 @@ export const getAdminProductDetails = async (productId: number | string) => {
 
 /**
  * Get admin services with pagination and filtering
+ * @param page - Page number
+ * @param status - Optional status filter
+ * @param search - Optional search query
  */
-export const getAdminServices = async (page: number = 1, status?: string) => {
+export const getAdminServices = async (page: number = 1, status?: string, search?: string) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1305,6 +1318,9 @@ export const getAdminServices = async (page: number = 1, status?: string) => {
     let url = `${API_ENDPOINTS.ADMIN_SERVICES.List}?page=${page}`;
     if (status && status !== 'All') {
       url += `&status=${status}`;
+    }
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
