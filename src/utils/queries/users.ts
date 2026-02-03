@@ -2663,6 +2663,28 @@ export const getAdminUsers = async (params?: {
 };
 
 /**
+ * Update user/admin status (active/inactive, disabled)
+ * Route: PUT /api/admin/all-users/{userId}/status
+ */
+export const updateUserStatus = async (
+  userId: number | string,
+  payload: { status: "active" | "inactive"; is_disabled?: boolean }
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const url = API_ENDPOINTS.ALL_USERS.Status(userId);
+    const response = await apiCall(url, 'PUT', payload, token);
+    return response;
+  } catch (error) {
+    console.error('Update user status API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get knowledge base items with pagination
  */
 export const getKnowledgeBase = async (page: number = 1) => {

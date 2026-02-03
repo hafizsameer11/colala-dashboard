@@ -108,7 +108,8 @@ const DateFilter: React.FC<DateFilterProps> = ({
   };
 
   return (
-    <div className={`flex flex-col sm:flex-row gap-2 ${className}`}>
+    // Use flex-wrap so the filter controls stay nicely aligned and can wrap instead of breaking the layout
+    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       {/* Filter Type Selector */}
       <div className="relative" ref={filterTypeDropdownRef}>
         <div
@@ -198,25 +199,25 @@ const DateFilter: React.FC<DateFilterProps> = ({
 
       {/* Custom Date Range (shown when filterType is 'custom') */}
       {filterType === 'custom' && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1 sm:flex-initial">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="relative">
             <label className="block text-xs sm:text-sm text-gray-700 mb-1">From</label>
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               max={dateTo || undefined}
-              className="w-full sm:w-auto min-w-[140px] border border-[#989898] rounded-lg p-2 sm:p-3 text-xs sm:text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+              className="w-[150px] sm:w-[180px] border border-[#989898] rounded-lg p-2 sm:p-3 text-xs sm:text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
             />
           </div>
-          <div className="relative flex-1 sm:flex-initial">
+          <div className="relative">
             <label className="block text-xs sm:text-sm text-gray-700 mb-1">To</label>
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               min={dateFrom || undefined}
-              className="w-full sm:w-auto min-w-[140px] border border-[#989898] rounded-lg p-2 sm:p-3 text-xs sm:text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
+              className="w-[150px] sm:w-[180px] border border-[#989898] rounded-lg p-2 sm:p-3 text-xs sm:text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#E53E3E] focus:border-transparent"
             />
           </div>
           {(dateFrom || dateTo) && (

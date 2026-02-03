@@ -83,7 +83,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     const trimmedPath = path.replace(/^\/+/, "");
     return path.startsWith("http")
       ? path
-      : `hhttps://api.colalamall.com/storage/${trimmedPath}`;
+      : `https://api.colalamall.com/storage/${trimmedPath}`;
   };
 
   // Delete product mutation
@@ -137,13 +137,6 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const cancelDelete = () => {
     setShowDeleteConfirm(false);
   };
-
-  // Debug logging
-  console.log('Product details data:', productDetails?.data);
-  console.log('Product ID:', product?.id);
-  console.log('Images array:', productImages);
-  console.log('Selected image index:', selectedImageIndex);
-  console.log('Current image:', productImages[selectedImageIndex]);
 
   const renderTabContent = () => {
     switch (activeTab) {

@@ -64,6 +64,7 @@ interface Admin {
   profile_picture: string | null;
   role: "admin" | "moderator" | "super_admin";
   is_active: boolean;
+  is_disabled?: boolean | number;
   wallet_balance: string;
   created_at: string;
 }
@@ -124,9 +125,6 @@ interface TermsData {
 }
 
 const AllUsers = () => {
-  const [selectedOption, setSelectedOption] = useState("Online");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("Admin Management");
   const [faqActiveTab, setFaqActiveTab] = useState("All");
   const [isThisWeekDropdownOpen, setIsThisWeekDropdownOpen] = useState(false);
@@ -389,57 +387,28 @@ const AllUsers = () => {
     }
   };
 
-  const dropdownOptions = ["Online", "All", "Active", "Inactive"];
-
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
       if (thisWeekDropdownRef.current && !thisWeekDropdownRef.current.contains(event.target as Node)) {
         setIsThisWeekDropdownOpen(false);
       }
     };
 
-    if (isDropdownOpen || isThisWeekDropdownOpen) {
+    if (isThisWeekDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isDropdownOpen, isThisWeekDropdownOpen]);
+  }, [isThisWeekDropdownOpen]);
 
-  // Filter users by status (period filter removed for admin management)
+  // Filter users (no status filtering for admin management)
   const filteredUsers = useMemo(() => {
     const allUsers = usersData?.data?.data || [];
-    
-    // Filter by status (Online/Active/Inactive/All)
-    let statusFiltered = allUsers;
-    if (selectedOption === "Active") {
-      statusFiltered = allUsers.filter((user: any) => {
-        const isActive = typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active;
-        return isActive === true;
-      });
-    } else if (selectedOption === "Inactive") {
-      statusFiltered = allUsers.filter((user: any) => {
-        const isActive = typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active;
-        return isActive === false;
-      });
-    } else if (selectedOption === "Online") {
-      // "Online" typically means active users, but you might want to check a different field
-      // For now, treating it as active users
-      statusFiltered = allUsers.filter((user: any) => {
-        const isActive = typeof user.is_active === 'number' ? user.is_active === 1 : user.is_active;
-        return isActive === true;
-      });
-    }
-    // "All" means no status filtering
-    
-    // Period filtering removed - return all users based on status filter only
-    return statusFiltered;
-  }, [usersData, selectedOption]);
+    return allUsers;
+  }, [usersData]);
 
   // Paginate filtered users for display
   const perPage = usersData?.data?.per_page || 15;
@@ -449,10 +418,6 @@ const AllUsers = () => {
     return filteredUsers.slice(startIndex, endIndex);
   }, [filteredUsers, currentPage, perPage]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedOption]);
 
   const handleAddNewAdmin = (adminData: {
     full_name: string;
@@ -480,7 +445,6 @@ const AllUsers = () => {
   };
 
   const handleOpenModal = () => {
-    setIsDropdownOpen(false);
     setIsThisWeekDropdownOpen(false);
     setIsAddAdminModalOpen(true);
   };
@@ -511,48 +475,6 @@ const AllUsers = () => {
     // Here you can add logic to save the questions to your backend or state
   };
 
-  const DropdownComponent = () => (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="flex items-center gap-2 px-4 py-3.5 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
-      >
-        {selectedOption}
-        <svg
-          className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-      {isDropdownOpen && (
-        <div className="absolute left-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-          {dropdownOptions.map((option) => (
-            <button
-              key={option}
-              className={`block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors ${
-                selectedOption === option ? "bg-gray-50 font-semibold" : ""
-              }`}
-              onClick={() => {
-                setSelectedOption(option);
-                setIsDropdownOpen(false);
-                setCurrentPage(1); // Reset to first page when filter changes
-              }}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <>
@@ -627,85 +549,7 @@ const AllUsers = () => {
               {/* Admin Management Content */}
               {activeTab === "Admin Management" && (
                 <>
-                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-                    {/* Card 1 - Total Users */}
-                    <div
-                      className="flex flex-row rounded-2xl flex-1 min-w-0"
-                      style={{
-                        boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
-                      }}
-                    >
-                      <div className="bg-[#E53E3E] rounded-l-2xl p-4 sm:p-5 md:p-7 flex justify-center items-center">
-                        <img className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9" src={images.Users} alt="" />
-                      </div>
-                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
-                        <span className="font-semibold text-xs sm:text-sm md:text-[15px]">
-                          Total Users
-                        </span>
-                        <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                          {usersLoading ? "..." : usersData?.data?.statistics?.total_users || 0}
-                        </span>
-                        <span className="text-[#00000080] text-[10px] sm:text-xs md:text-[13px]">
-                          <span className="text-[#1DB61D]">+5%</span> increase
-                          from last month
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card 2 - Active Users */}
-                    <div
-                      className="flex flex-row rounded-2xl flex-1 min-w-0"
-                      style={{
-                        boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
-                      }}
-                    >
-                      <div className="bg-[#E53E3E] rounded-l-2xl p-4 sm:p-5 md:p-7 flex justify-center items-center">
-                        <img className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9" src={images.Users} alt="" />
-                      </div>
-                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
-                        <span className="font-semibold text-xs sm:text-sm md:text-[15px]">
-                          Active Users
-                        </span>
-                        <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                          {usersLoading ? "..." : usersData?.data?.statistics?.active_users || 0}
-                        </span>
-                        <span className="text-[#00000080] text-[10px] sm:text-xs md:text-[13px]">
-                          <span className="text-[#1DB61D]">+5%</span> increase
-                          from last month
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card 3 - Buyers */}
-                    <div
-                      className="flex flex-row rounded-2xl flex-1 min-w-0"
-                      style={{
-                        boxShadow: "0px 0px 2px 0px rgba(0, 0, 0, 0.25)",
-                      }}
-                    >
-                      <div className="bg-[#E53E3E] rounded-l-2xl p-4 sm:p-5 md:p-7 flex justify-center items-center">
-                        <img className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9" src={images.Users} alt="" />
-                      </div>
-                      <div className="flex flex-col bg-[#FFF1F1] rounded-r-2xl p-2 sm:p-3 pr-4 sm:pr-6 md:pr-11 gap-1 flex-1 min-w-0">
-                        <span className="font-semibold text-xs sm:text-sm md:text-[15px]">
-                          Buyers
-                        </span>
-                        <span className="font-semibold text-lg sm:text-xl md:text-2xl">
-                          {usersLoading ? "..." : usersData?.data?.statistics?.buyer_users || 0}
-                        </span>
-                        <span className="text-[#00000080] text-[10px] sm:text-xs md:text-[13px]">
-                          <span className="text-[#1DB61D]">+5%</span> increase
-                          from last month
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                   <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-                    <div className="flex gap-2">
-                      <div>
-                        <DropdownComponent />
-                      </div>
-                    </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div>
                         <button
