@@ -96,7 +96,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
     }
     // Remove leading slash if present
     const cleanPath = imagePath.replace(/^\/+/, '');
-    return `hhttps://api.colalamall.com/storage/${cleanPath}`;
+    return `https://api.colalamall.com/storage/${cleanPath}`;
   };
 
   const getStoreImageUrl = (imagePath: string | null | undefined, fallback: string) => {
@@ -106,7 +106,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
     }
     // Remove leading slash if present
     const cleanPath = imagePath.replace(/^\/+/, '');
-    return `hhttps://api.colalamall.com/storage/${cleanPath}`;
+    return `https://api.colalamall.com/storage/${cleanPath}`;
   };
 
   return (
@@ -227,7 +227,7 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
                         <span>
                           <img 
                             className="w-10 h-10 rounded-full object-cover" 
-                            src={reviewDetailsData.data.user?.profile_picture ? `hhttps://api.colalamall.com/storage/${reviewDetailsData.data.user.profile_picture}` : images.admin} 
+                            src={reviewDetailsData.data.user?.profile_picture ? `https://api.colalamall.com/storage/${reviewDetailsData.data.user.profile_picture}` : images.admin} 
                             alt="User"
                             onError={(e) => {
                               e.currentTarget.src = images.admin;
@@ -262,9 +262,9 @@ const ProductRatingModal: React.FC<ProductRatingModalProps> = ({
                             <img
                               key={index}
                               className="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                              src={`hhttps://api.colalamall.com/storage/${image}`}
+                              src={`https://api.colalamall.com/storage/${image}`}
                               alt={`Review Image ${index + 1}`}
-                              onClick={() => window.open(`hhttps://api.colalamall.com/storage/${image}`, '_blank')}
+                              onClick={() => window.open(`https://api.colalamall.com/storage/${image}`, '_blank')}
                             />
                           ))}
                         </div>

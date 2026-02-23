@@ -2,7 +2,7 @@
 
 This document describes the **admin-only edit/update APIs** for seller onboarding, separate from the initial create (`/complete`) routes.
 
-- **Base URL**: `hhttps://api.colalamall.com/api/admin`
+- **Base URL**: `https://api.colalamall.com/api/admin`
 - **Auth**: `Authorization: Bearer <token>` (Sanctum)
 - **Content types**:
   - `application/json` for JSON-only requests
@@ -83,8 +83,8 @@ All fields are **optional** except `store_id`. Only provided fields will be upda
     "store_phone": "+234...",
     "store_location": "Lagos, Nigeria",
     "referral_code": "REF123",
-    "profile_image": "hhttps://api.colalamall.com/storage/stores/12/profile.jpg",
-    "banner_image": "hhttps://api.colalamall.com/storage/stores/12/banner.jpg",
+    "profile_image": "https://api.colalamall.com/storage/stores/12/profile.jpg",
+    "banner_image": "https://api.colalamall.com/storage/stores/12/banner.jpg",
     "categories": [
       { "id": 1, "title": "Category 1", "image_url": "..." }
     ],

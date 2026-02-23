@@ -63,7 +63,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
     }
     
     // Otherwise, construct the full URL
-    return `hhttps://api.colalamall.com/storage/${profilePicture}`;
+    return `https://api.colalamall.com/storage/${profilePicture}`;
   };
 
   // Tab filter

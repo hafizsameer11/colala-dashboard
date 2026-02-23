@@ -239,7 +239,7 @@ const UserDetailsPage: React.FC = () => {
                 <img 
                   className="w-20 h-20 rounded-full object-cover" 
                   src={userData?.user_info?.profile_picture 
-                    ? `hhttps://api.colalamall.com/storage/${userData.user_info.profile_picture}` 
+                    ? `https://api.colalamall.com/storage/${userData.user_info.profile_picture}` 
                     : images.admin
                   } 
                   alt="Profile" 

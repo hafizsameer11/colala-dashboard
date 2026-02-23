@@ -337,7 +337,7 @@ const BrandsManagement: React.FC<BrandsManagementProps> = ({
                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                               {brand.logo ? (
                                 <img
-                                  src={`hhttps://api.colalamall.com/storage/${brand.logo}`}
+                                  src={`https://api.colalamall.com/storage/${brand.logo}`}
                                   alt={brand.name}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {

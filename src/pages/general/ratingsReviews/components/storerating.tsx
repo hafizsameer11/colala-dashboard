@@ -143,7 +143,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                   style={{
                     backgroundImage: `url(${
                       reviewDetailsData?.data?.store?.banner_image 
-                        ? `hhttps://api.colalamall.com/storage/${reviewDetailsData.data.store.banner_image}`
+                        ? `https://api.colalamall.com/storage/${reviewDetailsData.data.store.banner_image}`
                         : images.cover
                     })`,
                   }}
@@ -157,7 +157,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                   <div className="relative">
                     <img
                       className="w-18 h-18 rounded-full object-cover shadow-lg"
-                      src={reviewDetailsData?.data?.store?.profile_image ? `hhttps://api.colalamall.com/storage/${reviewDetailsData.data.store.profile_image}` : images.sasha}
+                      src={reviewDetailsData?.data?.store?.profile_image ? `https://api.colalamall.com/storage/${reviewDetailsData.data.store.profile_image}` : images.sasha}
                       alt="Store"
                       onError={(e) => {
                         e.currentTarget.src = images.sasha;
@@ -205,7 +205,7 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                         <span>
                           <img 
                             className="w-10 h-10 rounded-full object-cover" 
-                            src={reviewDetailsData?.data?.user?.profile_picture ? `hhttps://api.colalamall.com/storage/${reviewDetailsData.data.user.profile_picture}` : images.admin} 
+                            src={reviewDetailsData?.data?.user?.profile_picture ? `https://api.colalamall.com/storage/${reviewDetailsData.data.user.profile_picture}` : images.admin} 
                             alt="User"
                             onError={(e) => {
                               e.currentTarget.src = images.admin;
@@ -240,9 +240,9 @@ const StoreRatingModal: React.FC<StoreRatingModalProps> = ({
                             <img
                               key={index}
                               className="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                              src={`hhttps://api.colalamall.com/storage/${image}`}
+                              src={`https://api.colalamall.com/storage/${image}`}
                               alt={`Review Image ${index + 1}`}
-                              onClick={() => window.open(`hhttps://api.colalamall.com/storage/${image}`, '_blank')}
+                              onClick={() => window.open(`https://api.colalamall.com/storage/${image}`, '_blank')}
                             />
                           ))}
                         </div>

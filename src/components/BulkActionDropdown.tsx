@@ -522,7 +522,7 @@ interface BulkActionDropdownProps {
   onActionSelect?: (action: string) => void;
   selectedOrders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
   orders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
-  dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities' | 'leaderboard';
+  dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities' | 'leaderboard' | 'sellerUsers' | 'allUsers' | 'adminTransactions';
   exportConfig?: ExportConfig; // Current filters for export
 }
 
@@ -1156,39 +1156,155 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
           'Updated Date': updatedDateValue
         };
       });
+    } else if (dataType === 'sellerUsers') {
+      csvData = (dataToExport as any[]).map((seller) => {
+        const isActive = seller.is_active !== undefined ? (seller.is_active === 1 || seller.is_active === true) : true;
+        const statusValue = seller.status
+          ? seller.status.charAt(0).toUpperCase() + seller.status.slice(1).toLowerCase()
+          : (isActive ? 'Active' : 'Inactive');
+
+        const store = seller.store;
+
+        return {
+          'Seller ID': seller.id,
+          'Store ID': seller.store_id || store?.id || 'N/A',
+          'Store Name': seller.store_name || store?.store_name || 'N/A',
+          'Full Name': seller.full_name || 'N/A',
+          'Email': seller.email || 'N/A',
+          'Phone': seller.phone || 'N/A',
+          'Role': seller.role || 'N/A',
+          'Plan': seller.plan || 'N/A',
+          'Status': statusValue,
+          'Is Disabled': seller.is_disabled ? 'Yes' : 'No',
+          'Store Location': store?.store_location || 'N/A',
+          'Store Status': store?.status || 'N/A',
+          'Store Visibility': (seller.store_visibility ?? store?.visibility) ? 'Visible' : 'Hidden',
+          'Created At': seller.created_at || 'N/A',
+          'Last Login': seller.last_login || seller.last_seen_at || 'N/A',
+        };
+      });
+    } else if (dataType === 'allUsers') {
+      csvData = (dataToExport as any[]).map((user) => {
+        const isActive = user.is_active !== undefined ? (user.is_active === 1 || user.is_active === true) : (user.isActive ?? true);
+        const statusValue = user.status
+          ? user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase()
+          : (isActive ? 'Active' : 'Inactive');
+
+        const result: Record<string, string | number> = {
+          'User ID': user.id,
+          'Full Name': user.full_name || user.userName || 'N/A',
+          'Username': user.user_name || 'N/A',
+          'Email': user.email || 'N/A',
+          'Phone': user.phone || user.phoneNumber || 'N/A',
+          'Role': user.role || 'N/A',
+          'Status': statusValue,
+          'Plan': user.plan || 'N/A',
+          'Country': user.country || 'N/A',
+          'State': user.state || 'N/A',
+          'User Code': user.user_code || 'N/A',
+          'Referral Code': user.referral_code || 'N/A',
+          'OTP Verified': (user.otp_verified === 1 || user.otp_verified === true) ? 'Yes' : 'No',
+          'Email Verified': user.email_verified_at || 'No',
+          'Is Disabled': user.is_disabled ? 'Yes' : 'No',
+          'Wallet Balance': user.wallet_balance || user.walletBalance || 'N/A',
+        };
+
+        if (user.wallet) {
+          result['Shopping Balance'] = user.wallet.shopping_balance ?? 0;
+          result['Reward Balance'] = user.wallet.reward_balance ?? 0;
+          result['Referral Balance'] = user.wallet.referral_balance ?? 0;
+          result['Ad Credit'] = user.wallet.ad_credit ?? 0;
+          result['Loyalty Points'] = user.wallet.loyality_points ?? 0;
+        }
+
+        if (user.store) {
+          result['Store Name'] = user.store.store_name || 'N/A';
+          result['Store Email'] = user.store.store_email || 'N/A';
+          result['Store Phone'] = user.store.store_phone || 'N/A';
+          result['Store Location'] = user.store.store_location || 'N/A';
+          result['Store Status'] = user.store.status || 'N/A';
+          result['Onboarding Status'] = user.store.onboarding_status || 'N/A';
+        }
+
+        if (user.subscription) {
+          result['Subscription Plan'] = user.subscription.plan_name || 'N/A';
+          result['Subscription Status'] = user.subscription.status || 'N/A';
+          result['Subscription Start'] = user.subscription.start_date || 'N/A';
+          result['Subscription End'] = user.subscription.end_date || 'N/A';
+          result['Subscription Price'] = user.subscription.price || 'N/A';
+          result['Subscription Currency'] = user.subscription.currency || 'N/A';
+        }
+
+        result['Total Orders'] = user.total_orders ?? 'N/A';
+        result['Total Revenue'] = user.total_revenue ?? 'N/A';
+        result['Store Count'] = user.store_count ?? 'N/A';
+        result['Last Seen'] = user.last_seen_at || user.last_login || 'N/A';
+        result['Created At'] = user.created_at || user.createdAt || 'N/A';
+        result['Updated At'] = user.updated_at || 'N/A';
+
+        return result;
+      });
     } else {
-      csvData = (dataToExport as Order[]).map((order) => {
-        const dateValue = order.order_date || order.orderDate || order.created_at || 'N/A';
-        const statusValue = order.status 
-          ? order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()
+      csvData = (dataToExport as any[]).map((o) => {
+        const parentOrder = o.order;
+        const firstItem = o.items?.[0];
+        const tracking = o.order_tracking?.[0];
+
+        const orderNo = o.order_no || parentOrder?.order_no || 'N/A';
+        const storeName = o.store_name || o.storeName || o.store?.store_name || o.store?.name || 'N/A';
+        const sellerName = o.seller_name || o.sellerName || o.store?.user?.full_name || o.store?.seller?.name || 'N/A';
+        const buyerName = o.buyer_name || o.buyerName || o.buyer?.name || parentOrder?.user?.full_name || 'N/A';
+        const buyerEmail = o.buyer_email || o.buyer?.email || parentOrder?.user?.email || 'N/A';
+        const buyerPhone = o.buyer_phone || o.buyer?.phone || parentOrder?.user?.phone || 'N/A';
+        const productName = o.product_name || o.productName || o.product?.name || firstItem?.name || firstItem?.product?.name || 'N/A';
+        const productPrice = o.price || o.product?.price || firstItem?.unit_price || firstItem?.product?.price || 'N/A';
+        const quantity = o.quantity ?? o.order_item?.quantity ?? firstItem?.qty ?? 'N/A';
+        const paymentMethod = o.payment_method || parentOrder?.payment_method || 'N/A';
+        const paymentStatus = o.payment_status || parentOrder?.payment_status || 'N/A';
+        const trackingNumber = o.tracking_number || o.tracking?.tracking_number || tracking?.delivery_code || 'N/A';
+        const deliveryStatus = o.delivery_status || o.tracking?.current_status || tracking?.status || 'N/A';
+        const notes = o.notes || o.tracking?.notes || tracking?.notes || o.delivery_notes || 'N/A';
+        const dateValue = o.order_date || o.orderDate || o.created_at || 'N/A';
+        const statusValue = o.status
+          ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
           : 'N/A';
 
         let totalValue = 'N/A';
-        if (order.total_amount !== undefined && order.total_amount !== null) {
-          totalValue = typeof order.total_amount === 'number' ? `₦${order.total_amount.toLocaleString()}` : String(order.total_amount);
+        if (o.total_amount !== undefined && o.total_amount !== null) {
+          totalValue = typeof o.total_amount === 'number' ? `₦${o.total_amount.toLocaleString()}` : String(o.total_amount);
+        } else if (o.subtotal_with_shipping) {
+          totalValue = `₦${Number(o.subtotal_with_shipping).toLocaleString()}`;
+        } else if (o.items_subtotal) {
+          totalValue = `₦${Number(o.items_subtotal).toLocaleString()}`;
+        } else if (parentOrder?.grand_total) {
+          totalValue = `₦${Number(parentOrder.grand_total).toLocaleString()}`;
+        } else if (o.pricing?.items_subtotal) {
+          totalValue = `₦${Number(o.pricing.items_subtotal).toLocaleString()}`;
+        } else if (firstItem?.line_total) {
+          totalValue = `₦${Number(firstItem.line_total).toLocaleString()}`;
         }
 
         return {
-          'Order ID': order.id,
-          'Order No': order.order_no || 'N/A',
-          'Store Name': order.store_name || order.storeName || 'N/A',
-          'Seller Name': order.seller_name || order.sellerName || 'N/A',
-          'Buyer Name': order.buyer_name || order.buyerName || 'N/A',
-          'Buyer Email': order.buyer_email || 'N/A',
-          'Buyer Phone': order.buyer_phone || 'N/A',
-          'Product Name': order.product_name || order.productName || 'N/A',
-          'Price': order.price || 'N/A',
+          'Order ID': o.id,
+          'Order No': orderNo,
+          'Store Name': storeName,
+          'Seller Name': sellerName,
+          'Buyer Name': buyerName,
+          'Buyer Email': buyerEmail,
+          'Buyer Phone': buyerPhone,
+          'Product Name': productName,
+          'Price': productPrice,
           'Total Amount': totalValue,
-          'Quantity': order.quantity ?? 'N/A',
-          'Payment Method': order.payment_method || 'N/A',
-          'Payment Status': order.payment_status || 'N/A',
-          'Delivery Status': order.delivery_status || 'N/A',
-          'Delivery Address': order.delivery_address || 'N/A',
-          'Tracking Number': order.tracking_number || 'N/A',
+          'Quantity': quantity,
+          'Payment Method': paymentMethod,
+          'Payment Status': paymentStatus,
+          'Delivery Status': deliveryStatus,
+          'Delivery Address': o.delivery_address || 'N/A',
+          'Tracking Number': trackingNumber,
           'Status': statusValue,
           'Order Date': dateValue,
-          'Updated At': order.updated_at || 'N/A',
-          'Notes': order.notes || 'N/A',
+          'Updated At': o.updated_at || 'N/A',
+          'Notes': notes,
         };
       });
     }
@@ -1776,24 +1892,75 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
           activity.created_at || activity.createdAt || 'N/A'
         ];
       });
+    } else if (dataType === 'sellerUsers') {
+      headers = ['ID', 'Store Name', 'Full Name', 'Email', 'Phone', 'Plan', 'Status', 'Store Location', 'Store Status', 'Created', 'Last Login'];
+      tableData = (dataToExport as any[]).map((seller) => {
+        const isActive = seller.is_active !== undefined ? (seller.is_active === 1 || seller.is_active === true) : true;
+        const statusValue = seller.status
+          ? seller.status.charAt(0).toUpperCase() + seller.status.slice(1).toLowerCase()
+          : (isActive ? 'Active' : 'Inactive');
+
+        const store = seller.store;
+
+        return [
+          String(seller.id),
+          seller.store_name || store?.store_name || 'N/A',
+          seller.full_name || 'N/A',
+          seller.email || 'N/A',
+          seller.phone || 'N/A',
+          seller.plan || 'N/A',
+          statusValue,
+          store?.store_location || 'N/A',
+          store?.status || 'N/A',
+          seller.created_at || 'N/A',
+          seller.last_login || seller.last_seen_at || 'N/A',
+        ];
+      });
+    } else if (dataType === 'allUsers') {
+      headers = ['ID', 'Full Name', 'Email', 'Phone', 'Role', 'Plan', 'Country', 'State', 'Status', 'Store Name', 'Store Location', 'Subscription', 'Created At'];
+      tableData = (dataToExport as any[]).map((user) => {
+        const isActive = user.is_active !== undefined ? (user.is_active === 1 || user.is_active === true) : (user.isActive ?? true);
+        const statusValue = user.status
+          ? user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase()
+          : (isActive ? 'Active' : 'Inactive');
+        return [
+          String(user.id),
+          user.full_name || user.userName || 'N/A',
+          user.email || 'N/A',
+          user.phone || user.phoneNumber || 'N/A',
+          user.role || 'N/A',
+          user.plan || 'N/A',
+          user.country || 'N/A',
+          user.state || 'N/A',
+          statusValue,
+          user.store?.store_name || 'N/A',
+          user.store?.store_location || 'N/A',
+          user.subscription?.plan_name || 'N/A',
+          user.created_at || user.createdAt || 'N/A',
+        ];
+      });
     } else {
       headers = ['Order ID', 'Order No', 'Store Name', 'Buyer Name', 'Buyer Email', 'Product Name', 'Price', 'Quantity', 'Payment', 'Delivery Status', 'Status', 'Order Date'];
-      tableData = (dataToExport as Order[]).map((order) => {
-        const dateValue = order.order_date || order.orderDate || order.created_at || 'N/A';
-        const statusValue = order.status 
-          ? order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()
+      tableData = (dataToExport as any[]).map((o) => {
+        const parentOrder = o.order;
+        const firstItem = o.items?.[0];
+        const tracking = o.order_tracking?.[0];
+
+        const dateValue = o.order_date || o.orderDate || o.created_at || 'N/A';
+        const statusValue = o.status 
+          ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
           : 'N/A';
         return [
-          String(order.id),
-          String(order.order_no || 'N/A'),
-          order.store_name || order.storeName || 'N/A',
-          order.buyer_name || order.buyerName || 'N/A',
-          order.buyer_email || 'N/A',
-          order.product_name || order.productName || 'N/A',
-          order.price || 'N/A',
-          String(order.quantity ?? 'N/A'),
-          order.payment_method || 'N/A',
-          order.delivery_status || 'N/A',
+          String(o.id),
+          String(o.order_no || parentOrder?.order_no || 'N/A'),
+          o.store_name || o.storeName || o.store?.store_name || o.store?.name || 'N/A',
+          o.buyer_name || o.buyerName || o.buyer?.name || parentOrder?.user?.full_name || 'N/A',
+          o.buyer_email || o.buyer?.email || parentOrder?.user?.email || 'N/A',
+          o.product_name || o.productName || o.product?.name || firstItem?.name || firstItem?.product?.name || 'N/A',
+          o.price || o.product?.price || firstItem?.unit_price || firstItem?.product?.price || 'N/A',
+          String(o.quantity ?? o.order_item?.quantity ?? firstItem?.qty ?? 'N/A'),
+          o.payment_method || parentOrder?.payment_method || 'N/A',
+          o.delivery_status || o.tracking?.current_status || tracking?.status || 'N/A',
           statusValue,
           dateValue,
         ];

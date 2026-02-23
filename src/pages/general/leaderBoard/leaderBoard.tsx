@@ -148,7 +148,7 @@ const LeaderBoard = () => {
 
   const getImageUrl = (profileImage: string | null) => {
     if (!profileImage) return images.admin;
-    return `hhttps://api.colalamall.com/storage/${profileImage}`;
+    return `https://api.colalamall.com/storage/${profileImage}`;
   };
 
   return (

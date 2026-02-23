@@ -378,7 +378,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 <td className="p-3 text-left flex items-center justify-start gap-2">
                   <img
                     src={user.profile_picture 
-                      ? `hhttps://api.colalamall.com/storage/${user.profile_picture}` 
+                      ? `https://api.colalamall.com/storage/${user.profile_picture}` 
                       : "/assets/layout/admin.png"
                     }
                     alt="User"

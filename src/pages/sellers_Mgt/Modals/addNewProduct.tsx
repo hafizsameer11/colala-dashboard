@@ -642,7 +642,7 @@ const AddNewProduct: React.FC<AddNewProductProps> = ({ isOpen, onClose, selected
                       className="relative w-24 h-24 border border-[#CDCDCD] rounded-2xl overflow-hidden"
                     >
                       <img
-                        src={image.url.startsWith('http') ? image.url : `hhttps://api.colalamall.com/storage/${image.path}`}
+                        src={image.url.startsWith('http') ? image.url : `https://api.colalamall.com/storage/${image.path}`}
                         alt={`Existing Product ${index + 1}`}
                         className="w-full h-full object-cover"
                       />

@@ -229,35 +229,13 @@ const OrdersMgt = () => {
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="relative date-dropdown-container">
-              <div
-                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2 sm:py-2 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-[140px] bg-white border border-[#989898] rounded-lg shadow-lg z-10">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      className={`px-4 py-3 hover:bg-gray-100 cursor-pointer text-left text-sm first:rounded-t-lg last:rounded-b-lg transition-colors ${
-                        selectedPeriod === option ? 'bg-gray-50 font-medium' : ''
-                      }`}
-                      onClick={() => handleDatePeriodSelect(option)}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             <div>
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
@@ -266,7 +244,7 @@ const OrdersMgt = () => {
                 exportConfig={{
                   dataType: "orders",
                   status: activeTab !== "All" ? activeTab : undefined,
-                  period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                  period: dateFilter.period !== "All time" ? dateFilter.period || undefined : undefined,
                 }}
               />
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import images from "../constants/images";
 
 export type DateFilterType = 'none' | 'period' | 'custom';
@@ -45,18 +45,28 @@ const DateFilter: React.FC<DateFilterProps> = ({
   const filterTypeDropdownRef = useRef<HTMLDivElement>(null);
   const periodDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Notify parent of filter changes
+  // Keep a stable ref to the callback so it doesn't trigger the effect
+  const onFilterChangeRef = useRef(onFilterChange);
+  onFilterChangeRef.current = onFilterChange;
+
+  const isInitialMount = useRef(true);
+
+  // Notify parent of filter changes (only when values actually change, not on callback identity change)
   useEffect(() => {
-    if (onFilterChange) {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (onFilterChangeRef.current) {
       const filterState: DateFilterState = {
         filterType,
         period: filterType === 'period' ? period : null,
         dateFrom: filterType === 'custom' && dateFrom ? dateFrom : null,
         dateTo: filterType === 'custom' && dateTo ? dateTo : null,
       };
-      onFilterChange(filterState);
+      onFilterChangeRef.current(filterState);
     }
-  }, [filterType, period, dateFrom, dateTo, onFilterChange]);
+  }, [filterType, period, dateFrom, dateTo]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {

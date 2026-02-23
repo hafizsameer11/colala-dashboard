@@ -177,7 +177,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   // Helper function to construct proper image URL
   const getImageUrl = (profilePicture: string | null | undefined) => {
     if (!profilePicture) return "/assets/layout/admin.png";
-    return `hhttps://api.colalamall.com/storage/${profilePicture}`;
+    return `https://api.colalamall.com/storage/${profilePicture}`;
   };
 
   // Fetch users data from API

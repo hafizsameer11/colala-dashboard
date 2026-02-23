@@ -630,10 +630,10 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                       {disputeDetails.data.dispute.images.map((image: string, index: number) => (
                         <div key={index} className="relative">
                           <img 
-                            src={`hhttps://api.colalamall.com/storage/${image}`}
+                            src={`https://api.colalamall.com/storage/${image}`}
                             alt={`Dispute evidence ${index + 1}`}
                             className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => window.open(`hhttps://api.colalamall.com/storage/${image}`, '_blank')}
+                            onClick={() => window.open(`https://api.colalamall.com/storage/${image}`, '_blank')}
                           />
                           <div className="absolute top-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 rounded">
                             {index + 1}
@@ -787,7 +787,7 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                             return imagePath;
                           }
                           // Otherwise, prepend storage path
-                          return `hhttps://api.colalamall.com/storage/${imagePath}`;
+                          return `https://api.colalamall.com/storage/${imagePath}`;
                         };
                         
                         const imageUrl = getImageUrl(message.image);
@@ -892,7 +892,7 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                             return imagePath;
                           }
                           // Otherwise, prepend storage path
-                          return `hhttps://api.colalamall.com/storage/${imagePath}`;
+                          return `https://api.colalamall.com/storage/${imagePath}`;
                         };
                         
                         const imageUrl = getImageUrl(message.image);
@@ -1010,7 +1010,7 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                             return imagePath;
                           }
                           // Otherwise, prepend storage path
-                          return `hhttps://api.colalamall.com/storage/${imagePath}`;
+                          return `https://api.colalamall.com/storage/${imagePath}`;
                         };
                         
                         const imageUrl = getImageUrl(message.image);
@@ -1115,7 +1115,7 @@ const DisputesModal: React.FC<DisputesModalProps> = ({
                             return imagePath;
                           }
                           // Otherwise, prepend storage path
-                          return `hhttps://api.colalamall.com/storage/${imagePath}`;
+                          return `https://api.colalamall.com/storage/${imagePath}`;
                         };
                         
                         const imageUrl = getImageUrl(message.image);
