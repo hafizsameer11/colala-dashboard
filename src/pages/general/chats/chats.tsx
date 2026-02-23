@@ -2,13 +2,14 @@ import ChatsTable from "./components/chattable";
 import PageHeader from "../../../components/PageHeader";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getChats } from "../../../utils/queries/chats";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import { useLocation } from "react-router-dom";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "General" | "Unread" | "Support" | "Dispute";
 
@@ -17,20 +18,13 @@ const Chats = () => {
   const [activeTab, setActiveTab] = useState<Tab>("General");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | number | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
   const tabs: Tab[] = ["General", "Unread", "Support", "Dispute"];
-  
-  // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
 
   // Debounced search
   const [searchInput, setSearchInput] = useState("");
@@ -52,8 +46,16 @@ const Chats = () => {
 
   // Fetch chats data
   const { data: chatsData, isLoading: isLoadingChats, error: chatsError } = useQuery({
-    queryKey: ['chats', currentPage, debouncedSearch, activeTab],
-    queryFn: () => getChats(currentPage, debouncedSearch || undefined, activeTab.toLowerCase() === 'general' ? undefined : activeTab.toLowerCase()),
+    queryKey: ['chats', currentPage, debouncedSearch, activeTab, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getChats(
+      currentPage, 
+      debouncedSearch || undefined, 
+      activeTab.toLowerCase() === 'general' ? undefined : activeTab.toLowerCase(),
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+      activeTab === 'Unread' ? 'unread' : undefined
+    ),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -88,41 +90,12 @@ const Chats = () => {
     setSelectedOrderId(null);
   };
 
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
   };
-  
-  // Handle local date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-  
-  // Handle local date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
-    setCurrentPage(1);
-  };
-  
-  // Close date dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-        setIsDateDropdownOpen(false);
-      }
-    };
 
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
-
-  // Transform and filter chats by period
+  // Transform chats (backend handles filtering)
   const allChatsRaw = chatsData?.data?.chats || [];
   
   // Transform chat data to match BulkActionDropdown interface
@@ -148,17 +121,14 @@ const Chats = () => {
     }));
   }, [allChatsRaw]);
   
-  const filteredChats = useMemo(() => {
-    return filterByPeriod(allChats, selectedPeriod, ['last_message_at', 'created_at', 'chat_date', 'chatDate']);
-  }, [allChats, selectedPeriod]);
+  // Backend handles filtering, so use allChats directly
+  const filteredChats = allChats;
 
   return (
     <>
       <PageHeader 
         title="All Chats" 
-        onPeriodChange={handlePeriodChange} 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
+        showDropdown={false}
       />
       <div className="p-3 sm:p-4 md:p-5">
         {isLoadingChats ? (
@@ -195,44 +165,30 @@ const Chats = () => {
           </div>
         )}
 
-        <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
+        <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
             <div className="overflow-x-auto w-full sm:w-auto"><TabButtons /></div>
-
-            <div className="relative" ref={dateDropdownRef}>
-              <div 
-                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => handleDatePeriodSelect(option)}
-                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             <div>
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
                 orders={filteredChats}
                 dataType="chats"
+                exportConfig={{
+                  dataType: "chats",
+                  status: activeTab === 'Unread' ? 'unread' : undefined,
+                  period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                  search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+                  typeFilter: activeTab !== "General" ? activeTab.toLowerCase() : undefined,
+                }}
               />
             </div>
           </div>

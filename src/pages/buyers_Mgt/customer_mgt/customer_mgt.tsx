@@ -3,6 +3,8 @@ import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
 import images from "../../../constants/images";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import UsersTable from "./usersTable";
 import AddUserModal from "../../../components/addUserModel";
 import { useState, useMemo } from "react";
@@ -19,14 +21,13 @@ const customer_mgt = () => {
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Date period filter - synchronized with PageHeader
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "This Month",
-    "All time",
-  ];
+  // Date filter state - supports both period and custom date range
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
   
   const debouncedQuery = useDebouncedValue(query, 400);
 
@@ -39,8 +40,15 @@ const customer_mgt = () => {
    * Note: This endpoint also returns statistics in the response
    */
   const { data: usersData, isLoading: usersLoading, error: usersError } = useQuery({
-    queryKey: ['usersList', currentPage, debouncedQuery, selectedPeriod],
-    queryFn: () => getUsersList(currentPage, debouncedQuery, selectedPeriod),
+    queryKey: ['usersList', currentPage, debouncedQuery, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getUsersList(
+      currentPage, 
+      debouncedQuery, 
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      false,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
@@ -49,8 +57,10 @@ const customer_mgt = () => {
    * The users list endpoint includes stats, but we'll use the dedicated stats endpoint for reliability
    */
   const { data: userStats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ['userStats', selectedPeriod],
-    queryFn: () => getUserStats(selectedPeriod),
+    queryKey: ['userStats', dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getUserStats(
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined
+    ),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
@@ -137,10 +147,9 @@ const customer_mgt = () => {
     setSelectedUsers(users);
   };
 
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
-    console.log("Period changed to:", period);
   };
 
   const handleBulkActionSelect = (action: string) => {
@@ -162,9 +171,7 @@ const customer_mgt = () => {
     <>
       <PageHeader 
         title="User Management" 
-        onPeriodChange={handlePeriodChange} 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
+        showDropdown={false}
       />
 
       <div className="bg-[#F5F5F5]">
@@ -206,16 +213,35 @@ const customer_mgt = () => {
           )}
 
           <div className="mt-4 sm:mt-5">
-            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-              <div>
-                <BulkActionDropdown 
-                  onActionSelect={handleBulkActionSelect}
-                  orders={allUsers}
-                  selectedOrders={selectedUsers}
-                  dataType="users"
+            <div className="flex flex-col gap-3 sm:gap-4">
+              {/* Date Filter */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                <DateFilter
+                  defaultFilterType={dateFilter.filterType}
+                  defaultPeriod={dateFilter.period || 'All time'}
+                  defaultDateFrom={dateFilter.dateFrom}
+                  defaultDateTo={dateFilter.dateTo}
+                  onFilterChange={handleDateFilterChange}
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-5">
+              
+              <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+                <div>
+                  <BulkActionDropdown 
+                    onActionSelect={handleBulkActionSelect}
+                    orders={allUsers}
+                    selectedOrders={selectedUsers}
+                    dataType="users"
+                    exportConfig={{
+                      dataType: "users",
+                      search: debouncedQuery && debouncedQuery.trim() ? debouncedQuery.trim() : undefined,
+                      period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                      dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                      dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-5">
                 <div>
                   <button
                     onClick={() => setShowModal(true)}
@@ -250,6 +276,7 @@ const customer_mgt = () => {
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>

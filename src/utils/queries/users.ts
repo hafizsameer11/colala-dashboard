@@ -26,6 +26,33 @@ const mapPeriodToApi = (period: string): string | null => {
 };
 
 /**
+ * Build date filter query parameters
+ * Priority: period > date_from/date_to
+ * @param period - Period filter (e.g., "Today", "This Week")
+ * @param dateFrom - Custom date from (YYYY-MM-DD format)
+ * @param dateTo - Custom date to (YYYY-MM-DD format)
+ * @returns Query string with date filter parameters
+ */
+const buildDateFilterQuery = (period?: string, dateFrom?: string | null, dateTo?: string | null): string => {
+  let query = '';
+  
+  // Priority 1: Period filter (highest priority)
+  const apiPeriod = period ? mapPeriodToApi(period) : null;
+  if (apiPeriod) {
+    query += `&period=${apiPeriod}`;
+    return query; // Period takes priority, ignore custom date range
+  }
+  
+  // Priority 2: Custom date range (only if both dateFrom and dateTo are provided)
+  if (dateFrom && dateTo) {
+    query += `&date_from=${dateFrom}`;
+    query += `&date_to=${dateTo}`;
+  }
+  
+  return query;
+};
+
+/**
  * Get user statistics (total, active, new users)
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
@@ -53,8 +80,18 @@ export const getUserStats = async (period?: string) => {
  * @param page - Page number
  * @param search - Optional search query
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
+ * @param exportData - Whether to export all data
+ * @param dateFrom - Optional custom date from (YYYY-MM-DD format)
+ * @param dateTo - Optional custom date to (YYYY-MM-DD format)
  */
-export const getUsersList = async (page: number = 1, search?: string, period?: string) => {
+export const getUsersList = async (
+  page: number = 1, 
+  search?: string, 
+  period?: string, 
+  exportData: boolean = false,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -64,9 +101,9 @@ export const getUsersList = async (page: number = 1, search?: string, period?: s
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
     }
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -165,17 +202,20 @@ export const getUserAddresses = async (userId: number | string) => {
  * @param page - Page number (default: 1)
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserOrders = async (userId: number | string, page: number = 1, period?: string) => {
+export const getUserOrders = async (
+  userId: number | string, 
+  page: number = 1, 
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
     let url = `${API_ENDPOINTS.BUYER_USERS.Orders(userId)}?page=${page}`;
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
-    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
@@ -207,17 +247,20 @@ export const getOrderDetails = async (userId: number | string, orderId: number |
  * @param page - Page number (default: 1)
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserChats = async (userId: number | string, page: number = 1, period?: string) => {
+export const getUserChats = async (
+  userId: number | string, 
+  page: number = 1, 
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
     let url = `${API_ENDPOINTS.BUYER_USERS.Chats(userId)}?page=${page}`;
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
-    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
@@ -249,16 +292,27 @@ export const getChatDetails = async (userId: number | string, chatId: number | s
  * @param page - Page number (default: 1)
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getUserTransactions = async (userId: number | string, page: number = 1, period?: string) => {
+export const getUserTransactions = async (
+  userId: number | string, 
+  page: number = 1, 
+  period?: string, 
+  exportData: boolean = false, 
+  status?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
     let url = `${API_ENDPOINTS.BUYER_USERS.Transactions(userId)}?page=${page}`;
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (status && status !== 'All') {
+      url += `&status=${status}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -292,7 +346,15 @@ export const getTransactionDetails = async (userId: number | string, transaction
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  * @param search - Optional search query
  */
-export const getBuyerOrders = async (page: number = 1, status?: string, period?: string, search?: string) => {
+export const getBuyerOrders = async (
+  page: number = 1, 
+  status?: string, 
+  period?: string, 
+  search?: string, 
+  exportData: boolean = false,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -302,12 +364,12 @@ export const getBuyerOrders = async (page: number = 1, status?: string, period?:
     if (status && status !== 'All' && status !== 'all') {
       url += `&status=${status}`;
     }
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
-    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -398,7 +460,14 @@ export const getBalanceData = async (page: number = 1, period?: string) => {
  * @param search - Optional search query
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getSellerUsers = async (page: number = 1, level?: number | 'all', search?: string, period?: string) => {
+export const getSellerUsers = async (
+  page: number = 1, 
+  level?: number | 'all', 
+  search?: string, 
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -411,10 +480,7 @@ export const getSellerUsers = async (page: number = 1, level?: number | 'all', s
     if (search && search.trim()) {
       url += `&search=${encodeURIComponent(search.trim())}`;
     }
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
-    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
@@ -443,7 +509,15 @@ export const getSellerDetails = async (sellerId: number | string) => {
 /**
  * Get seller orders with pagination
  */
-export const getSellerOrders = async (sellerId: number | string, page: number = 1, status?: string) => {
+export const getSellerOrders = async (
+  sellerId: number | string, 
+  page: number = 1, 
+  status?: string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  search?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -452,6 +526,10 @@ export const getSellerOrders = async (sellerId: number | string, page: number = 
     let url = `${API_ENDPOINTS.STORE_DATA.TabsData.Orders(sellerId)}?page=${page}`;
     if (status && status !== 'All') {
       url += `&status=${status}`;
+    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -882,7 +960,14 @@ export const getSellerLoyaltyCustomers = async (userId: number | string) => {
 /**
  * Get admin orders with pagination and filtering
  */
-export const getAdminOrders = async (page: number = 1, status?: string) => {
+export const getAdminOrders = async (
+  page: number = 1, 
+  status?: string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  search?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -891,6 +976,10 @@ export const getAdminOrders = async (page: number = 1, status?: string) => {
     let url = `${API_ENDPOINTS.ADMIN_ORDERS.List}?page=${page}`;
     if (status && status !== 'all') {
       url += `&status=${status}`;
+    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -995,7 +1084,15 @@ export const updateOrderStatus = async (storeOrderId: number | string, statusDat
 /**
  * Get admin transactions with pagination and filtering
  */
-export const getAdminTransactions = async (page: number = 1, status?: string, type?: string) => {
+export const getAdminTransactions = async (
+  page: number = 1, 
+  status?: string, 
+  type?: string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  search?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1007,6 +1104,10 @@ export const getAdminTransactions = async (page: number = 1, status?: string, ty
     }
     if (type && type !== 'all') {
       url += `&type=${type}`;
+    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1036,7 +1137,14 @@ export const getAdminTransactionDetails = async (transactionId: number | string)
 /**
  * Get admin subscriptions with pagination and filtering
  */
-export const getAdminSubscriptions = async (page: number = 1, status?: string, period?: string) => {
+export const getAdminSubscriptions = async (
+  page: number = 1, 
+  status?: string, 
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  search?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1046,10 +1154,9 @@ export const getAdminSubscriptions = async (page: number = 1, status?: string, p
     if (status && status !== 'all') {
       url += `&status=${status}`;
     }
-    if (period && period !== "All time") {
-      // Convert period format: "This Week" -> "this_week", "Last Month" -> "last_month", etc.
-      const periodParam = period.toLowerCase().replace(/\s+/g, '_');
-      url += `&period=${periodParam}`;
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1147,7 +1254,14 @@ export const getSubscriptionDetails = async (subscriptionId: number | string) =>
 /**
  * Get admin promotions with pagination and filtering
  */
-export const getAdminPromotions = async (page: number = 1, status?: string) => {
+export const getAdminPromotions = async (
+  page: number = 1, 
+  status?: string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  search?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1156,6 +1270,10 @@ export const getAdminPromotions = async (page: number = 1, status?: string) => {
     let url = `${API_ENDPOINTS.ADMIN_PROMOTIONS.List}?page=${page}`;
     if (status && status !== 'all') {
       url += `&status=${status}`;
+    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1248,7 +1366,15 @@ export const updatePromotion = async (promotionId: number | string, updateData: 
  * @param status - Optional status filter
  * @param search - Optional search query
  */
-export const getAdminProducts = async (page: number = 1, status?: string, search?: string) => {
+export const getAdminProducts = async (
+  page: number = 1, 
+  status?: string, 
+  search?: string, 
+  exportData: boolean = false,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1258,8 +1384,12 @@ export const getAdminProducts = async (page: number = 1, status?: string, search
     if (status && status !== 'All') {
       url += `&status=${status}`;
     }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     if (search && search.trim()) {
       url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1309,7 +1439,16 @@ export const getAdminProductDetails = async (productId: number | string) => {
  * @param status - Optional status filter
  * @param search - Optional search query
  */
-export const getAdminServices = async (page: number = 1, status?: string, search?: string) => {
+export const getAdminServices = async (
+  page: number = 1, 
+  status?: string, 
+  search?: string, 
+  exportData: boolean = false, 
+  category?: string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1319,8 +1458,15 @@ export const getAdminServices = async (page: number = 1, status?: string, search
     if (status && status !== 'All') {
       url += `&status=${status}`;
     }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     if (search && search.trim()) {
       url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    if (category && category !== 'All Categories') {
+      url += `&category=${encodeURIComponent(category)}`;
+    }
+    if (exportData) {
+      url += `&export=true`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1419,7 +1565,15 @@ export const deleteService = async (serviceId: number | string) => {
 /**
  * Get admin stores with pagination and filtering
  */
-export const getAdminStores = async (page: number = 1, status?: string, level?: number | string) => {
+export const getAdminStores = async (
+  page: number = 1, 
+  status?: string, 
+  level?: number | string,
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null,
+  search?: string
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1431,6 +1585,10 @@ export const getAdminStores = async (page: number = 1, status?: string, level?: 
     }
     if (level && level !== 'all') {
       url += `&level=${level}`;
+    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
@@ -1654,7 +1812,13 @@ export const deleteAdminSocialFeedComment = async (postId: number | string, comm
  * @param search - Optional search query
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getAllUsers = async (page: number = 1, search?: string, period?: string) => {
+export const getAllUsers = async (
+  page: number = 1, 
+  search?: string, 
+  period?: string,
+  dateFrom?: string | null,
+  dateTo?: string | null
+) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
@@ -1664,10 +1828,7 @@ export const getAllUsers = async (page: number = 1, search?: string, period?: st
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
     }
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `&period=${apiPeriod}`;
-    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
@@ -1680,17 +1841,14 @@ export const getAllUsers = async (page: number = 1, search?: string, period?: st
  * Get all users statistics
  * @param period - Optional period filter: "Today", "This Week", "This Month", "Last Month", "All time"
  */
-export const getAllUsersStats = async (period?: string) => {
+export const getAllUsersStats = async (period?: string, dateFrom?: string | null, dateTo?: string | null) => {
   const token = Cookies.get('authToken');
   if (!token) {
     throw new Error('No authentication token found');
   }
   try {
     let url = API_ENDPOINTS.ALL_USERS.Stats;
-    const apiPeriod = period ? mapPeriodToApi(period) : null;
-    if (apiPeriod) {
-      url += `?period=${apiPeriod}`;
-    }
+    url += buildDateFilterQuery(period, dateFrom, dateTo);
     const response = await apiCall(url, 'GET', undefined, token);
     return response;
   } catch (error) {
@@ -2518,6 +2676,28 @@ export const getAdminUsers = async (params?: {
     return response;
   } catch (error) {
     console.error('Get admin users API call error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user/admin status (active/inactive, disabled)
+ * Route: PUT /api/admin/all-users/{userId}/status
+ */
+export const updateUserStatus = async (
+  userId: number | string,
+  payload: { status: "active" | "inactive"; is_disabled?: boolean }
+) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const url = API_ENDPOINTS.ALL_USERS.Status(userId);
+    const response = await apiCall(url, 'PUT', payload, token);
+    return response;
+  } catch (error) {
+    console.error('Update user status API call error:', error);
     throw error;
   }
 };

@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import AllUsersTable from "./components/allUsersTable";
 import StatCard from "../../../components/StatCard";
@@ -18,7 +20,12 @@ const AllUsers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [userRole, setUserRole] = useState<"buyer" | "seller">("buyer");
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -30,8 +37,14 @@ const AllUsers = () => {
 
   // Fetch all users data for export
   const { data: allUsersData } = useQuery({
-    queryKey: ['allUsers', currentPage, debouncedSearch, selectedPeriod],
-    queryFn: () => getAllUsers(currentPage, debouncedSearch || undefined, selectedPeriod),
+    queryKey: ['allUsers', currentPage, debouncedSearch, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getAllUsers(
+      currentPage, 
+      debouncedSearch || undefined, 
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -85,8 +98,12 @@ const AllUsers = () => {
 
   // Fetch statistics
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['allUsersStats', selectedPeriod],
-    queryFn: () => getAllUsersStats(selectedPeriod),
+    queryKey: ['allUsersStats', dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getAllUsersStats(
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
@@ -147,17 +164,8 @@ const AllUsers = () => {
   };
 
   // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
-
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
   };
 
@@ -165,9 +173,6 @@ const AllUsers = () => {
     <>
       <PageHeader 
         title="All Users" 
-        onPeriodChange={handlePeriodChange} 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
       />
       <div className="p-3 sm:p-4 md:p-5">
         {isLoadingStats ? (
@@ -260,16 +265,30 @@ const AllUsers = () => {
         )}
         {/* Filters and Actions Row - Improved Mobile Layout */}
         <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:gap-4">
-          {/* Top Row: Tabs and Bulk Actions */}
+          {/* Top Row: Tabs, Date Filter, and Bulk Actions */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full">
             <div className="w-full sm:w-auto overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <TabButtons />
             </div>
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             <div className="w-full sm:w-auto">
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
                 orders={allUsers}
-                dataType="users"
+                dataType="allUsers"
+                exportConfig={{
+                  dataType: "allUsers",
+                  search: debouncedSearch?.trim() || undefined,
+                  period: dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                }}
               />
             </div>
           </div>

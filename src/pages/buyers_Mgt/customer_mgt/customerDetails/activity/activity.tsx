@@ -447,6 +447,11 @@ const Activity: React.FC<ActivityProps> = ({ userData, selectedPeriod = "All tim
               onActionSelect={handleBulkActionSelect}
               orders={filteredActivities}
               dataType="activities"
+              exportConfig={{
+                dataType: "activities",
+                userId: userData?.id,
+                period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+              }}
             />
           </div>
         </div>

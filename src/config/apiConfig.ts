@@ -44,6 +44,7 @@ const API_ENDPOINTS = {
     Details: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/details`, // GET
     Create: API_DOMAIN + "/admin/all-users", // POST
     Update: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // POST
+    Status: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/status`, // PUT
     Delete: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}`, // DELETE
     Addresses: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // GET
     CreateAddress: (id: number | string) => `${API_DOMAIN}/admin/all-users/${id}/addresses`, // POST

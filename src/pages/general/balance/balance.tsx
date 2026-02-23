@@ -284,6 +284,10 @@ const Balance = () => {
                 onActionSelect={handleBulkActionSelect}
                 orders={usersForExport as any}
                 dataType="users"
+                exportConfig={{
+                  dataType: "users",
+                  period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                }}
               />
             </div>
           </div>

@@ -261,6 +261,10 @@ const LeaderBoard = () => {
                       onActionSelect={handleBulkActionSelect}
                       orders={storesForExport}
                       dataType="leaderboard"
+                      exportConfig={{
+                        dataType: "leaderboard",
+                        period: selectedPeriod !== 'all' ? selectedPeriod : undefined,
+                      }}
                     />
                   </div>
                 </div>

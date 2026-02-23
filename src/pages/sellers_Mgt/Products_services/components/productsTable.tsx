@@ -313,7 +313,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
               <th className="p-4 text-center font-normal">Other</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="min-h-[200px]">
             {isLoading ? (
               <tr>
                 <td colSpan={8} className="p-6 text-center">
@@ -336,8 +336,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
               </tr>
             ) : (
               visibleProducts.map((product) => (
-                <tr key={product.id} className="border-t border-[#00000040] ">
-                  <td className="p-4">
+                <tr key={product.id} className="border-t border-[#00000040]">
+                  <td className="p-4 pb-6">
                     <input
                       type="checkbox"
                       checked={selectedRows.includes(product.id)}
@@ -345,10 +345,10 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                       className="w-5 h-5"
                     />
                   </td>
-                  <td className="p-4 text-left">
+                  <td className="p-4 pb-6 text-left">
                     <span className="font-medium">{product.storeName}</span>
                   </td>
-                  <td className="p-4 text-left">
+                  <td className="p-4 pb-6 text-left">
                     <div className="flex items-center gap-3">
                       <img
                         src={product.productImage}
@@ -358,7 +358,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                       <span className="font-medium">{product.productName}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-left">
+                  <td className="p-4 pb-6 text-left">
                     <div className="flex flex-col">
                       <span className="font-semibold text-[#E53E3E]">
                         {product.discountPrice ?? product.price}
@@ -370,10 +370,10 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className="p-4 text-left">
+                  <td className="p-4 pb-6 text-left">
                     <span className="text-gray-600">{product.date}</span>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="p-4 pb-6 text-center">
                     <div className="relative inline-block" ref={(el) => { statusDropdownRefs.current[product.id] = el; }}>
                       <button
                         onClick={() => handleStatusToggle(product.id)}
@@ -416,7 +416,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="p-4 pb-6 text-center">
                     <div className="flex justify-center">
                       <div
                         className={`w-5 h-5 rounded-full ${
@@ -425,7 +425,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                       />
                     </div>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="p-4 pb-6 text-center">
                     <button
                       onClick={() => handleShowDetails(product)}
                       className="bg-[#E53E3E] hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"

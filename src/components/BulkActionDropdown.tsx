@@ -3,6 +3,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Papa from 'papaparse';
 import images from '../constants/images';
+import { fetchExportData } from '../utils/exportHelpers';
+import type { ExportConfig as ExportConfigType } from '../utils/exportHelpers';
 
 interface User {
   id: string | number;
@@ -507,11 +509,21 @@ interface Activity {
   date?: string;
 }
 
+interface ExportConfig {
+  status?: string;
+  period?: string;
+  search?: string;
+  category?: string;
+  userId?: number | string;
+  typeFilter?: string;
+}
+
 interface BulkActionDropdownProps {
   onActionSelect?: (action: string) => void;
   selectedOrders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
   orders?: User[] | Order[] | Chat[] | Transaction[] | Product[] | Service[] | Store[] | Subscription[] | Promotion[] | SupportTicket[] | Dispute[] | RatingReview[] | Notification[] | Banner[] | WithdrawalRequest[] | Activity[];
   dataType?: 'orders' | 'users' | 'chats' | 'transactions' | 'products' | 'services' | 'stores' | 'subscriptions' | 'promotions' | 'support' | 'tickets' | 'disputes' | 'ratings' | 'reviews' | 'notifications' | 'banners' | 'withdrawals' | 'activities' | 'leaderboard';
+  exportConfig?: ExportConfig; // Current filters for export
 }
 
 const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
@@ -519,9 +531,11 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
   selectedOrders = [],
   orders = [],
   dataType = 'orders',
+  exportConfig,
 }) => {
   const [isBulkDropdownOpen, setIsBulkDropdownOpen] = useState(false);
   const [selectedBulkAction, setSelectedBulkAction] = useState("Bulk Action");
+  const [isExporting, setIsExporting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Only export actions
@@ -550,13 +564,62 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
 
 
   // Export to CSV
-  const exportToCSV = () => {
-    const dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
-    
-    if (dataToExport.length === 0) {
-      alert(`No ${dataType} to export`);
-      return;
-    }
+  const exportToCSV = async () => {
+    setIsExporting(true);
+    try {
+      let dataToExport: any[] = [];
+      
+      // If export config is provided, fetch all data from API
+      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users' || dataType === 'support' || dataType === 'chats' || dataType === 'disputes' || dataType === 'adminTransactions' || dataType === 'sellerUsers' || dataType === 'stores' || dataType === 'allUsers' || dataType === 'promotions' || dataType === 'withdrawals' || dataType === 'notifications' || dataType === 'banners' || dataType === 'ratings' || dataType === 'reviews' || dataType === 'subscriptions' || dataType === 'leaderboard' || dataType === 'activities')) {
+        try {
+          const exportDataType = dataType === 'orders' ? 'orders' : 
+                                dataType === 'transactions' ? 'transactions' : 
+                                dataType === 'products' ? 'products' : 
+                                dataType === 'services' ? 'services' : 
+                                dataType === 'support' ? 'support' :
+                                dataType === 'chats' ? 'chats' :
+                                dataType === 'disputes' ? 'disputes' :
+                                dataType === 'adminTransactions' ? 'adminTransactions' :
+                                dataType === 'sellerUsers' ? 'sellerUsers' :
+                                dataType === 'stores' ? 'stores' :
+                                dataType === 'allUsers' ? 'allUsers' :
+                                dataType === 'promotions' ? 'promotions' :
+                                dataType === 'withdrawals' ? 'withdrawals' :
+                                dataType === 'notifications' ? 'notifications' :
+                                dataType === 'banners' ? 'banners' :
+                                dataType === 'ratings' || dataType === 'reviews' ? 'ratings' :
+                                dataType === 'subscriptions' ? 'subscriptions' :
+                                dataType === 'leaderboard' ? 'leaderboard' :
+                                dataType === 'activities' ? 'activities' : 'users';
+          
+          const apiData = await fetchExportData({
+            dataType: exportDataType,
+            ...exportConfig
+          } as ExportConfigType);
+          console.log(`Export API response for ${exportDataType}:`, apiData);
+          console.log(`Export API response type:`, typeof apiData);
+          console.log(`Export API response is array:`, Array.isArray(apiData));
+          console.log(`Export API response length:`, apiData?.length);
+          dataToExport = Array.isArray(apiData) ? apiData : (apiData ? [apiData] : []);
+        } catch (error) {
+          console.error('Error fetching export data from API:', error);
+          // Fallback to local data if API fails
+          dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+        }
+      } else {
+        // Use local data if no export config
+        dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+      }
+      
+      console.log(`Final dataToExport for ${dataType}:`, dataToExport);
+      console.log(`Final dataToExport length:`, dataToExport?.length);
+      console.log(`Final dataToExport is array:`, Array.isArray(dataToExport));
+      
+      if (!dataToExport || !Array.isArray(dataToExport) || dataToExport.length === 0) {
+        alert(`No ${dataType} to export`);
+        setIsExporting(false);
+        return;
+      }
 
     let csvData: Record<string, string | number>[];
     
@@ -635,7 +698,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         'Is Dispute': (chat.is_dispute !== undefined ? chat.is_dispute : chat.isDispute) ? 'Yes' : 'No',
         'Unread Count': chat.unread_count || chat.unreadCount || 0
       }));
-    } else if (dataType === 'transactions') {
+    } else if (dataType === 'transactions' || dataType === 'adminTransactions') {
       csvData = (dataToExport as Transaction[]).map((transaction) => {
         // Format amount properly
         let amountValue = 'N/A';
@@ -1130,36 +1193,91 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       });
     }
 
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${dataType}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const csv = Papa.unparse(csvData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${dataType}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Export to CSV error:', error);
+      alert(`Failed to export ${dataType}. Please try again.`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Export to PDF
-  const exportToPDF = () => {
-    const dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
-    
-    if (dataToExport.length === 0) {
-      alert(`No ${dataType} to export`);
-      return;
-    }
+  const exportToPDF = async () => {
+    setIsExporting(true);
+    try {
+      let dataToExport: any[] = [];
+      
+      // If export config is provided, fetch all data from API
+      if (exportConfig && (dataType === 'products' || dataType === 'services' || dataType === 'orders' || dataType === 'transactions' || dataType === 'users' || dataType === 'support' || dataType === 'chats' || dataType === 'disputes' || dataType === 'adminTransactions' || dataType === 'sellerUsers' || dataType === 'stores' || dataType === 'allUsers' || dataType === 'promotions' || dataType === 'withdrawals' || dataType === 'notifications' || dataType === 'banners' || dataType === 'ratings' || dataType === 'reviews' || dataType === 'subscriptions' || dataType === 'leaderboard' || dataType === 'activities')) {
+        try {
+          const exportDataType = dataType === 'orders' ? 'orders' : 
+                                dataType === 'transactions' ? 'transactions' : 
+                                dataType === 'products' ? 'products' : 
+                                dataType === 'services' ? 'services' : 
+                                dataType === 'support' ? 'support' :
+                                dataType === 'chats' ? 'chats' :
+                                dataType === 'disputes' ? 'disputes' :
+                                dataType === 'adminTransactions' ? 'adminTransactions' :
+                                dataType === 'sellerUsers' ? 'sellerUsers' :
+                                dataType === 'stores' ? 'stores' :
+                                dataType === 'allUsers' ? 'allUsers' :
+                                dataType === 'promotions' ? 'promotions' :
+                                dataType === 'withdrawals' ? 'withdrawals' :
+                                dataType === 'notifications' ? 'notifications' :
+                                dataType === 'banners' ? 'banners' :
+                                dataType === 'ratings' || dataType === 'reviews' ? 'ratings' :
+                                dataType === 'subscriptions' ? 'subscriptions' :
+                                dataType === 'leaderboard' ? 'leaderboard' :
+                                dataType === 'activities' ? 'activities' : 'users';
+          
+          const apiData = await fetchExportData({
+            dataType: exportDataType,
+            ...exportConfig
+          } as ExportConfigType);
+          console.log(`Export API response for ${exportDataType} (PDF):`, apiData);
+          console.log(`Export API response type (PDF):`, typeof apiData);
+          console.log(`Export API response is array (PDF):`, Array.isArray(apiData));
+          console.log(`Export API response length (PDF):`, apiData?.length);
+          dataToExport = Array.isArray(apiData) ? apiData : (apiData ? [apiData] : []);
+        } catch (error) {
+          console.error('Error fetching export data from API:', error);
+          // Fallback to local data if API fails
+          dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+        }
+      } else {
+        // Use local data if no export config
+        dataToExport = selectedOrders.length > 0 ? selectedOrders : orders;
+      }
+      
+      console.log(`Final dataToExport for ${dataType} (PDF):`, dataToExport);
+      console.log(`Final dataToExport length (PDF):`, dataToExport?.length);
+      console.log(`Final dataToExport is array (PDF):`, Array.isArray(dataToExport));
+      
+      if (!dataToExport || !Array.isArray(dataToExport) || dataToExport.length === 0) {
+        alert(`No ${dataType} to export`);
+        setIsExporting(false);
+        return;
+      }
 
-    const doc = new jsPDF();
-    
-    // Add title
-    doc.setFontSize(16);
-    doc.text(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Report`, 14, 22);
-    
-    // Prepare table data
-    let tableData;
-    let headers;
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(16);
+      doc.text(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Report`, 14, 22);
+      
+      // Prepare table data
+      let tableData;
+      let headers;
     
     if (dataType === 'users') {
       headers = ['ID', 'Full Name', 'Email', 'Phone', 'Role', 'Plan', 'Country', 'State', 'Status', 'Store Name', 'Store Location', 'Subscription', 'Created At'];
@@ -1195,7 +1313,7 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         (chat.is_read !== undefined ? chat.is_read : chat.isRead) ? 'Yes' : 'No',
         (chat.is_dispute !== undefined ? chat.is_dispute : chat.isDispute) ? 'Yes' : 'No'
       ]);
-    } else if (dataType === 'transactions') {
+    } else if (dataType === 'transactions' || dataType === 'adminTransactions') {
       headers = ['Transaction ID', 'Reference/TX ID', 'Amount', 'Type', 'Status', 'Status Color', 'Date', 'User Name', 'User Email'];
       tableData = (dataToExport as Transaction[]).map((transaction) => {
         // Format amount properly
@@ -1682,17 +1800,23 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       });
     }
 
-    // Add table using autoTable
-    autoTable(doc, {
-      head: [headers],
-      body: tableData,
-      startY: 30,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [229, 62, 62] }
-    });
+      // Add table using autoTable
+      autoTable(doc, {
+        head: [headers],
+        body: tableData,
+        startY: 30,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [229, 62, 62] }
+      });
 
-    // Save the PDF
-    doc.save(`${dataType}_${new Date().toISOString().split('T')[0]}.pdf`);
+      // Save the PDF
+      doc.save(`${dataType}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Export to PDF error:', error);
+      alert(`Failed to export ${dataType}. Please try again.`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleBulkOptionSelect = (action: string) => {
@@ -1723,9 +1847,10 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
         onClick={handleBulkDropdownToggle}
-        className="inline-flex justify-center items-center px-6 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+        disabled={isExporting}
+        className="inline-flex justify-center items-center px-6 py-3.5 border border-[#989898] text-black bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {selectedBulkAction}
+        {isExporting ? 'Exporting...' : selectedBulkAction}
         <img 
           src={images.dropdown} 
           alt="" 

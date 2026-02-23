@@ -3,12 +3,13 @@ import PageHeader from "../../../components/PageHeader";
 import SupportTable from "./components/supporttable";
 import { useEffect, useState, useMemo, useRef } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import { FilterDropdown } from "./components/FilterDropdown";
 import { useQuery } from "@tanstack/react-query";
 import { getSupportTickets } from "../../../utils/queries/support";
 import StatCard from "../../../components/StatCard";
 import StatCardGrid from "../../../components/StatCardGrid";
-import { filterByPeriod } from "../../../utils/periodFilter";
 
 type Tab = "All" | "Pending" | "Resolved";
 type IssueType =
@@ -21,22 +22,15 @@ type IssueType =
 const AllSupport = () => {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
   const [selectedUserType, setSelectedUserType] = useState<string>("All");
   const [isUserTypeDropdownOpen, setIsUserTypeDropdownOpen] = useState(false);
   const userTypeDropdownRef = useRef<HTMLDivElement>(null);
-  
-  // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
 
   // Issue type
   const [issueType, setIssueType] = useState<IssueType>("All Types");
@@ -58,8 +52,16 @@ const AllSupport = () => {
 
   // Fetch support tickets data
   const { data: ticketsData, isLoading: isLoadingTickets, error: ticketsError } = useQuery({
-    queryKey: ['supportTickets', currentPage, debouncedSearch, activeTab],
-    queryFn: () => getSupportTickets(currentPage, debouncedSearch || undefined, activeTab.toLowerCase() === 'all' ? undefined : activeTab.toLowerCase()),
+    queryKey: ['supportTickets', currentPage, debouncedSearch, activeTab, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo, issueType],
+    queryFn: () => getSupportTickets(
+      currentPage, 
+      debouncedSearch || undefined, 
+      activeTab.toLowerCase() === 'all' ? undefined : activeTab.toLowerCase(),
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+      issueType !== 'All Types' ? issueType : undefined
+    ),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -89,20 +91,8 @@ const AllSupport = () => {
     console.log("Bulk action selected in Orders:", action);
   };
 
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setCurrentPage(1);
-  };
-  
-  // Handle local date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-  
-  // Handle local date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
   };
   
@@ -118,36 +108,32 @@ const AllSupport = () => {
     setCurrentPage(1);
   };
   
-  // Close date dropdown when clicking outside
+  // Close user type dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-        setIsDateDropdownOpen(false);
-      }
       if (userTypeDropdownRef.current && !userTypeDropdownRef.current.contains(event.target as Node)) {
         setIsUserTypeDropdownOpen(false);
       }
     };
 
-    if (isDateDropdownOpen || isUserTypeDropdownOpen) {
+    if (isUserTypeDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isDateDropdownOpen, isUserTypeDropdownOpen]);
+  }, [isUserTypeDropdownOpen]);
 
-  // Filter tickets by period and user type
+  // Filter tickets by user type (backend handles period/date filtering)
   const allTickets = ticketsData?.data?.tickets || [];
-  const periodFilteredTickets = filterByPeriod(allTickets, selectedPeriod, ['created_at', 'date', 'updated_at', 'formatted_date']);
   
   // Filter by user type (Seller/Buyer)
   const filteredTickets = useMemo(() => {
     if (selectedUserType === "All") {
-      return periodFilteredTickets;
+      return allTickets;
     }
-    return periodFilteredTickets.filter((ticket: any) => {
+    return allTickets.filter((ticket: any) => {
       const userRole = ticket.user?.role || ticket.user_role || ticket.role || '';
       const userType = ticket.user?.user_type || ticket.user_type || '';
       
@@ -187,9 +173,7 @@ const AllSupport = () => {
     <>
       <PageHeader 
         title="Support" 
-        onPeriodChange={handlePeriodChange} 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
+        showDropdown={false}
       />
       <div className="p-3 sm:p-4 md:p-5">
         {isLoadingTickets ? (
@@ -267,40 +251,28 @@ const AllSupport = () => {
                 </div>
               )}
             </div>
-            <div className="relative" ref={dateDropdownRef}>
-              <div 
-                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => handleDatePeriodSelect(option)}
-                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
 
             <div>
               <BulkActionDropdown 
                 onActionSelect={handleBulkActionSelect}
                 orders={ticketsForExport}
                 dataType="support"
+                exportConfig={{
+                  dataType: "support",
+                  status: activeTab !== "All" ? activeTab.toLowerCase() : undefined,
+                  period: dateFilter.filterType === 'period' && dateFilter.period && dateFilter.period !== 'All time' ? dateFilter.period : undefined,
+                  dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                  dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                  search: debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
+                  typeFilter: issueType !== 'All Types' ? issueType : undefined,
+                }}
               />
             </div>
           </div>

@@ -153,6 +153,12 @@ const Orders: React.FC<OrdersProps> = ({ userId, onViewChat, selectedPeriod = "A
                 []
               }
               dataType="orders"
+              exportConfig={{
+                dataType: "orders",
+                status: activeTab !== "All" ? activeTab : undefined,
+                period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                search: debouncedQuery?.trim() || undefined,
+              }}
             />
           </div>
           <div className="relative">

@@ -4,7 +4,6 @@ import PageHeader from "../../../components/PageHeader";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import { useToast } from "../../../contexts/ToastContext";
 import {
-    approveWithdrawalRequest,
     getWithdrawalRequestDetails,
     getWithdrawalRequests,
     rejectWithdrawalRequest,
@@ -76,7 +75,7 @@ const WithdrawalRequests = () => {
     );
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [actionFeedback, setActionFeedback] = useState<{
-        type: "approved" | "rejected";
+        type: "rejected";
         message: string;
     } | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
@@ -109,6 +108,28 @@ const WithdrawalRequests = () => {
         };
 
     const requests = paginatedRequests.data || [];
+
+    // Aggregate withdrawal statistics from all requests (for summary display)
+    const withdrawalStats = useMemo(() => {
+        const all = allWithdrawalRequests.length > 0 ? allWithdrawalRequests : requests;
+        const initial = {
+            totalCount: 0,
+            totalAmount: 0,
+            pendingCount: 0,
+            approvedCount: 0,
+            rejectedCount: 0,
+        };
+
+        return all.reduce((acc, req) => {
+            acc.totalCount += 1;
+            acc.totalAmount += Number(req.amount || 0);
+            const status = (req.status || "").toLowerCase();
+            if (status === "pending") acc.pendingCount += 1;
+            else if (status === "approved") acc.approvedCount += 1;
+            else if (status === "rejected") acc.rejectedCount += 1;
+            return acc;
+        }, initial);
+    }, [allWithdrawalRequests, requests]);
 
     // Fetch all withdrawal requests for export
     useEffect(() => {
@@ -207,21 +228,6 @@ const WithdrawalRequests = () => {
         }
     }, [queryClient, selectedRequestId]);
 
-    const approveMutation = useMutation({
-        mutationFn: (requestId: number) => approveWithdrawalRequest(requestId),
-        onSuccess: () => {
-            showToast("Withdrawal request approved successfully", "success");
-            setActionFeedback({
-                type: "approved",
-                message: "This withdrawal request has been approved successfully.",
-            });
-            invalidateRequests();
-        },
-        onError: () => {
-            showToast("Failed to approve withdrawal request", "error");
-        },
-    });
-
     const rejectMutation = useMutation({
         mutationFn: (requestId: number) => rejectWithdrawalRequest(requestId),
         onSuccess: () => {
@@ -251,15 +257,45 @@ const WithdrawalRequests = () => {
         if (!detail) return true;
         const statusKey = detail.status?.toLowerCase?.();
         return (
-            approveMutation.isPending ||
             rejectMutation.isPending ||
             statusKey !== "pending"
         );
-    }, [detail, approveMutation.isPending, rejectMutation.isPending]);
+    }, [detail, rejectMutation.isPending]);
 
     return (
         <div className="p-3 sm:p-4 md:p-5">
             <PageHeader title="Withdrawal Requests" />
+
+            {/* Summary cards for withdrawal data */}
+            <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
+                    <div className="text-xs sm:text-sm text-gray-500">Total Withdrawals</div>
+                    <div className="mt-1 text-lg sm:text-2xl font-semibold text-gray-900">
+                        {formatCurrency(withdrawalStats.totalAmount)}
+                    </div>
+                    <div className="mt-1 text-xs sm:text-sm text-gray-500">
+                        {withdrawalStats.totalCount} requests
+                    </div>
+                </div>
+                <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
+                    <div className="text-xs sm:text-sm text-gray-500">Pending Requests</div>
+                    <div className="mt-1 text-lg sm:text-2xl font-semibold text-yellow-700">
+                        {withdrawalStats.pendingCount}
+                    </div>
+                </div>
+                <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
+                    <div className="text-xs sm:text-sm text-gray-500">Approved Requests</div>
+                    <div className="mt-1 text-lg sm:text-2xl font-semibold text-green-700">
+                        {withdrawalStats.approvedCount}
+                    </div>
+                </div>
+                <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
+                    <div className="text-xs sm:text-sm text-gray-500">Rejected Requests</div>
+                    <div className="mt-1 text-lg sm:text-2xl font-semibold text-red-700">
+                        {withdrawalStats.rejectedCount}
+                    </div>
+                </div>
+            </div>
 
             <div className="mt-4 sm:mt-6 bg-white rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 gap-3 sm:gap-0">
@@ -587,16 +623,6 @@ const WithdrawalRequests = () => {
                             >
                                 {rejectMutation.isPending ? "Rejecting..." : "Reject"}
                             </button>
-                            <button
-                                onClick={() =>
-                                    selectedRequestId &&
-                                    approveMutation.mutate(selectedRequestId)
-                                }
-                                disabled={actionButtonsDisabled}
-                                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors w-full sm:w-auto"
-                            >
-                                {approveMutation.isPending ? "Approving..." : "Approve"}
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -610,18 +636,13 @@ const WithdrawalRequests = () => {
                     />
                     <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full p-6 text-center space-y-4">
                         <div
-                            className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${actionFeedback.type === "approved"
-                                    ? "bg-green-100 text-green-600"
-                                    : "bg-red-100 text-red-600"
-                                }`}
+                            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600"
                         >
-                            {actionFeedback.type === "approved" ? "✓" : "✕"}
+                            ✕
                         </div>
                         <div>
                             <h4 className="text-lg font-semibold text-gray-900">
-                                {actionFeedback.type === "approved"
-                                    ? "Request Approved"
-                                    : "Request Rejected"}
+                                Request Rejected
                             </h4>
                             <p className="mt-1 text-sm text-gray-600">
                                 {actionFeedback.message}
@@ -639,10 +660,7 @@ const WithdrawalRequests = () => {
                                     setActionFeedback(null);
                                     handleCloseDetail();
                                 }}
-                                className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer transition-colors ${actionFeedback.type === "approved"
-                                        ? "bg-green-500 hover:bg-green-600 focus:ring-green-400"
-                                        : "bg-red-500 hover:bg-red-600 focus:ring-red-400"
-                                    }`}
+                                className="px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer transition-colors bg-red-500 hover:bg-red-600 focus:ring-red-400"
                             >
                                 Done
                             </button>

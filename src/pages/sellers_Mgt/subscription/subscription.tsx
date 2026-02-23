@@ -1,5 +1,7 @@
 import images from "../../../constants/images";
 import PageHeader from "../../../components/PageHeader";
+import DateFilter from "../../../components/DateFilter";
+import type { DateFilterState } from "../../../components/DateFilter";
 import { useState, useEffect, useRef, useMemo } from "react";
 import BulkActionDropdown from "../../../components/BulkActionDropdown";
 import SubscriptionTable from "./subscriptionTable";
@@ -61,25 +63,24 @@ const Subscription = () => {
   const [planFilter, setPlanFilter] = useState<string>("All");
   const debouncedPlanFilter = useDebouncedValue(planFilter, 450);
   
-  // Date period filter
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("All time");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
-  
-  // Date period options
-  const datePeriodOptions = [
-    "Today",
-    "This Week",
-    "Last Month",
-    "Last 6 Months",
-    "Last Year",
-    "All time",
-  ];
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    filterType: 'period',
+    period: 'All time',
+    dateFrom: null,
+    dateTo: null,
+  });
 
   // API data fetching
   const { data: subscriptionsData, isLoading, error } = useQuery({
-    queryKey: ['adminSubscriptions', activeTab, currentPage, selectedPeriod],
-    queryFn: () => getAdminSubscriptions(currentPage, activeTab === "All" ? undefined : activeTab, selectedPeriod),
+    queryKey: ['adminSubscriptions', activeTab, currentPage, dateFilter.period, dateFilter.dateFrom, dateFilter.dateTo],
+    queryFn: () => getAdminSubscriptions(
+      currentPage, 
+      activeTab === "All" ? undefined : activeTab,
+      dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+      dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined
+    ),
   });
 
   const { data: plansData } = useQuery({
@@ -209,49 +210,17 @@ const Subscription = () => {
     console.log("Bulk action selected in Orders:", action);
   };
   
-  // Handle local date dropdown toggle
-  const handleDateDropdownToggle = () => {
-    setIsDateDropdownOpen(!isDateDropdownOpen);
-  };
-  
-  // Handle local date period selection
-  const handleDatePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    setIsDateDropdownOpen(false);
+  // Handle date filter change
+  const handleDateFilterChange = (filter: DateFilterState) => {
+    setDateFilter(filter);
     setCurrentPage(1);
   };
-  
-  // Handle PageHeader period change
-  const handlePageHeaderPeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setCurrentPage(1);
-  };
-  
-  // Close date dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-
-    if (isDateDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDateDropdownOpen]);
 
 
   return (
     <div>
       <PageHeader 
         title="Subscriptions" 
-        defaultPeriod={selectedPeriod}
-        timeOptions={datePeriodOptions}
-        onPeriodChange={handlePageHeaderPeriodChange}
       />
 
       <div className="p-3 sm:p-4 md:p-5">
@@ -318,40 +287,27 @@ const Subscription = () => {
             <div className="overflow-x-auto w-full sm:w-auto">
               <TabButtons />
             </div>
-            <div className="relative" ref={dateDropdownRef}>
-              <div 
-                className="flex flex-row items-center gap-3 sm:gap-5 border border-[#989898] rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 bg-white cursor-pointer text-xs sm:text-sm hover:bg-gray-50 transition-colors"
-                onClick={handleDateDropdownToggle}
-              >
-                <div>{selectedPeriod}</div>
-                <img 
-                  className={`w-3 h-3 mt-1 transition-transform ${isDateDropdownOpen ? 'rotate-180' : ''}`} 
-                  src={images.dropdown} 
-                  alt="" 
-                />
-              </div>
-              {isDateDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-[#989898] py-2 w-44 z-50 shadow-lg">
-                  {datePeriodOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => handleDatePeriodSelect(option)}
-                      className={`px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedPeriod === option ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DateFilter
+              defaultFilterType={dateFilter.filterType}
+              defaultPeriod={dateFilter.period || 'All time'}
+              defaultDateFrom={dateFilter.dateFrom}
+              defaultDateTo={dateFilter.dateTo}
+              onFilterChange={handleDateFilterChange}
+            />
             <div>
-              <BulkActionDropdown 
-                onActionSelect={handleBulkActionSelect}
-                orders={subscriptions}
-                dataType="subscriptions"
-              />
+                <BulkActionDropdown 
+                  onActionSelect={handleBulkActionSelect}
+                  orders={subscriptions}
+                  dataType="subscriptions"
+                  exportConfig={{
+                    dataType: "subscriptions",
+                    status: activeTab !== "All" ? activeTab : undefined,
+                    period: dateFilter.filterType === 'period' ? dateFilter.period || undefined : undefined,
+                    dateFrom: dateFilter.filterType === 'custom' ? dateFilter.dateFrom || undefined : undefined,
+                    dateTo: dateFilter.filterType === 'custom' ? dateFilter.dateTo || undefined : undefined,
+                    search: debouncedSearch?.trim() || undefined,
+                  }}
+                />
             </div>
           </div>
 

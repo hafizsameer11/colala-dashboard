@@ -7,6 +7,7 @@ import { useToast } from "../../../../contexts/ToastContext";
 import { apiCall } from "../../../../utils/customApiCall";
 import { API_ENDPOINTS } from "../../../../config/apiConfig";
 import Cookies from "js-cookie";
+import { updateUserStatus } from "../../../../utils/queries/users";
 
 interface Admin {
   id: number;
@@ -17,6 +18,7 @@ interface Admin {
   profile_picture: string | null;
   role: "admin" | "moderator" | "super_admin";
   is_active: boolean | number; // API returns 1/0, but we'll convert to boolean
+  is_disabled?: boolean | number;
   wallet_balance: string;
   created_at: string;
 }
@@ -210,6 +212,35 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
     updateAdminMutation.mutate(formData);
   };
 
+  // Mutation to suspend/enable admin user
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ userId, isDisabled }: { userId: number; isDisabled: boolean }) => {
+      return await updateUserStatus(userId, {
+        status: isDisabled ? "inactive" : "active",
+        is_disabled: isDisabled,
+      });
+    },
+    onSuccess: (data, variables) => {
+      const action = variables.isDisabled ? "suspended" : "enabled";
+      showToast(`Admin ${action} successfully`, "success");
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      onAdminUpdated?.();
+    },
+    onError: (error: any) => {
+      console.error("Toggle status error:", error);
+      showToast(error?.message || "Failed to update admin status", "error");
+    },
+  });
+
+  const handleToggleSuspend = (user: Admin) => {
+    const currentDisabled = user.is_disabled === true || user.is_disabled === 1;
+    toggleStatusMutation.mutate({
+      userId: user.id,
+      isDisabled: !currentDisabled,
+    });
+  };
+
   return (
     <div className="border border-[#989898] rounded-2xl w-full mt-4 mb-4">
       <div className="bg-white p-5 rounded-t-2xl font-semibold text-[16px] border-b border-[#989898]">
@@ -284,14 +315,27 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                   <td className="p-4 text-black">{user.phone}</td>
                   <td className="p-4 text-black">{user.created_at}</td>
                   <td className="p-4">
-                    <div className="flex items-center justify-center">
-                      <div
-                        className={`w-5 h-5 rounded-full ${
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           user.is_active
-                            ? "bg-[#008000]"
-                            : "bg-red-500"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-700"
                         }`}
-                      />
+                      >
+                        {user.is_active ? "Active" : "Inactive"}
+                      </span>
+                      {typeof user.is_disabled !== "undefined" && (
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                            user.is_disabled
+                              ? "bg-red-100 text-red-700"
+                              : "bg-blue-50 text-blue-700"
+                          }`}
+                        >
+                          {user.is_disabled ? "Suspended" : "Enabled"}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-4">
@@ -316,10 +360,20 @@ const ManagementSettingTable: React.FC<ManagementSettingTableProps> = ({
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleUserDetails(user)}
-                        className="px-6 py-2.5 rounded-lg font-medium transition-colors cursor-pointer bg-[#E53E3E] text-white hover:bg-[#D32F2F]"
+                        onClick={() => handleToggleSuspend(user)}
+                        disabled={toggleStatusMutation.isPending}
+                        className={`px-6 py-2.5 rounded-lg font-medium transition-colors cursor-pointer ${
+                          user.is_disabled === true || user.is_disabled === 1
+                            ? "bg-green-600 text-white hover:bg-green-700"
+                            : "bg-orange-600 text-white hover:bg-orange-700"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        title={user.is_disabled === true || user.is_disabled === 1 ? "Enable Admin" : "Suspend Admin"}
                       >
-                        User Details
+                        {toggleStatusMutation.isPending
+                          ? "Loading..."
+                          : user.is_disabled === true || user.is_disabled === 1
+                          ? "Enable"
+                          : "Suspend"}
                       </button>
                     </div>
                   </td>

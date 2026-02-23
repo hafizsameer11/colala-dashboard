@@ -7,9 +7,7 @@ import RoleAccessModal from "../../../../components/roleAccessModal";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { useToast } from "../../../../contexts/ToastContext";
 import { assignUserRoles, getAllRoles } from "../../../../utils/queries/rbac";
-import { apiCall } from "../../../../utils/customApiCall";
-import { API_ENDPOINTS } from "../../../../config/apiConfig";
-import Cookies from "js-cookie";
+import { updateUserStatus } from "../../../../utils/queries/users";
 
 interface Admin {
   id: number;
@@ -19,6 +17,7 @@ interface Admin {
   profile_picture: string | null;
   role: "admin" | "moderator" | "super_admin";
   is_active: boolean;
+  is_disabled?: boolean | number;
   wallet_balance: string;
   created_at: string;
   user_name?: string;
@@ -112,6 +111,28 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
 
   const availableRoles = rolesData?.data || [];
 
+  // Suspend / enable admin mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (payload: { status: "active" | "inactive"; is_disabled: boolean }) => {
+      return await updateUserStatus(admin.id, payload);
+    },
+    onSuccess: (response) => {
+      showToast("Admin status updated successfully", "success");
+      const data = (response as any)?.data;
+      if (data) {
+        (admin as any).is_disabled = data.is_disabled;
+        (admin as any).is_active = data.status === "active";
+      }
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["userDetails", admin.id] });
+      setIsActionsDropdownOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("Update admin status error:", error);
+      showToast(error?.message || "Failed to update admin status", "error");
+    },
+  });
+
   // Mutation to update admin user
   const updateAdminMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -170,6 +191,17 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
     formData.append("phone", editFormData.phone);
     formData.append("role", editFormData.role);
     updateAdminMutation.mutate(formData);
+  };
+
+  const handleToggleSuspend = () => {
+    const currentlyDisabled = Boolean(admin.is_disabled);
+    const nextDisabled = !currentlyDisabled;
+    const nextStatus: "active" | "inactive" = nextDisabled ? "inactive" : "active";
+
+    toggleStatusMutation.mutate({
+      status: nextStatus,
+      is_disabled: nextDisabled,
+    });
   };
 
   const handleBulkActionSelect = (action: string) => {
@@ -320,12 +352,31 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
                 </div>
 
                 {/* Account Creation */}
-                <div>
-                  <div className="text-sm text-[#FFFFFF80] opacity-90 mb-4">
-                    Account Creation
+                <div className="flex gap-8">
+                  <div>
+                    <div className="text-sm text-[#FFFFFF80] opacity-90 mb-4">
+                      Account Creation
+                    </div>
+                    <div className="font-xs text-[14px]">
+                      {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : "N/A"}
+                    </div>
                   </div>
-                  <div className="font-xs text-[14px]">
-                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : "N/A"}
+                  <div>
+                    <div className="text-sm text-[#FFFFFF80] opacity-90 mb-4">
+                      Status
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
+                        {admin.is_active ? "Active" : "Inactive"}
+                      </span>
+                      {typeof admin.is_disabled !== "undefined" && (
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                          admin.is_disabled ? "bg-red-500/70" : "bg-green-500/70"
+                        }`}>
+                          {admin.is_disabled ? "Suspended" : "Enabled"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -382,13 +433,16 @@ const AdminDetail: React.FC<AdminDetailProps> = ({
                         Manage Roles
                       </button>
                     )}
-                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2">
+                    <button 
+                      onClick={handleToggleSuspend}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
+                    >
                       <img
                         src="/public/assets/layout/block.svg"
-                        alt="Block"
+                        alt="Suspend"
                         className="w-4 h-4"
                       />
-                      Block User
+                      {admin.is_disabled ? "Enable Admin" : "Suspend Admin"}
                     </button>
                     <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 last:rounded-b-lg">
                       <img

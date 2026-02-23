@@ -287,6 +287,13 @@ const Chats: React.FC<ChatsProps> = ({ userId, selectedChatId, onChatOpened, sel
               selectedOrders={selectedChats}
               orders={filteredChats}
               dataType="chats"
+              exportConfig={{
+                dataType: "chats",
+                userId: userId,
+                status: activeTab !== "All" ? activeTab : undefined,
+                period: selectedPeriod !== "All time" ? selectedPeriod : undefined,
+                search: debouncedQuery?.trim() || undefined,
+              }}
             />
           </div>
         </div>
