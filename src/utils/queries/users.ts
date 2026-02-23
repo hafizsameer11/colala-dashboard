@@ -1331,6 +1331,24 @@ export const getAdminServices = async (page: number = 1, status?: string, search
 };
 
 /**
+ * Get services for a specific seller/store
+ */
+export const getSellerServices = async (userId: number | string, page: number = 1) => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  try {
+    const url = `${API_ENDPOINTS.SELLER_SERVICES.List(userId)}?page=${page}`;
+    const response = await apiCall(url, 'GET', undefined, token);
+    return response;
+  } catch (error) {
+    console.error('Seller services API call error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get admin service details
  */
 export const getAdminServiceDetails = async (serviceId: number | string) => {

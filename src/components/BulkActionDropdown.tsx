@@ -8,6 +8,7 @@ interface User {
   id: string | number;
   full_name?: string;
   userName?: string;
+  user_name?: string;
   email?: string;
   phone?: string;
   phoneNumber?: string;
@@ -16,8 +17,54 @@ interface User {
   walletBalance?: string;
   created_at?: string;
   createdAt?: string;
-  is_active?: boolean;
+  updated_at?: string;
+  is_active?: boolean | number;
   isActive?: boolean;
+  is_disabled?: boolean;
+  country?: string;
+  state?: string;
+  user_code?: string;
+  referral_code?: string;
+  plan?: string;
+  otp_verified?: number | boolean;
+  email_verified_at?: string;
+  last_seen_at?: string;
+  last_login?: string;
+  visibility?: number;
+  status?: string;
+  store_id?: number | string;
+  store_count?: number;
+  total_orders?: number;
+  total_revenue?: number;
+  store?: {
+    id?: number;
+    store_name?: string;
+    store_email?: string;
+    store_phone?: string;
+    store_location?: string;
+    status?: string;
+    onboarding_status?: string;
+    onboarding_level?: number;
+    onboarding_percent?: number;
+    category_id?: number;
+    average_rating?: number;
+  };
+  wallet?: {
+    shopping_balance?: number;
+    reward_balance?: number;
+    referral_balance?: number;
+    ad_credit?: number;
+    loyality_points?: number;
+  };
+  subscription?: {
+    plan_name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    price?: string;
+    currency?: string;
+    duration_days?: number;
+  } | null;
 }
 
 interface Order {
@@ -27,14 +74,28 @@ interface Order {
   storeName?: string;
   buyer_name?: string;
   buyerName?: string;
+  buyer_email?: string;
+  buyer_phone?: string;
+  seller_name?: string;
+  sellerName?: string;
   product_name?: string;
   productName?: string;
   price?: string;
+  total_amount?: string | number;
+  quantity?: number;
+  payment_method?: string;
+  payment_status?: string;
+  delivery_status?: string;
+  delivery_address?: string;
   order_date?: string;
   orderDate?: string;
+  created_at?: string;
+  updated_at?: string;
   status?: string;
   status_color?: string;
   statusColor?: string;
+  tracking_number?: string;
+  notes?: string;
 }
 
 interface Chat {
@@ -140,9 +201,38 @@ interface Store {
   orders_count?: number;
   products_count?: number;
   total_revenue?: number;
+  total_orders?: number;
   average_rating?: number;
   store_location?: string;
+  storeLocation?: string;
   position?: number;
+  store_count?: number;
+  storeCount?: number;
+  onboarding_status?: string;
+  onboarding_level?: number;
+  onboarding_percent?: number;
+  category_id?: number;
+  last_login?: string;
+  lastLogin?: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  phoneNumber?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  subscriptionEndDate?: string;
+  subscriptionStartDate?: string;
+  subscriptionPrice?: string;
+  subscriptionCurrency?: string;
+  subscription?: {
+    plan_name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    price?: string;
+    currency?: string;
+    duration_days?: number;
+  } | null;
 }
 
 interface Subscription {
@@ -471,16 +561,69 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
     let csvData: Record<string, string | number>[];
     
     if (dataType === 'users') {
-      csvData = (dataToExport as User[]).map((user) => ({
-        'User ID': user.id,
-        'Full Name': user.full_name || user.userName || 'N/A',
-        'Email': user.email || 'N/A',
-        'Phone': user.phone || user.phoneNumber || 'N/A',
-        'Role': user.role || 'N/A',
-        'Wallet Balance': user.wallet_balance || user.walletBalance || 'N/A',
-        'Created At': user.created_at || user.createdAt || 'N/A',
-        'Status': (user.is_active !== undefined ? user.is_active : user.isActive) ? 'Active' : 'Inactive'
-      }));
+      csvData = (dataToExport as User[]).map((user) => {
+        const isActive = user.is_active !== undefined ? (user.is_active === 1 || user.is_active === true) : (user.isActive ?? true);
+        const statusValue = user.status
+          ? user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase()
+          : (isActive ? 'Active' : 'Inactive');
+
+        const result: Record<string, string | number> = {
+          'User ID': user.id,
+          'Full Name': user.full_name || user.userName || 'N/A',
+          'Username': user.user_name || 'N/A',
+          'Email': user.email || 'N/A',
+          'Phone': user.phone || user.phoneNumber || 'N/A',
+          'Role': user.role || 'N/A',
+          'Status': statusValue,
+          'Plan': user.plan || 'N/A',
+          'Country': user.country || 'N/A',
+          'State': user.state || 'N/A',
+          'User Code': user.user_code || 'N/A',
+          'Referral Code': user.referral_code || 'N/A',
+          'OTP Verified': (user.otp_verified === 1 || user.otp_verified === true) ? 'Yes' : 'No',
+          'Email Verified': user.email_verified_at || 'No',
+          'Is Disabled': user.is_disabled ? 'Yes' : 'No',
+          'Wallet Balance': user.wallet_balance || user.walletBalance || 'N/A',
+        };
+
+        if (user.wallet) {
+          result['Shopping Balance'] = user.wallet.shopping_balance ?? 0;
+          result['Reward Balance'] = user.wallet.reward_balance ?? 0;
+          result['Referral Balance'] = user.wallet.referral_balance ?? 0;
+          result['Ad Credit'] = user.wallet.ad_credit ?? 0;
+          result['Loyalty Points'] = user.wallet.loyality_points ?? 0;
+        }
+
+        if (user.store) {
+          result['Store Name'] = user.store.store_name || 'N/A';
+          result['Store Email'] = user.store.store_email || 'N/A';
+          result['Store Phone'] = user.store.store_phone || 'N/A';
+          result['Store Location'] = user.store.store_location || 'N/A';
+          result['Store Status'] = user.store.status || 'N/A';
+          result['Onboarding Status'] = user.store.onboarding_status || 'N/A';
+          result['Onboarding Level'] = user.store.onboarding_level ?? 'N/A';
+          result['Onboarding Percent'] = user.store.onboarding_percent ?? 'N/A';
+          result['Store Average Rating'] = user.store.average_rating ?? 'N/A';
+        }
+
+        if (user.subscription) {
+          result['Subscription Plan'] = user.subscription.plan_name || 'N/A';
+          result['Subscription Status'] = user.subscription.status || 'N/A';
+          result['Subscription Start'] = user.subscription.start_date || 'N/A';
+          result['Subscription End'] = user.subscription.end_date || 'N/A';
+          result['Subscription Price'] = user.subscription.price || 'N/A';
+          result['Subscription Currency'] = user.subscription.currency || 'N/A';
+        }
+
+        result['Total Orders'] = user.total_orders ?? 'N/A';
+        result['Total Revenue'] = user.total_revenue ?? 'N/A';
+        result['Store Count'] = user.store_count ?? 'N/A';
+        result['Last Seen'] = user.last_seen_at || user.last_login || 'N/A';
+        result['Created At'] = user.created_at || user.createdAt || 'N/A';
+        result['Updated At'] = user.updated_at || 'N/A';
+
+        return result;
+      });
     } else if (dataType === 'chats') {
       csvData = (dataToExport as Chat[]).map((chat) => ({
         'Chat ID': chat.id,
@@ -601,25 +744,52 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
       });
     } else if (dataType === 'stores') {
       csvData = (dataToExport as Store[]).map((store) => {
-        // Format date properly
         const dateValue = store.formatted_date || store.submission_date || store.submissionDate || store.created_at || 'N/A';
-
-        // Format status with proper capitalization
         const statusValue = store.status 
           ? store.status.charAt(0).toUpperCase() + store.status.slice(1).toLowerCase()
           : 'N/A';
 
+        let revenueValue = 'N/A';
+        if (store.total_revenue !== undefined && store.total_revenue !== null) {
+          revenueValue = `₦${Number(store.total_revenue).toLocaleString()}`;
+        }
+
+        const sub = store.subscription;
+        const subPlan = store.subscriptionPlan || sub?.plan_name || 'N/A';
+        const subStatus = store.subscriptionStatus || sub?.status || 'N/A';
+        const subEnd = store.subscriptionEndDate || sub?.end_date || 'N/A';
+        const subStart = store.subscriptionStartDate || sub?.start_date || 'N/A';
+        const subPrice = store.subscriptionPrice || sub?.price || 'N/A';
+        const subCurrency = store.subscriptionCurrency || sub?.currency || 'N/A';
+
         return {
-          'Store ID': store.id,
+          'Store ID': store.store_id || store.id,
           'Store Name': store.store_name || store.storeName || 'N/A',
-          'Store Email': store.store_email || store.storeEmail || 'N/A',
-          'Store Phone': store.store_phone || store.storePhone || 'N/A',
-          'Owner Name': store.owner_name || store.ownerName || 'N/A',
+          'Seller/Owner Name': store.full_name || store.seller_name || store.owner_name || store.ownerName || 'N/A',
+          'Store Email': store.store_email || store.storeEmail || store.email || 'N/A',
+          'Store Phone': store.store_phone || store.storePhone || store.phone || store.phoneNumber || 'N/A',
           'Owner Email': store.owner_email || store.ownerEmail || 'N/A',
           'Owner Phone': store.owner_phone || store.ownerPhone || 'N/A',
+          'Store Location': store.store_location || store.storeLocation || 'N/A',
           'Level': store.level || 'N/A',
           'Status': statusValue,
-          'Submission Date': dateValue
+          'Total Orders': store.total_orders ?? store.orders_count ?? 'N/A',
+          'Total Revenue': revenueValue,
+          'Store Count': store.store_count ?? store.storeCount ?? 'N/A',
+          'Products Count': store.products_count ?? 'N/A',
+          'Followers Count': store.followers_count ?? 'N/A',
+          'Average Rating': store.average_rating ?? 'N/A',
+          'Total Points': store.total_points ?? 'N/A',
+          'Onboarding Status': store.onboarding_status || 'N/A',
+          'Onboarding Level': store.onboarding_level ?? 'N/A',
+          'Subscription Plan': subPlan,
+          'Subscription Status': subStatus,
+          'Subscription Start': subStart,
+          'Subscription End': subEnd,
+          'Subscription Price': subPrice,
+          'Subscription Currency': subCurrency,
+          'Last Login': store.last_login || store.lastLogin || 'N/A',
+          'Created Date': dateValue,
         };
       });
     } else if (dataType === 'leaderboard') {
@@ -924,15 +1094,40 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         };
       });
     } else {
-      csvData = (dataToExport as Order[]).map((order) => ({
-        'Order ID': order.id,
-        'Store Name': order.store_name || order.storeName || 'N/A',
-        'Buyer Name': order.buyer_name || order.buyerName || 'N/A',
-        'Product Name': order.product_name || order.productName || 'N/A',
-        'Price': order.price || 'N/A',
-        'Order Date': order.order_date || order.orderDate || 'N/A',
-        'Status': order.status || 'N/A'
-      }));
+      csvData = (dataToExport as Order[]).map((order) => {
+        const dateValue = order.order_date || order.orderDate || order.created_at || 'N/A';
+        const statusValue = order.status 
+          ? order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()
+          : 'N/A';
+
+        let totalValue = 'N/A';
+        if (order.total_amount !== undefined && order.total_amount !== null) {
+          totalValue = typeof order.total_amount === 'number' ? `₦${order.total_amount.toLocaleString()}` : String(order.total_amount);
+        }
+
+        return {
+          'Order ID': order.id,
+          'Order No': order.order_no || 'N/A',
+          'Store Name': order.store_name || order.storeName || 'N/A',
+          'Seller Name': order.seller_name || order.sellerName || 'N/A',
+          'Buyer Name': order.buyer_name || order.buyerName || 'N/A',
+          'Buyer Email': order.buyer_email || 'N/A',
+          'Buyer Phone': order.buyer_phone || 'N/A',
+          'Product Name': order.product_name || order.productName || 'N/A',
+          'Price': order.price || 'N/A',
+          'Total Amount': totalValue,
+          'Quantity': order.quantity ?? 'N/A',
+          'Payment Method': order.payment_method || 'N/A',
+          'Payment Status': order.payment_status || 'N/A',
+          'Delivery Status': order.delivery_status || 'N/A',
+          'Delivery Address': order.delivery_address || 'N/A',
+          'Tracking Number': order.tracking_number || 'N/A',
+          'Status': statusValue,
+          'Order Date': dateValue,
+          'Updated At': order.updated_at || 'N/A',
+          'Notes': order.notes || 'N/A',
+        };
+      });
     }
 
     const csv = Papa.unparse(csvData);
@@ -967,16 +1162,28 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
     let headers;
     
     if (dataType === 'users') {
-      headers = ['User ID', 'Full Name', 'Email', 'Phone', 'Role', 'Wallet Balance', 'Status'];
-      tableData = (dataToExport as User[]).map((user) => [
-        String(user.id),
-        user.full_name || user.userName || 'N/A',
-        user.email || 'N/A',
-        user.phone || user.phoneNumber || 'N/A',
-        user.role || 'N/A',
-        user.wallet_balance || user.walletBalance || 'N/A',
-        (user.is_active !== undefined ? user.is_active : user.isActive) ? 'Active' : 'Inactive'
-      ]);
+      headers = ['ID', 'Full Name', 'Email', 'Phone', 'Role', 'Plan', 'Country', 'State', 'Status', 'Store Name', 'Store Location', 'Subscription', 'Created At'];
+      tableData = (dataToExport as User[]).map((user) => {
+        const isActive = user.is_active !== undefined ? (user.is_active === 1 || user.is_active === true) : (user.isActive ?? true);
+        const statusValue = user.status
+          ? user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase()
+          : (isActive ? 'Active' : 'Inactive');
+        return [
+          String(user.id),
+          user.full_name || user.userName || 'N/A',
+          user.email || 'N/A',
+          user.phone || user.phoneNumber || 'N/A',
+          user.role || 'N/A',
+          user.plan || 'N/A',
+          user.country || 'N/A',
+          user.state || 'N/A',
+          statusValue,
+          user.store?.store_name || 'N/A',
+          user.store?.store_location || 'N/A',
+          user.subscription?.plan_name || 'N/A',
+          user.created_at || user.createdAt || 'N/A',
+        ];
+      });
     } else if (dataType === 'chats') {
       headers = ['Chat ID', 'Store Name', 'User Name', 'Last Message', 'Chat Date', 'Is Read', 'Is Dispute'];
       tableData = (dataToExport as Chat[]).map((chat) => [
@@ -1097,26 +1304,32 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         ];
       });
     } else if (dataType === 'stores') {
-      headers = ['Store ID', 'Store Name', 'Store Email', 'Store Phone', 'Owner Name', 'Owner Email', 'Owner Phone', 'Level', 'Status', 'Submission Date'];
+      headers = ['ID', 'Store Name', 'Owner', 'Email', 'Phone', 'Location', 'Level', 'Status', 'Orders', 'Revenue', 'Rating', 'Subscription', 'Created'];
       tableData = (dataToExport as Store[]).map((store) => {
-        // Format date properly
         const dateValue = store.formatted_date || store.submission_date || store.submissionDate || store.created_at || 'N/A';
-
-        // Format status with proper capitalization
         const statusValue = store.status 
           ? store.status.charAt(0).toUpperCase() + store.status.slice(1).toLowerCase()
           : 'N/A';
+        let revenueValue = 'N/A';
+        if (store.total_revenue !== undefined && store.total_revenue !== null) {
+          revenueValue = `₦${Number(store.total_revenue).toLocaleString()}`;
+        }
+        const sub = store.subscription;
+        const subPlan = store.subscriptionPlan || sub?.plan_name || 'N/A';
 
         return [
-          String(store.id),
+          String(store.store_id || store.id),
           store.store_name || store.storeName || 'N/A',
-          store.store_email || store.storeEmail || 'N/A',
-          store.store_phone || store.storePhone || 'N/A',
-          store.owner_name || store.ownerName || 'N/A',
-          store.owner_email || store.ownerEmail || 'N/A',
-          store.owner_phone || store.ownerPhone || 'N/A',
+          store.full_name || store.seller_name || store.owner_name || store.ownerName || 'N/A',
+          store.store_email || store.storeEmail || store.email || 'N/A',
+          store.store_phone || store.storePhone || store.phone || store.phoneNumber || 'N/A',
+          store.store_location || store.storeLocation || 'N/A',
           String(store.level || 'N/A'),
           statusValue,
+          String(store.total_orders ?? store.orders_count ?? 'N/A'),
+          revenueValue,
+          String(store.average_rating ?? 'N/A'),
+          subPlan,
           dateValue
         ];
       });
@@ -1446,16 +1659,27 @@ const BulkActionDropdown: React.FC<BulkActionDropdownProps> = ({
         ];
       });
     } else {
-      headers = ['Order ID', 'Store Name', 'Buyer Name', 'Product Name', 'Price', 'Order Date', 'Status'];
-      tableData = (dataToExport as Order[]).map((order) => [
-        String(order.id),
-        order.store_name || order.storeName || 'N/A',
-        order.buyer_name || order.buyerName || 'N/A',
-        order.product_name || order.productName || 'N/A',
-        order.price || 'N/A',
-        order.order_date || order.orderDate || 'N/A',
-        order.status || 'N/A'
-      ]);
+      headers = ['Order ID', 'Order No', 'Store Name', 'Buyer Name', 'Buyer Email', 'Product Name', 'Price', 'Quantity', 'Payment', 'Delivery Status', 'Status', 'Order Date'];
+      tableData = (dataToExport as Order[]).map((order) => {
+        const dateValue = order.order_date || order.orderDate || order.created_at || 'N/A';
+        const statusValue = order.status 
+          ? order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()
+          : 'N/A';
+        return [
+          String(order.id),
+          String(order.order_no || 'N/A'),
+          order.store_name || order.storeName || 'N/A',
+          order.buyer_name || order.buyerName || 'N/A',
+          order.buyer_email || 'N/A',
+          order.product_name || order.productName || 'N/A',
+          order.price || 'N/A',
+          String(order.quantity ?? 'N/A'),
+          order.payment_method || 'N/A',
+          order.delivery_status || 'N/A',
+          statusValue,
+          dateValue,
+        ];
+      });
     }
 
     // Add table using autoTable

@@ -6,12 +6,19 @@ interface Order {
   id: string | number;
   order_no?: string;
   store_name?: string;
+  buyer_name?: string;
   product_name?: string;
   price?: string;
   order_date?: string;
   status?: string;
   status_color?: string;
   // Nested structure support
+  buyer?: {
+    name?: string;
+    id?: number;
+    email?: string;
+    phone?: string;
+  };
   store?: {
     name?: string;
     id?: number;
@@ -27,6 +34,7 @@ interface Order {
   storeName?: string;
   productName?: string;
   orderDate?: string;
+  buyerName?: string;
 }
 
 interface LatestOrdersProps {
@@ -101,6 +109,14 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     // Structure 2: Basic order from recent_orders (only has payment_status)
     // Structure 3: Nested structure with store/product objects
     
+    // Extract buyer name from various possible locations
+    const buyerName =
+      orderObj.buyer?.name ||
+      orderObj.buyer_name ||
+      orderObj.customer_name ||
+      orderObj.store_order?.buyer?.name ||
+      'Unknown Customer';
+
     // Extract store name from various possible locations
     const storeName = 
       orderObj.store_order?.store?.name ||
@@ -155,14 +171,15 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
     return {
       id: orderObj.id || orderObj.store_order?.id || 'N/A',
       order_no: orderObj.order_no || orderObj.order_number || orderObj.store_order?.order?.order_no || 'N/A',
+      buyer_name: buyerName,
       store_name: storeName,
       product_name: productName,
       price: price,
       order_date: orderDate,
       status: status,
       status_color: statusColor,
-      // Legacy fields for backward compatibility
       storeName: storeName,
+      buyerName: buyerName,
       productName: productName,
       orderDate: orderDate,
     };
@@ -321,7 +338,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                   className="w-5 h-5"
                 />
               </th>
-              <th className="p-3 text-left font-semibold">Store Name</th>
+              <th className="p-3 text-left font-semibold">Customer Name</th>
               <th className="p-3 text-left font-semibold">Product Name</th>
               <th className="p-3 text-center font-semibold">Price</th>
               <th className="p-3 text-center font-semibold">Order Date</th>
@@ -358,7 +375,7 @@ const LatestOrders: React.FC<LatestOrdersProps> = ({
                       className="w-5 h-5"
                     />
                   </td>
-                  <td className="p-3 text-left">{order.store_name}</td>
+                  <td className="p-3 text-left">{order.buyer_name}</td>
                   <td className="p-3 text-left">{order.product_name}</td>
                   <td className="p-3 font-bold">{formatCurrency(order.price)}</td>
                   <td className="p-3">{order.order_date}</td>
